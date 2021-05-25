@@ -1,4 +1,4 @@
-@file:Suppress("LocalVariableName")
+@file:Suppress("LocalVariableName", "SpellCheckingInspection")
 
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.5.10"
@@ -24,8 +24,20 @@ dependencies {
     val junit5_version = "5.7.2"
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5_version")
 
+    // MockK
+    val mockk_version = "1.11.0"
+    testImplementation("io.mockk:mockk:$mockk_version")
+
+    // AssertK
+    val assertk_version = "0.24"
+    implementation("com.willowtreeapps.assertk:assertk:$assertk_version")
+
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 
 
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
