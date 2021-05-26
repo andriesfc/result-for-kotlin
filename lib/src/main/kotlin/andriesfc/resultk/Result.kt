@@ -24,6 +24,10 @@ fun <E> Result<E, *>.getErrorOrNull(): E? {
     }
 }
 
+inline fun <E,T> T.resultOf(action:T.() -> Result<E,T>): Result<E, T> {
+    return action.invoke(this)
+}
+
 inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
     return try {
         action()
@@ -55,12 +59,12 @@ class ValueNotPresentException(message: String) : NoSuchElementException(message
 
 fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
-infix fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
+fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
     if (this is Result.Success) process(value)
     return this
 }
 
-infix fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> T): Result<E, T> {
+fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> T): Result<E, T> {
     if (this is Result.Failure) processFailure(error)
     return this
 }
