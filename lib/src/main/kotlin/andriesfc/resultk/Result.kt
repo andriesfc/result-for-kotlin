@@ -1,17 +1,23 @@
 package andriesfc.resultk
 
-import java.util.Optional
-import kotlin.NoSuchElementException
+import java.util.*
 
 sealed class Result<out E, out T> {
-    data class Success<T>(val value: T) : Result<Nothing, T>()
+    data class Success<T>(val value: T) : Result<Nothing, T>(), Get<T> {
+        override fun get(): T = value
+    }
+
     data class Failure<E>(val error: E) : Result<E, Nothing>()
 }
 
-fun <E,T> T.result(): Result<E, T> = Result.Success(this)
-fun <E,T> E.failure(): Result<E, T> = Result.Failure(this)
+fun interface Get<out T> {
+    fun get(): T
+}
 
-fun <E> Result<E,*>.getErrorOrNull():E? {
+fun <E, T> T.result(): Result<E, T> = Result.Success(this)
+fun <E, T> E.failure(): Result<E, T> = Result.Failure(this)
+
+fun <E> Result<E, *>.getErrorOrNull(): E? {
     return when (this) {
         is Result.Failure -> error
         else -> null
@@ -70,24 +76,37 @@ fun <T> Result<*, T>.toOptional(): Optional<T> {
     return fold({ Optional.empty() }) { Optional.ofNullable(it) }
 }
 
-operator fun <T> Result<*, T>.component1(): () -> T = this::get
+operator fun <T> Result<*, T>.component1(): Get<T> = when (this) {
+    is Result.Failure -> Get {
+        when (error) {
+            is Throwable -> throw error
+            else -> throw ValueNotPresentException("Expected value, but found: $error")
+        }
+    }
+    is Result.Success -> this
+}
+
 operator fun <E> Result<E, *>.component2(): E? = fold({ it }, { null })
 
-fun <E,T> Result<E, T>.swap(): Result<T, E> {
+fun <E, T> Result<E, T>.swap(): Result<T, E> {
     return fold({ it.result() }, { it.failure() })
 }
 
-inline fun <E,T,R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
+inline fun <E, T, R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     return when (this) {
         is Result.Failure -> this
         is Result.Success -> mapValue(value).result()
     }
 }
 
-inline fun <E,T,R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
+inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
     return when (this) {
         is Result.Failure -> mapError(error).failure()
         is Result.Success -> this
     }
+}
+
+fun <E, T> Result<E, T>.transpose(): Result<T, E> {
+    return fold({ e -> e.result() }, { t -> t.failure() })
 }
 

@@ -2,15 +2,23 @@ package andriesfc.resultk
 
 import assertk.all
 import assertk.assertThat
-import assertk.assertions.*
+import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotNull
+import assertk.assertions.isSuccess
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import java.io.EOFException
 import java.io.IOException
+import java.net.SocketException
 import java.util.UUID.randomUUID
-import kotlin.test.assertTrue
+import kotlin.test.assertNotNull
 
 
 @ExtendWith(MockKExtension::class)
@@ -26,25 +34,20 @@ internal class ResultDemo {
 
         @Test
         fun handle_error_explicit() {
-            whenReadTextReportIOExceptionToCaller()
-            val (get, e) = textReader.readText()
-            assertThat(e).isNotNull()
-            assertTrue { e is IOException }
-            assertThrows<IOException> { get() }
+            whenReadTextReportIOExceptionToCaller("kaboom")
+            val (text, e) = textReader.readText()
+            assertNotNull(e)
+            assertThat(e).isInstanceOf(IOException::class.java)
+            assertThat(e.message).isEqualTo("kaboom")
+            val thrown = assertThrows<IOException>(text::get)
+            assertThat(thrown::message).isEqualTo("kaboom")
         }
 
         @Test
         fun handle_error_with_try_catch() {
-            whenReadTextReportIOExceptionToCaller()
-            var caught: IOException? = null
-            try {
-                val (get) = textReader.readText()
-                get()
-            } catch (e: IOException) {
-                caught = e
-            }
-
-            assertThat(caught).isNotNull()
+            whenReadTextReportIOExceptionToCaller("bang!")
+            val thrown = assertThrows<IOException> { textReader.readText().get() }
+            assertThat(thrown::message).isEqualTo("bang!")
         }
 
         @Test
@@ -60,8 +63,8 @@ internal class ResultDemo {
         every { textReader.readText() }.returns(expectedText.result())
     }
 
-    private fun whenReadTextReportIOExceptionToCaller() {
-        every { textReader.readText() }.returns(IOException().failure())
+    private fun whenReadTextReportIOExceptionToCaller(message: String? = null) {
+        every { textReader.readText() }.returns((message?.let(::IOException) ?: IOException()).failure())
     }
 
     @Nested
@@ -118,7 +121,7 @@ internal class ResultDemo {
         @Test
         fun map_then_fold() {
             whenReadTextReturnWith("101")
-            val i = textReader.readText().map { it.toInt() }.fold({0},{it})
+            val i = textReader.readText().map { it.toInt() }.fold({ 0 }, { it })
             assertThat(i).isEqualTo(101)
         }
 
@@ -126,7 +129,7 @@ internal class ResultDemo {
         fun fold() {
             val expected = 101
             whenReadTextReturnWith("$expected")
-            val actual = textReader.readText().fold({0},{it.toInt()})
+            val actual = textReader.readText().fold({ 0 }, { it.toInt() })
             assertThat(actual).isEqualTo(expected)
         }
 
@@ -134,9 +137,43 @@ internal class ResultDemo {
         fun fold_failure() {
             whenReadTextReportIOExceptionToCaller()
             val errorIndicator = -1
-            val actual = textReader.readText().fold({errorIndicator},{it.toInt()})
+            val actual = textReader.readText().fold({ errorIndicator }, { it.toInt() })
             assertThat(actual).isEqualTo(errorIndicator)
+        }
 
+        @Test
+        fun map_value() {
+            val expected = 6071
+            whenReadTextReturnWith("$expected")
+            val (n, _) = textReader.readText().map { it.toInt() }
+            assertThat(n.get()).isEqualTo(expected)
+        }
+
+        @Test
+        fun map_IOException_to_enum() {
+            whenReadTextReportIOExceptionToCaller("bang!")
+            val (_, error) = textReader.readText().mapFailure { ErrorCode.of(it) }
+            assertNotNull(error)
+            val (e,code) = error
+            assertThat(e).isInstanceOf(IOException::class.java)
+            assertThat(e.message).isEqualTo("bang!")
+            assertThat(code).isEqualTo(ErrorCode.GeneralIOError)
+        }
+
+    }
+
+    private enum class ErrorCode {
+        EndOfFile,
+        GeneralIOError,
+        RemoteException;
+        companion object {
+            fun of(e: IOException): Pair<IOException, ErrorCode> {
+                return e to when (e) {
+                    is SocketException -> RemoteException
+                    is EOFException -> EndOfFile
+                    else -> GeneralIOError
+                }
+            }
         }
     }
 
