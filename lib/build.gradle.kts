@@ -23,6 +23,7 @@ dependencies {
     // JUnit5
     val junit5_version = "5.7.2"
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5_version")
+    testImplementation("org_junit_jupiter:junit_jupiter_params:$junit5_version")
 
     // MockK
     val mockk_version = "1.11.0"
