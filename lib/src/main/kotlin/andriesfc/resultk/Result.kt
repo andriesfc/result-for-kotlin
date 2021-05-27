@@ -14,7 +14,7 @@ fun interface Get<out T> {
     fun get(): T
 }
 
-fun <E, T> T.result(): Result<E, T> = Result.Success(this)
+fun <E, T> T.success(): Result<E, T> = Result.Success(this)
 fun <E, T> E.failure(): Result<E, T> = Result.Failure(this)
 
 fun <E> Result<E, *>.getErrorOrNull(): E? {
@@ -24,9 +24,10 @@ fun <E> Result<E, *>.getErrorOrNull(): E? {
     }
 }
 
-inline fun <E,T> T.resultOf(action:T.() -> Result<E,T>): Result<E, T> {
-    return action.invoke(this)
+inline fun <T, reified E, R> T.letResult(compute: T.() -> Result<E, R>): Result<E, R> {
+    return resultOf { compute() }
 }
+
 
 inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
     return try {
@@ -50,12 +51,12 @@ fun <T> Result<*, T>.get(): T {
     return getOr { e ->
         when (e) {
             is Throwable -> throw e
-            else -> throw ValueNotPresentException("Expected value, but found $e instead.")
+            else -> throw NoThrowableFailureException("Expected value, but found $e instead.", e)
         }
     }
 }
 
-class ValueNotPresentException(message: String) : NoSuchElementException(message)
+class NoThrowableFailureException(message: String, val failure: Any?) : IllegalStateException(message)
 
 fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
@@ -77,14 +78,17 @@ inline fun <E, T, R> Result<E, T>.fold(mapError: (E) -> R, mapValue: (T) -> R): 
 }
 
 fun <T> Result<*, T>.toOptional(): Optional<T> {
-    return fold({ Optional.empty() }) { Optional.ofNullable(it) }
+    return when (this) {
+        is Result.Failure -> Optional.empty()
+        is Result.Success -> Optional.ofNullable(get())
+    }
 }
 
 operator fun <T> Result<*, T>.component1(): Get<T> = when (this) {
     is Result.Failure -> Get {
         when (error) {
             is Throwable -> throw error
-            else -> throw ValueNotPresentException("Expected value, but found: $error")
+            else -> throw NoThrowableFailureException("Expected success, but found error instead: $error", error)
         }
     }
     is Result.Success -> this
@@ -92,14 +96,10 @@ operator fun <T> Result<*, T>.component1(): Get<T> = when (this) {
 
 operator fun <E> Result<E, *>.component2(): E? = fold({ it }, { null })
 
-fun <E, T> Result<E, T>.swap(): Result<T, E> {
-    return fold({ it.result() }, { it.failure() })
-}
-
 inline fun <E, T, R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     return when (this) {
         is Result.Failure -> this
-        is Result.Success -> mapValue(value).result()
+        is Result.Success -> mapValue(value).success()
     }
 }
 
@@ -111,6 +111,15 @@ inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
 }
 
 fun <E, T> Result<E, T>.transpose(): Result<T, E> {
-    return fold({ e -> e.result() }, { t -> t.failure() })
+    return when (this) {
+        is Result.Failure -> error.success()
+        is Result.Success -> value.failure()
+    }
 }
 
+inline fun <E, T> Optional<T>.toResult(missingError: () -> E): Result<E, T> {
+    return when {
+        isPresent -> get().success()
+        else -> missingError().failure()
+    }
+}

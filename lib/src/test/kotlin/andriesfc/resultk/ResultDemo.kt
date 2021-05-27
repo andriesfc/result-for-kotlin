@@ -2,23 +2,25 @@ package andriesfc.resultk
 
 import assertk.all
 import assertk.assertThat
-import assertk.assertions.isEqualTo
-import assertk.assertions.isInstanceOf
-import assertk.assertions.isNotNull
-import assertk.assertions.isSuccess
+import assertk.assertions.*
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import java.io.EOFException
+import java.io.File
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.net.SocketException
+import java.util.*
 import java.util.UUID.randomUUID
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+import kotlin.test.fail
 
 
 @ExtendWith(MockKExtension::class)
@@ -60,7 +62,7 @@ internal class ResultDemo {
     }
 
     private fun whenReadTextReturnWith(expectedText: String) {
-        every { textReader.readText() }.returns(expectedText.result())
+        every { textReader.readText() }.returns(expectedText.success())
     }
 
     private fun whenReadTextReportIOExceptionToCaller(message: String? = null) {
@@ -154,10 +156,187 @@ internal class ResultDemo {
             whenReadTextReportIOExceptionToCaller("bang!")
             val (_, error) = textReader.readText().mapFailure { ErrorCode.of(it) }
             assertNotNull(error)
-            val (e,code) = error
+            val (e, code) = error
             assertThat(e).isInstanceOf(IOException::class.java)
             assertThat(e.message).isEqualTo("bang!")
             assertThat(code).isEqualTo(ErrorCode.GeneralIOError)
+        }
+
+        @ParameterizedTest
+        @CsvSource(
+            value = [
+                "bad_price,@null",
+                "@null,69.69"],
+            nullValues = ["@null"]
+        )
+        fun transpose_failure_with_success(failureCode: String?, successPrice: Double?) {
+
+            val given = failureCode?.failure()
+                ?: (successPrice?.success()
+                    ?: throw IllegalArgumentException(
+                        "Both failureCode and successPrice cannot be null"
+                    ))
+
+            val (transposedValue, transposedError) = given.transpose()
+
+            if (failureCode != null) {
+                assertThat(transposedValue.get()).isEqualTo(failureCode)
+            } else if (successPrice != null) {
+                assertThat(transposedError).isEqualTo(successPrice)
+            }
+        }
+
+        @ParameterizedTest
+        @CsvSource(
+            nullValues = ["@nothing"],
+            value = [
+                "12,@nothing",
+                "@nothing, bean_counter_offline"
+            ]
+        )
+        fun consuming_both_success_and_possible_failures(beansCounted: Int?, beanCountingErrorCode: String?) {
+
+            val given: Result<String, Int> = when {
+                beansCounted != null -> beansCounted.success()
+                beanCountingErrorCode != null -> beanCountingErrorCode.failure()
+                else -> throw IllegalArgumentException(
+                    "Both beansCounted and beanCountedErrors cannot be set to null."
+                )
+            }
+
+            lateinit var value: Any
+            var success: Boolean? = null
+
+            given
+                .onSuccess { value = it; success = true }
+                .onFailure { value = it; success = false }
+
+            when (success) {
+                true -> assertThat(value, "onSuccess{}").isEqualTo(beansCounted)
+                false -> assertThat(value, "onFailure{}").isEqualTo(beanCountingErrorCode)
+                else -> fail("Neither onSuccess nor onFailure was called")
+            }
+        }
+
+        @ParameterizedTest
+        @CsvSource(
+            nullValues = ["@nothing"],
+            value = [
+                "12,@nothing",
+                "@nothing, bean_counter_offline"
+            ]
+        )
+        fun use_Result_factory_function_to_compose_result(beansCounted: Int?, beanCountingErrorCode: String?) {
+
+            class BeanCountingException(val errorCode: String) : Exception(errorCode)
+
+            val given = resultOf<BeanCountingException, Int> {
+                when {
+                    beansCounted != null -> beansCounted.success()
+                    beanCountingErrorCode != null -> throw BeanCountingException(beanCountingErrorCode)
+                    else -> throw IllegalArgumentException()
+                }
+            }
+
+            val (counter, countingError) = given
+
+            when {
+                beanCountingErrorCode != null -> {
+                    assertNotNull(countingError)
+                    assertThat(countingError::errorCode).isEqualTo(beanCountingErrorCode)
+                    assertThat(countingError).hasMessage(beanCountingErrorCode)
+                }
+                beansCounted != null -> assertThat(counter.get()).isEqualTo(beansCounted)
+            }
+        }
+
+
+        @ParameterizedTest
+        @CsvSource(
+            nullValues = ["@nothing"],
+            value = [
+                "12,@nothing",
+                "@nothing, bean_counter_offline"
+            ]
+        )
+        fun toOptional_is_correct_for_all_cases(beansCounted: Int?, beanCountingErrorCode: String?) {
+
+            val given: Result<String, Int> = when {
+                beansCounted != null -> beansCounted.success()
+                beanCountingErrorCode != null -> beanCountingErrorCode.failure()
+                else -> throw IllegalArgumentException(
+                    "Both beansCounted and beanCountedErrors cannot be set to null."
+                )
+            }
+
+            val optional: Optional<Int> = given.toOptional()
+
+            when {
+                beanCountingErrorCode != null -> {
+                    assertTrue(optional.isEmpty)
+                }
+                beansCounted != null -> {
+                    assertTrue(optional.isPresent)
+                    assertThat(optional.get()).isEqualTo(beansCounted)
+                }
+            }
+        }
+
+        @ParameterizedTest
+        @CsvSource(
+            nullValues = ["@nothing"],
+            value = [
+                "12",
+                "@nothing"
+            ]
+        )
+        fun convert_optional_to_proper_result(beansCounted: Int?) {
+
+            val given = Optional.ofNullable(beansCounted)
+            val (counted, counterError) = given.toResult { "unknown_bean_counting_error" }
+
+            when (beansCounted) {
+                null -> {
+                    assertThat(counterError).isEqualTo("unknown_bean_counting_error")
+                    assertThrows<NoThrowableFailureException> { counted.get() }
+                }
+                else -> {
+                    assertThat(counted.get()).isEqualTo(beansCounted)
+                    assertThat(counterError).isNull()
+                }
+            }
+        }
+    }
+
+    @Nested
+    internal inner class LetsComputeSomeFileSizesTest {
+
+        @TempDir
+        internal lateinit var workDir: File
+        private lateinit var file: File
+
+        @BeforeEach
+        fun prepare() {
+            file = File(workDir, "test-${randomUUID()}.dat")
+        }
+
+        @Test
+        fun lets_caught_file_not_found_on_missing_file() {
+            val (size, ex) = computeFileSize()
+            assertAll(
+                { assertThrows<FileNotFoundException> { size.get() } },
+                { assertTrue { ex is FileNotFoundException } }
+            )
+        }
+
+        private fun computeFileSize(): Result<IOException, Long> {
+            return file.letResult {
+                if (exists()) {
+                    length().success()
+                } else {
+                    throw FileNotFoundException("$this")
+                }
+            }
         }
 
     }
@@ -166,6 +345,7 @@ internal class ResultDemo {
         EndOfFile,
         GeneralIOError,
         RemoteException;
+
         companion object {
             fun of(e: IOException): Pair<IOException, ErrorCode> {
                 return e to when (e) {
