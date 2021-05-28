@@ -18,6 +18,8 @@ import java.io.IOException
 import java.net.SocketException
 import java.util.*
 import java.util.UUID.randomUUID
+import kotlin.random.Random
+import kotlin.random.nextInt
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -204,16 +206,16 @@ internal class ResultDemo {
                 )
             }
 
-            lateinit var value: Any
-            var success: Boolean? = null
+            lateinit var consumeValue: Any
+            var consumed: Boolean? = null
 
             given
-                .onSuccess { value = it; success = true }
-                .onFailure { value = it; success = false }
+                .onSuccess { consumeValue = it; consumed = true }
+                .onFailure { consumeValue = it; consumed = false }
 
-            when (success) {
-                true -> assertThat(value, "onSuccess{}").isEqualTo(beansCounted)
-                false -> assertThat(value, "onFailure{}").isEqualTo(beanCountingErrorCode)
+            when (consumed) {
+                true -> assertThat(consumeValue, "onSuccess{}").isEqualTo(beansCounted)
+                false -> assertThat(consumeValue, "onFailure{}").isEqualTo(beanCountingErrorCode)
                 else -> fail("Neither onSuccess nor onFailure was called")
             }
         }
@@ -226,7 +228,7 @@ internal class ResultDemo {
                 "@nothing, bean_counter_offline"
             ]
         )
-        fun use_Result_factory_function_to_compose_result(beansCounted: Int?, beanCountingErrorCode: String?) {
+        fun use_resultOf_function_to_compose_result(beansCounted: Int?, beanCountingErrorCode: String?) {
 
             class BeanCountingException(val errorCode: String) : Exception(errorCode)
 
@@ -322,22 +324,31 @@ internal class ResultDemo {
 
         @Test
         fun lets_caught_file_not_found_on_missing_file() {
-
-            fun computeFileSize(): Result<IOException, Long> {
-                return file.letResult {
-                    if (exists()) {
-                        length().success()
-                    } else {
-                        throw FileNotFoundException("$this")
-                    }
-                }
-            }
-
-            val (size, ex) = computeFileSize()
+            val (size, ex) = letsGetFileSize()
             assertAll(
                 { assertThrows<FileNotFoundException> { size.get() } },
                 { assertTrue { ex is FileNotFoundException } }
             )
+        }
+
+        @Test
+        fun lets_return_file_size_if_found() {
+            assertThat(file.createNewFile()).isTrue()
+            val expectedByteSize = Random.nextInt(10..200)
+            file.writeBytes(Random.nextBytes(expectedByteSize))
+            val (fileSizeInBytes, _) = letsGetFileSize().map(Long::toInt)
+            assertDoesNotThrow { fileSizeInBytes.get() }
+            assertThat(fileSizeInBytes.get(), "fileSizeInBytes").isEqualTo(expectedByteSize)
+        }
+
+        private fun letsGetFileSize(): Result<IOException, Long> {
+            return file.letResult {
+                if (exists()) {
+                    length().success()
+                } else {
+                    throw FileNotFoundException("$this")
+                }
+            }
         }
 
     }
