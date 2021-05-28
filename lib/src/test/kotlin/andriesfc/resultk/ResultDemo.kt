@@ -322,21 +322,22 @@ internal class ResultDemo {
 
         @Test
         fun lets_caught_file_not_found_on_missing_file() {
+
+            fun computeFileSize(): Result<IOException, Long> {
+                return file.letResult {
+                    if (exists()) {
+                        length().success()
+                    } else {
+                        throw FileNotFoundException("$this")
+                    }
+                }
+            }
+
             val (size, ex) = computeFileSize()
             assertAll(
                 { assertThrows<FileNotFoundException> { size.get() } },
                 { assertTrue { ex is FileNotFoundException } }
             )
-        }
-
-        private fun computeFileSize(): Result<IOException, Long> {
-            return file.letResult {
-                if (exists()) {
-                    length().success()
-                } else {
-                    throw FileNotFoundException("$this")
-                }
-            }
         }
 
     }
