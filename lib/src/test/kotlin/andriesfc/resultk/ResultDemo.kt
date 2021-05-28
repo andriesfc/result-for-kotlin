@@ -174,10 +174,8 @@ internal class ResultDemo {
         fun transpose_failure_with_success(failureCode: String?, successPrice: Double?) {
 
             val given = failureCode?.failure()
-                ?: (successPrice?.success()
-                    ?: throw IllegalArgumentException(
-                        "Both failureCode and successPrice cannot be null"
-                    ))
+                ?: successPrice?.success()
+                ?: throw IllegalArgumentException("Both failureCode and successPrice cannot be null")
 
             val (transposedValue, transposedError) = given.transpose()
 
@@ -198,13 +196,10 @@ internal class ResultDemo {
         )
         fun consuming_both_success_and_possible_failures(beansCounted: Int?, beanCountingErrorCode: String?) {
 
-            val given: Result<String, Int> = when {
-                beansCounted != null -> beansCounted.success()
-                beanCountingErrorCode != null -> beanCountingErrorCode.failure()
-                else -> throw IllegalArgumentException(
-                    "Both beansCounted and beanCountedErrors cannot be set to null."
-                )
-            }
+            val given: Result<String, Int> =
+                beansCounted?.success()
+                    ?: beanCountingErrorCode?.failure()
+                    ?: throw IllegalArgumentException()
 
             lateinit var consumeValue: Any
             var consumed: Boolean? = null
@@ -336,7 +331,7 @@ internal class ResultDemo {
             assertThat(file.createNewFile()).isTrue()
             val expectedByteSize = Random.nextInt(10..200)
             file.writeBytes(Random.nextBytes(expectedByteSize))
-            val (fileSizeInBytes, _) = letsGetFileSize().map(Long::toInt)
+            val (fileSizeInBytes) = letsGetFileSize().map(Long::toInt)
             assertDoesNotThrow { fileSizeInBytes.get() }
             assertThat(fileSizeInBytes.get(), "fileSizeInBytes").isEqualTo(expectedByteSize)
         }
