@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>/Users/aspies/Projects/_/results-for-kotlin/lib/src/main/kotlin/andriesfc/kotlin/resultk/Result.kt</OriginalElement>
+  <nodes>
+    <node x="36.27526562734224" y="0.0">andriesfc.kotlin.resultk.Get</node>
+    <node x="5.775265627342236" y="177.92887608824776">andriesfc.kotlin.resultk.Result.Success</node>
+    <node x="221.856665869101" y="414.4561855670103">andriesfc.kotlin.resultk.NoThrowableFailureException</node>
+    <node x="199.856665869101" y="0.0">andriesfc.kotlin.resultk.ResultKt</node>
+    <node x="-186.6383941664722" y="340.68016168569017">andriesfc.kotlin.resultk.Result</node>
+    <node x="9.775265627342236" y="473.65321815493616">andriesfc.kotlin.resultk.Result.Failure</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="andriesfc.kotlin.resultk.Result.Success" target="andriesfc.kotlin.resultk.Result" relationship="GENERALIZATION">
+      <point x="4.998654221463484" y="0.11599988898828428" />
+      <point x="4.998654221463484" y="0.11599988898827988" />
+    </edge>
+    <edge source="andriesfc.kotlin.resultk.Result.Failure" target="andriesfc.kotlin.resultk.Result" relationship="INNER_CLASS">
+      <point x="-4.998654221463482" y="-0.11599988898828428" />
+      <point x="-4.998654221463483" y="-0.11599988898827918" />
+    </edge>
+    <edge source="andriesfc.kotlin.resultk.Result.Success" target="andriesfc.kotlin.resultk.Result" relationship="INNER_CLASS">
+      <point x="-5.001346140858011" y="0.0" />
+      <point x="-5.001346140858012" y="-0.0" />
+    </edge>
+    <edge source="andriesfc.kotlin.resultk.Result.Failure" target="andriesfc.kotlin.resultk.Result" relationship="GENERALIZATION">
+      <point x="5.00134614085801" y="0.0" />
+      <point x="5.00134614085801" y="-0.0" />
+    </edge>
+    <edge source="andriesfc.kotlin.resultk.Result.Success" target="andriesfc.kotlin.resultk.Get" relationship="REALIZATION">
+      <point x="0.0" y="0.0" />
+      <point x="0.0" y="0.0" />
+    </edge>
+  </edges>
+  <settings layout="Balloons" zoom="1.0" showDependencies="false" x="154.5" y="274.0" />
+  <SelectedNodes>
+    <node>andriesfc.kotlin.resultk.Get</node>
+  </SelectedNodes>
+  <Categories>
+    <Category>Constructors</Category>
+    <Category>Fields</Category>
+    <Category>Inner Classes</Category>
+    <Category>Methods</Category>
+    <Category>Properties</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

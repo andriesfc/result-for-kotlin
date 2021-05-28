@@ -1,6 +1,7 @@
 package andriesfc.kotlin.resultk
 
-import java.util.*
+import java.util.Optional
+import kotlin.jvm.Throws
 
 sealed class Result<out E, out T> {
     data class Success<T>(val value: T) : Result<Nothing, T>(), Get<T> {
@@ -11,6 +12,7 @@ sealed class Result<out E, out T> {
 }
 
 fun interface Get<out T> {
+    @Throws(NoThrowableFailureException::class)
     fun get(): T
 }
 
