@@ -1,4 +1,4 @@
-package andriesfc.resultk
+package andriesfc.kotlin.resultk
 
 import assertk.all
 import assertk.assertThat
@@ -319,7 +319,7 @@ internal class ResultDemo {
 
         @Test
         fun lets_caught_file_not_found_on_missing_file() {
-            val (size, ex) = letsGetFileSize()
+            val (size, ex) = preparedFileSize()
             assertAll(
                 { assertThrows<FileNotFoundException> { size.get() } },
                 { assertTrue { ex is FileNotFoundException } }
@@ -331,12 +331,12 @@ internal class ResultDemo {
             assertThat(file.createNewFile()).isTrue()
             val expectedByteSize = Random.nextInt(10..200)
             file.writeBytes(Random.nextBytes(expectedByteSize))
-            val (fileSizeInBytes) = letsGetFileSize().map(Long::toInt)
+            val (fileSizeInBytes) = preparedFileSize().map(Long::toInt)
             assertDoesNotThrow { fileSizeInBytes.get() }
-            assertThat(fileSizeInBytes.get(), "fileSizeInBytes").isEqualTo(expectedByteSize)
+            assertThat(fileSizeInBytes.get(), "fileSizeInBytes.get()").isEqualTo(expectedByteSize)
         }
 
-        private fun letsGetFileSize(): Result<IOException, Long> {
+        private fun preparedFileSize(): Result<IOException, Long> {
             return file.letResult {
                 if (exists()) {
                     length().success()

@@ -1,4 +1,4 @@
-package andriesfc.resultk
+package andriesfc.kotlin.resultk
 
 import java.util.*
 
