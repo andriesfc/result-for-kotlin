@@ -4,6 +4,38 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.5.10"
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
+    `maven-publish`
+}
+
+val artifactName = "resultk"
+val artifactGroup = "andriesfc.kotlin.resultk"
+
+val sourcesJar by tasks.creating(Jar::class) {
+    group = "Build"
+    description = "Package sources as a JAR"
+    archiveClassifier.set("sources")
+    from(sourceSets.getByName("main").allSource)
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("Lib") {
+            groupId = artifactGroup
+            artifactId = artifactName
+            description = "Result handling in Kotlin"
+            version = "1.0.0-SNAPSHOT"
+            from(components["java"])
+            artifact(sourcesJar)
+            versionMapping {
+                usage("java-api") {
+                    fromResolutionOf("runtimeClasspath")
+                }
+                usage("java-runtime") {
+                    fromResolutionResult()
+                }
+            }
+        }
+    }
 }
 
 repositories {
@@ -31,7 +63,7 @@ dependencies {
 
     // AssertK
     val assertk_version = "0.24"
-    implementation("com.willowtreeapps.assertk:assertk:$assertk_version")
+    testImplementation("com.willowtreeapps.assertk:assertk:$assertk_version")
 
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")

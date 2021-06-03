@@ -88,8 +88,11 @@ internal class ResultDemo {
         fun get_result_of_text_using_fold_if_exists() {
             val expectedText = "expectedText"
             whenReadTextReturnWith(expectedText)
-            val r: String = textReader.readText().fold({ throw it }, { it })
-            assertThat(r).isEqualTo(expectedText)
+            val r: String? = textReader.readText().fold({ null }, { it })
+            assertThat(r).all {
+                isNotNull()
+                isEqualTo(expectedText)
+            }
         }
 
         @Test
@@ -202,13 +205,13 @@ internal class ResultDemo {
                     ?: throw IllegalArgumentException()
 
             lateinit var consumeValue: Any
-            var consumed: Boolean? = null
+            var isOnSuccess: Boolean? = null
 
             given
-                .onSuccess { consumeValue = it; consumed = true }
-                .onFailure { consumeValue = it; consumed = false }
+                .onSuccess { consumeValue = it; isOnSuccess = true }
+                .onFailure { consumeValue = it; isOnSuccess = false }
 
-            when (consumed) {
+            when (isOnSuccess) {
                 true -> assertThat(consumeValue, "onSuccess{}").isEqualTo(beansCounted)
                 false -> assertThat(consumeValue, "onFailure{}").isEqualTo(beanCountingErrorCode)
                 else -> fail("Neither onSuccess nor onFailure was called")
