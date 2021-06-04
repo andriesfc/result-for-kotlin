@@ -298,7 +298,7 @@ internal class ResultDemo {
             when (beansCounted) {
                 null -> {
                     assertThat(counterError).isEqualTo("unknown_bean_counting_error")
-                    assertThrows<NoThrowableFailureException> { counted.get() }
+                    assertThrows<OperationFailedException> { counted.get() }
                 }
                 else -> {
                     assertThat(counted.get()).isEqualTo(beansCounted)
