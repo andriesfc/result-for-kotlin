@@ -15,8 +15,8 @@ class StdLibResultVsNewDemo {
     @Test
     fun libUsage() {
         resultOf<IOException, String> { throw IOException("test: Error reading data") }
-            .onSuccess { println("received: $it") }
-            .onFailure { println("failed: $it") }
+            .alsoOn { println("received: $it") }
+            .alsoOnFailure { println("failed: $it") }
     }
 
 }

@@ -208,8 +208,8 @@ internal class ResultDemo {
             var isOnSuccess: Boolean? = null
 
             given
-                .onSuccess { consumeValue = it; isOnSuccess = true }
-                .onFailure { consumeValue = it; isOnSuccess = false }
+                .alsoOn { consumeValue = it; isOnSuccess = true }
+                .alsoOnFailure { consumeValue = it; isOnSuccess = false }
 
             when (isOnSuccess) {
                 true -> assertThat(consumeValue, "onSuccess{}").isEqualTo(beansCounted)
@@ -298,7 +298,7 @@ internal class ResultDemo {
             when (beansCounted) {
                 null -> {
                     assertThat(counterError).isEqualTo("unknown_bean_counting_error")
-                    assertThrows<OperationFailedException> { counted.get() }
+                    assertThrows<UnsafeGet.UnsafeGetFailedException> { counted.get() }
                 }
                 else -> {
                     assertThat(counted.get()).isEqualTo(beansCounted)
@@ -340,7 +340,7 @@ internal class ResultDemo {
         }
 
         private fun preparedFileSize(): Result<IOException, Long> {
-            return file.letResult {
+            return file.computeResultWith {
                 if (exists()) {
                     length().success()
                 } else {

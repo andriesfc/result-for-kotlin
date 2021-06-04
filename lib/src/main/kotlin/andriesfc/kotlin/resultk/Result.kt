@@ -3,6 +3,8 @@ package andriesfc.kotlin.resultk
 
 import java.util.Optional
 import kotlin.jvm.Throws
+import andriesfc.kotlin.resultk.Result.Failure
+import andriesfc.kotlin.resultk.Result.Success
 
 /**
  * Result is an sealed type which represents a result of an operation. A result can either be a [Success], or an [Failure].
@@ -36,38 +38,69 @@ sealed class Result<out E, out T> {
  */
 fun interface UnsafeGet<out T> {
 
+
+    /**
+     * Indicates that an error occurred, but cannot be represented as Exception.
+     *
+     * @see UnsafeGet.get
+     * @see Result.Failure
+     * @see resultOf
+     */
+    class UnsafeGetFailedException(message: String, val failure: Any?) : IllegalStateException(message)
+
+
     /**
      * Returns the expected value
      *
-     * @throws OperationFailedException if the underlying failure result is not an exception, otherwise the underlying
+     * @throws UnsafeGetFailedException if the underlying failure result is not an exception, otherwise the underlying
      * exception is simply thrown.
      */
-    @Throws(OperationFailedException::class)
+    @Throws(UnsafeGetFailedException::class)
     fun get(): T
 }
 
 /**
  * Wraps this value of [T] as [Result.Success]
  */
-fun <E, T> T.success(): Result<E, T> = Result.Success(this)
+fun <E, T> T.success(): Result<E, T> = Success(this)
 
 /**
  * Wraps this value of [E] as [Result.Failure]
  */
-fun <E, T> E.failure(): Result<E, T> = Result.Failure(this)
+fun <E, T> E.failure(): Result<E, T> = Failure(this)
 
+
+/**
+ * Returns an error or `null` for a given Result.
+ *
+ * @receiver A [Result]
+ */
 fun <E> Result<E, *>.getErrorOrNull(): E? {
     return when (this) {
-        is Result.Failure -> error
+        is Failure -> error
         else -> null
     }
 }
 
-inline fun <T, reified E, R> T.letResult(compute: T.() -> Result<E, R>): Result<E, R> {
+/**
+ * Lets compute a result om a given receiver from lambda.
+ *
+ * @receiver A value to compute a result.
+ * @param compute The function to apply on given receiver.
+ */
+inline fun <T, reified E, R> T.computeResultWith(compute: T.() -> Result<E, R>): Result<E, R> {
     return resultOf { compute() }
 }
 
 
+/**
+ * Takes computation and wraps any exception (if [E] is an [Throwable])
+ * as a [Result.Failure].
+ *
+ * @param action Action to produce an [Result]
+ * @throws Throwable if the caught exception is not of type [E]
+ * @return A result.
+ */
 inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
     return try {
         action()
@@ -79,80 +112,120 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
     }
 }
 
+/**
+ * Gets a value from a result, or maps an error to desired type. This is similar to [Result.fold] operation,
+ * except this only cater for mapping the error if it is present.
+ */
 inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
     return when (this) {
-        is Result.Failure -> mapError(error)
-        is Result.Success -> value
+        is Failure -> mapError(error)
+        is Success -> value
     }
 }
 
+/**
+ * Returns the value or throws an exception.
+ *
+ * @see UnsafeGet.UnsafeGetFailedException
+ * @see Result.Failure
+ */
 fun <T> Result<*, T>.get(): T {
     return getOr { e ->
         when (e) {
             is Throwable -> throw e
-            else -> throw OperationFailedException("Failure found (instead of an result): $e.", e)
+            else -> throw UnsafeGet.UnsafeGetFailedException("Failure found (instead of an result): $e.", e)
         }
     }
 }
 
-class OperationFailedException(message: String, val failure: Any?) : IllegalStateException(message)
-
+/**
+ * Returns an success value, or in the case of an error a `null` value.
+ *
+ * @receiver This result.
+ * @param T The result type.
+ * @return The value of the result or null in the case of [Result.Failure]
+ */
 fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
-fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
-    if (this is Result.Success) process(value)
+
+/**
+ * Do also something on the [Success.value] if the receiver is a [Success]
+ *
+ * @param process Process the success value if present.
+ * @param E The error type.
+ * @param T The value type
+ * @return This receiver.
+ * @receiver A [Result]
+ */
+fun <E, T> Result<E, T>.alsoOn(process: (T) -> Unit): Result<E, T> {
+    if (this is Success) process(value)
     return this
 }
 
-fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> T): Result<E, T> {
-    if (this is Result.Failure) processFailure(error)
+/**
+ * Also do something with a error if this receiver is an [Failure]
+ */
+fun <E, T> Result<E, T>.alsoOnFailure(processFailure: (E) -> Unit): Result<E, T> {
+    if (this is Failure) processFailure(error)
     return this
 }
 
+
+/**
+ * Folds this result to a single value. The caller has to supply both a [mapError], and [mapValue]
+ * function to translate the given value or error.
+ *
+ * @param mapError Function to map an error value to the desired result.
+ * @param mapValue Function to map an value to to desired result.
+ * @param E The error type.
+ * @param T The of expected value to fold.
+ * @param R The desired resulting type of the fold operations.
+ * @return The desired value of the fold operation, which is either an value mapped to it, or an error mapped to it.
+ */
 inline fun <E, T, R> Result<E, T>.fold(mapError: (E) -> R, mapValue: (T) -> R): R {
     return when (this) {
-        is Result.Failure -> mapError(error)
-        is Result.Success -> mapValue(value)
+        is Failure -> mapError(error)
+        is Success -> mapValue(value)
     }
 }
 
 fun <T> Result<*, T>.toOptional(): Optional<T> {
     return when (this) {
-        is Result.Failure -> Optional.empty()
-        is Result.Success -> Optional.ofNullable(get())
+        is Failure -> Optional.empty()
+        is Success -> Optional.ofNullable(get())
     }
 }
 
 operator fun <T> Result<*, T>.component1(): UnsafeGet<T> = when (this) {
-    is Result.Failure -> UnsafeGet {
+    is Failure -> UnsafeGet {
         when (error) {
             is Throwable -> throw error
-            else -> throw OperationFailedException("Expected success, but found error instead: $error", error)
+            else -> throw UnsafeGet.UnsafeGetFailedException("Expected success, but found error instead: $error", error)
         }
     }
-    is Result.Success -> this
+    is Success -> this
 }
 
 operator fun <E> Result<E, *>.component2(): E? = fold({ it }, { null })
 
 inline fun <E, T, R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     return when (this) {
-        is Result.Failure -> this
-        is Result.Success -> mapValue(value).success()
+        is Failure -> this
+        is Success -> mapValue(value).success()
     }
 }
 
 inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
     return when (this) {
-        is Result.Failure -> mapError(error).failure()
-        is Result.Success -> this
+        is Failure -> mapError(error).failure()
+        is Success -> this
     }
 }
 
 fun <E, T> Result<E, T>.transpose(): Result<T, E> {
     return when (this) {
-        is Result.Failure -> error.success()
-        is Result.Success -> value.failure()
+        is Failure -> error.success()
+        is Success -> value.failure()
     }
 }
 
