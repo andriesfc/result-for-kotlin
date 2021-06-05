@@ -18,6 +18,22 @@ val sourcesJar by tasks.creating(Jar::class) {
     from(sourceSets.getByName("main").allSource)
 }
 
+val javadocJar by tasks.creating(Jar::class) {
+    group = "Build"
+    dependsOn(":lib:dokkaJavadoc")
+    description = "Package Java Doc"
+    archiveClassifier.set("javadoc")
+    from(buildDir.resolve("dokka/javadoc"))
+}
+
+val htmlDokkaJar by tasks.creating(Jar::class) {
+    group = "Build"
+    description = "Packages Kotlin HTML documentation"
+    archiveClassifier.set("html")
+    dependsOn(":lib:dokkaHtml")
+    from(buildDir.resolve("dokka/html"))
+}
+
 publishing {
     publications {
         create<MavenPublication>("Lib") {
@@ -25,8 +41,23 @@ publishing {
             artifactId = artifactName
             description = "Result handling in Kotlin"
             version = "1.0.0-SNAPSHOT"
+            pom {
+                developers {
+                    developer {
+                        name.set("AndriesFC")
+                        email.set("andriesfc@gmail.com")
+                        roles.add("Maintainer")
+                    }
+                }
+                scm {
+                    developerConnection.set("git")
+                    url.set("https://github.com/andriesfc/result-for-kotlin.git")
+                }
+            }
             from(components["java"])
             artifact(sourcesJar)
+            artifact(javadocJar)
+            artifact(htmlDokkaJar)
             versionMapping {
                 usage("java-api") {
                     fromResolutionOf("runtimeClasspath")
@@ -62,13 +93,15 @@ dependencies {
     val mockk_version = "1.11.0"
     testImplementation("io.mockk:mockk:$mockk_version")
 
+    // Mockito (for Java based testing)
+    testImplementation("org.mockito:mockito-core:3.11.0")
+
     // AssertK
     val assertk_version = "0.24"
     testImplementation("com.willowtreeapps.assertk:assertk:$assertk_version")
 
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-
 
 }
 

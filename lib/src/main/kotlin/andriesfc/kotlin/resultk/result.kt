@@ -1,4 +1,4 @@
-@file:JvmName("ResultOperations")
+@file:JvmName("ResultK")
 package andriesfc.kotlin.resultk
 
 import java.util.Optional
@@ -78,7 +78,6 @@ operator fun <T> Result<*, T>.component1(): UnsafeGet<T> = when (this) {
     }
     is Success -> this
 }
-
 
 /**
  * Returns the actual error if present or `null` in the second position.
