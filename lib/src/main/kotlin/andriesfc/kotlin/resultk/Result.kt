@@ -60,6 +60,32 @@ fun interface UnsafeGet<out T> {
 }
 
 /**
+ * Returns a getter for the of the successful result value in the first position, or
+ * an getter which will thrown in exception in the case of error.
+ *
+ * > **NOTE**: If the result is a [Result.Failure], calling [UnsafeGet.get] will
+ * > throw an exception.
+ *
+ * @see UnsafeGet.get
+ * @see UnsafeGet.UnsafeGetFailedException
+ */
+operator fun <T> Result<*, T>.component1(): UnsafeGet<T> = when (this) {
+    is Failure -> UnsafeGet {
+        when (error) {
+            is Throwable -> throw error
+            else -> throw UnsafeGet.UnsafeGetFailedException("Expected success, but found error instead: $error", error)
+        }
+    }
+    is Success -> this
+}
+
+
+/**
+ * Returns the actual error if present or `null` in the second position.
+ */
+operator fun <E> Result<E, *>.component2(): E? = fold({ it }, { null })
+
+/**
  * Wraps this value of [T] as [Result.Success]
  */
 fun <E, T> T.success(): Result<E, T> = Success(this)
@@ -111,6 +137,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
         }
     }
 }
+
 
 /**
  * Gets a value from a result, or maps an error to desired type. This is similar to [Result.fold] operation,
@@ -189,6 +216,9 @@ inline fun <E, T, R> Result<E, T>.fold(mapError: (E) -> R, mapValue: (T) -> R): 
     }
 }
 
+/**
+ * Converts a [Result] to an plain old Java [Optional]
+ */
 fun <T> Result<*, T>.toOptional(): Optional<T> {
     return when (this) {
         is Failure -> Optional.empty()
@@ -196,18 +226,21 @@ fun <T> Result<*, T>.toOptional(): Optional<T> {
     }
 }
 
-operator fun <T> Result<*, T>.component1(): UnsafeGet<T> = when (this) {
-    is Failure -> UnsafeGet {
-        when (error) {
-            is Throwable -> throw error
-            else -> throw UnsafeGet.UnsafeGetFailedException("Expected success, but found error instead: $error", error)
-        }
+
+/**
+ * Converts Java's [Optional] to a [Result]. Note the caller has to supply a function which
+ * supplies the missing error if there is no value present on the Optional.
+ */
+inline fun <E, T> Optional<T>.toResult(missingError: () -> E): Result<E, T> {
+    return when {
+        isPresent -> get().success()
+        else -> missingError().failure()
     }
-    is Success -> this
 }
 
-operator fun <E> Result<E, *>.component2(): E? = fold({ it }, { null })
-
+/**
+ * Maps a result's success value.
+ */
 inline fun <E, T, R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     return when (this) {
         is Failure -> this
@@ -215,6 +248,9 @@ inline fun <E, T, R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     }
 }
 
+/**
+ * Maps a result's failure value
+ */
 inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
     return when (this) {
         is Failure -> mapError(error).failure()
@@ -222,16 +258,12 @@ inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
     }
 }
 
+/**
+ * Transposes a results success and failure values.
+ */
 fun <E, T> Result<E, T>.transpose(): Result<T, E> {
     return when (this) {
         is Failure -> error.success()
         is Success -> value.failure()
-    }
-}
-
-inline fun <E, T> Optional<T>.toResult(missingError: () -> E): Result<E, T> {
-    return when {
-        isPresent -> get().success()
-        else -> missingError().failure()
     }
 }
