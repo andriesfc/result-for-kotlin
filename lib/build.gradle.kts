@@ -1,5 +1,8 @@
 @file:Suppress("LocalVariableName", "SpellCheckingInspection")
 
+import org.jetbrains.dokka.gradle.DokkaTask
+import java.net.URL
+
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.5.10"
     id("org.jetbrains.dokka") version "1.4.32"
@@ -56,7 +59,7 @@ publishing {
             groupId = artifactGroup
             artifactId = artifactName
             description = "Idomstic result handling in Kotlin"
-            version = "1.0.0-SNAPSHOT"
+            version = "${project.version}"
             pom.withPublisingDetails()
             from(components["java"])
             artifact(sourcesJar)
@@ -126,5 +129,19 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions {
         languageVersion = kotlinComileLangVersion
         apiVersion = kotlinComileLangVersion
+    }
+}
+
+tasks.withType<DokkaTask> {
+    dokkaSourceSets {
+        named("main") {
+            moduleName.set("ResultK")
+            includes.from("module.md")
+            sourceLink {
+                remoteLineSuffix.set("#L")
+                localDirectory.set(file("src/main/kotlin"))
+                remoteUrl.set(URL("https://github.com/andriesfc/result-for-kotlin/tree/main/lib/src/main/kotlin/"))
+            }
+        }
     }
 }
