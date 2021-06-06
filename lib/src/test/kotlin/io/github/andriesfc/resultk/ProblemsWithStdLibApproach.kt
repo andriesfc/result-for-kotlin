@@ -1,4 +1,4 @@
-package andriesfc.kotlin.resultk
+package io.github.andriesfc.resultk
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test

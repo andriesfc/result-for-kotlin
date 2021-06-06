@@ -1,6 +1,6 @@
-package andriesfc.kotlin.resultk.demo.taxcalc
+package io.github.andriesfc.resultk.demo.taxcalc
 
-import andriesfc.kotlin.resultk.Result
+import io.github.andriesfc.resultk.Result
 import java.math.BigInteger
 import java.time.LocalDateTime
 import java.util.*

@@ -1,4 +1,4 @@
-package andriesfc.kotlin.resultk
+package io.github.andriesfc.resultk
 
 import assertk.all
 import assertk.assertThat

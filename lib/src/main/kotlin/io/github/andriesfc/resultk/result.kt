@@ -1,10 +1,10 @@
-@file:JvmName("ResultK")
-package andriesfc.kotlin.resultk
+@file:JvmName("ResultOperations")
+package io.github.andriesfc.resultk
 
 import java.util.Optional
 import kotlin.jvm.Throws
-import andriesfc.kotlin.resultk.Result.Failure
-import andriesfc.kotlin.resultk.Result.Success
+import io.github.andriesfc.resultk.Result.Failure
+import io.github.andriesfc.resultk.Result.Success
 
 /**
  * Result is an sealed type which represents a result of an operation. A result can either be a [Success], or an [Failure].

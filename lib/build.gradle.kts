@@ -6,10 +6,11 @@ plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
     `maven-publish`
+    signing
 }
 
 val artifactName = "resultk"
-val artifactGroup = "andriesfc.kotlin.resultk"
+val artifactGroup = "io.github.andriesfc.resultk"
 
 val sourcesJar by tasks.creating(Jar::class) {
     group = "Build"
@@ -34,26 +35,29 @@ val htmlDokkaJar by tasks.creating(Jar::class) {
     from(buildDir.resolve("dokka/html"))
 }
 
+fun MavenPom.withPublisingDetails() {
+    developers {
+        developer {
+            name.set("Andries")
+            email.set("andriesfc@gmail.com")
+            roles.add("Maintainer")
+        }
+    }
+    scm {
+        developerConnection.set("scm:git@github.com:andriesfc/result-for-kotlin.git")
+        url.set("https://github.com/andriesfc/result-for-kotlin.git")
+        connection.set("scm:git@github.com:andriesfc/result-for-kotlin.git")
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("Lib") {
             groupId = artifactGroup
             artifactId = artifactName
-            description = "Result handling in Kotlin"
+            description = "Idomstic result handling in Kotlin"
             version = "1.0.0-SNAPSHOT"
-            pom {
-                developers {
-                    developer {
-                        name.set("AndriesFC")
-                        email.set("andriesfc@gmail.com")
-                        roles.add("Maintainer")
-                    }
-                }
-                scm {
-                    developerConnection.set("git")
-                    url.set("https://github.com/andriesfc/result-for-kotlin.git")
-                }
-            }
+            pom.withPublisingDetails()
             from(components["java"])
             artifact(sourcesJar)
             artifact(javadocJar)
@@ -67,6 +71,15 @@ publishing {
                 }
             }
         }
+    }
+}
+
+val javaCompileLangVersion = JavaLanguageVersion.of("11")
+val kotlinComileLangVersion = "1.5"
+
+javaToolchains {
+    compilerFor {
+        languageVersion.set(javaCompileLangVersion)
     }
 }
 
@@ -107,4 +120,11 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        languageVersion = kotlinComileLangVersion
+        apiVersion = kotlinComileLangVersion
+    }
 }
