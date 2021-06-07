@@ -18,11 +18,12 @@ This project is an experiment to implement a more fluent and natural implementat
 - Provide a more rigorous handling of errors from a functional perspective.
 - At the same time not forcing developers which is more comfortable with the try-catch style of handling exceptions to adopt a new functional style.
 
-## Why not just the standard library `kotlin.Result<T>` implementation
+## Why not just the standard library `kotlin.Result` implementation
 
-## Result.kt Exploration
+## Result Exploration
 
 The basic class can be expressed via the following UML diagram:
 
 ![uml](resultk.png)
 ---
+
