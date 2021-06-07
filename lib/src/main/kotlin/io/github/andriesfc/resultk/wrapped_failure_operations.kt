@@ -1,5 +1,5 @@
 
-@file:JvmName("ResultFailureWrapping")
+@file:JvmName("WrappedFailureOperations")
 package io.github.andriesfc.resultk
 
 import io.github.andriesfc.resultk.Result.Failure

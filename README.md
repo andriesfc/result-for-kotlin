@@ -24,6 +24,5 @@ This project is an experiment to implement a more fluent and natural implementat
 
 The basic class can be expressed via the following UML diagram:
 
-![uml](results-kt.png)
-
+![uml](resultk.png)
 ---
