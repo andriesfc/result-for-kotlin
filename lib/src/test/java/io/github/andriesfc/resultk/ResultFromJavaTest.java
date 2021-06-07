@@ -33,7 +33,7 @@ class ResultFromJavaTest {
                 new Pair<>(Indicator.AmountNotInRange, "30 is not in range"),
                 new Pair<>(Indicator.TechnicalError, "Try again")));
 
-        when(taxCalculationService.calculateTax(any(TaxableEntity.class), any(), any())).thenReturn(ResultOperations.failure(error));
+        when(taxCalculationService.calculateTax(any(TaxableEntity.class), any(), any())).thenReturn(ResultOperations.getWrappedFailureOrNull(error));
 
         Result<CalculationError, TaxCalculation> r = taxCalculationService.calculateTax(
                 new TaxableEntity("", ""), emptySet(), emptySet());

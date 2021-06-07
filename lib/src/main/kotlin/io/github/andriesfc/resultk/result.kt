@@ -1,10 +1,9 @@
 @file:JvmName("ResultOperations")
 package io.github.andriesfc.resultk
 
-import java.util.Optional
-import kotlin.jvm.Throws
 import io.github.andriesfc.resultk.Result.Failure
 import io.github.andriesfc.resultk.Result.Success
+import java.util.*
 
 /**
  * Result is an sealed type which represents a result of an operation. A result can either be a [Success], or an [Failure].
@@ -38,24 +37,13 @@ sealed class Result<out E, out T> {
  */
 fun interface UnsafeGet<out T> {
 
-
-    /**
-     * Indicates that an error occurred, but cannot be represented as Exception.
-     *
-     * @see UnsafeGet.get
-     * @see Result.Failure
-     * @see resultOf
-     */
-    class UnsafeGetFailedException(message: String, val failure: Any?) : IllegalStateException(message)
-
-
     /**
      * Returns the expected value
      *
-     * @throws UnsafeGetFailedException if the underlying failure result is not an exception, otherwise the underlying
+     * @throws WrappedUnThrowableFailureException if the underlying failure result is not an exception, otherwise the underlying
      * exception is simply thrown.
      */
-    @Throws(UnsafeGetFailedException::class)
+    @Throws(WrappedUnThrowableFailureException::class)
     fun get(): T
 }
 
@@ -67,15 +55,10 @@ fun interface UnsafeGet<out T> {
  * > throw an exception.
  *
  * @see UnsafeGet.get
- * @see UnsafeGet.UnsafeGetFailedException
+ * @see UnsafeGet.UnsafeGetFailedException.raise
  */
 operator fun <T> Result<*, T>.component1(): UnsafeGet<T> = when (this) {
-    is Failure -> UnsafeGet {
-        when (error) {
-            is Throwable -> throw error
-            else -> throw UnsafeGet.UnsafeGetFailedException("Expected success, but found error instead: $error", error)
-        }
-    }
+    is Failure -> UnsafeGet { WrappedUnThrowableFailureException.raise(this) }
     is Success -> this
 }
 
@@ -92,7 +75,7 @@ fun <E, T> T.success(): Result<E, T> = Success(this)
 /**
  * Wraps this value of [E] as [Result.Failure]
  */
-fun <E, T> E.failure(): Result<E, T> = Failure(this)
+fun <E, T> E.getWrappedFailureOrNull(): Result<E, T> = Failure(this)
 
 
 /**
@@ -131,7 +114,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
         action()
     } catch (e: Throwable) {
         when (e) {
-            is E -> e.failure()
+            is E -> e.getWrappedFailureOrNull()
             else -> throw e
         }
     }
@@ -150,17 +133,47 @@ inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
 }
 
 /**
+ * A get operation which ensures that an exception is thrown if the result is a [Result.Failure]. Thr caller needs
+ * to supply a function to map the error value to the correct instance of [X
+ *
+ * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
+ * @param E The error type
+ * @param T The successful/expected value type.
+ * @param X The exception type which needs to be thrown when this result contains an error.
+ * @receiver A result container which may hold either a value, or an error.
+ * @return The value of the result, or throws the exception produced by the [mapErrorToThrowable] function.
+ */
+inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T where X : Throwable {
+    return getOr { throw mapErrorToThrowable(it) }
+}
+
+/**
+ * Returns the value of this result contains an success value, or throws an an exception if the success value is not present.
+ *
+ * **NOTE:**  The actual exception being thrown depends on the type of the [Failure.error] value.
+ * If the error is an throwable, it will throw it, otherwise wrap into a [WrappedUnThrowableFailureException]
+ *
+ * If this is not the desired behaviour use any of the following operations:
+ *
+ * - Supplying a mapping function.
+ * - Map the failure first via the [Result.mapFailure] followed by [Result.get]
+ *
+ * @see [Failure.get]
+ * @see [Result.mapFailure]
+ * @see [WrappedUnThrowableFailureException.unwrapFailure]
+ */
+fun <T> Result<*, T>.getOrThrow(): T = get()
+
+/**
  * Returns the value or throws an exception.
  *
- * @see UnsafeGet.UnsafeGetFailedException
+ * @see WrappedUnThrowableFailureException
  * @see Result.Failure
  */
 fun <T> Result<*, T>.get(): T {
-    return getOr { e ->
-        when (e) {
-            is Throwable -> throw e
-            else -> throw UnsafeGet.UnsafeGetFailedException("Failure found (instead of an result): $e.", e)
-        }
+    return when (this) {
+        is Failure -> WrappedUnThrowableFailureException.raise(this)
+        is Success -> value
     }
 }
 
@@ -233,7 +246,7 @@ fun <T> Result<*, T>.toOptional(): Optional<T> {
 inline fun <E, T> Optional<T>.toResult(missingError: () -> E): Result<E, T> {
     return when {
         isPresent -> get().success()
-        else -> missingError().failure()
+        else -> missingError().getWrappedFailureOrNull()
     }
 }
 
@@ -252,7 +265,7 @@ inline fun <E, T, R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
  */
 inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
     return when (this) {
-        is Failure -> mapError(error).failure()
+        is Failure -> mapError(error).getWrappedFailureOrNull()
         is Success -> this
     }
 }
@@ -263,6 +276,7 @@ inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
 fun <E, T> Result<E, T>.transpose(): Result<T, E> {
     return when (this) {
         is Failure -> error.success()
-        is Success -> value.failure()
+        is Success -> value.getWrappedFailureOrNull()
     }
 }
+

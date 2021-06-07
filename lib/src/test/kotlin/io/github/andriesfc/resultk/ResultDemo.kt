@@ -68,7 +68,7 @@ internal class ResultDemo {
     }
 
     private fun whenReadTextReportIOExceptionToCaller(message: String? = null) {
-        every { textReader.readText() }.returns((message?.let(::IOException) ?: IOException()).failure())
+        every { textReader.readText() }.returns((message?.let(::IOException) ?: IOException()).getWrappedFailureOrNull())
     }
 
     @Nested
@@ -176,7 +176,7 @@ internal class ResultDemo {
         )
         fun transpose_failure_with_success(failureCode: String?, successPrice: Double?) {
 
-            val given = failureCode?.failure()
+            val given = failureCode?.getWrappedFailureOrNull()
                 ?: successPrice?.success()
                 ?: throw IllegalArgumentException("Both failureCode and successPrice cannot be null")
 
@@ -201,7 +201,7 @@ internal class ResultDemo {
 
             val given: Result<String, Int> =
                 beansCounted?.success()
-                    ?: beanCountingErrorCode?.failure()
+                    ?: beanCountingErrorCode?.getWrappedFailureOrNull()
                     ?: throw IllegalArgumentException()
 
             lateinit var consumeValue: Any
@@ -263,7 +263,7 @@ internal class ResultDemo {
 
             val given: Result<String, Int> = when {
                 beansCounted != null -> beansCounted.success()
-                beanCountingErrorCode != null -> beanCountingErrorCode.failure()
+                beanCountingErrorCode != null -> beanCountingErrorCode.getWrappedFailureOrNull()
                 else -> throw IllegalArgumentException(
                     "Both beansCounted and beanCountedErrors cannot be set to null."
                 )
@@ -298,7 +298,7 @@ internal class ResultDemo {
             when (beansCounted) {
                 null -> {
                     assertThat(counterError).isEqualTo("unknown_bean_counting_error")
-                    assertThrows<UnsafeGet.UnsafeGetFailedException> { counted.get() }
+                    assertThrows<WrappedUnThrowableFailureException> { counted.get() }
                 }
                 else -> {
                     assertThat(counted.get()).isEqualTo(beansCounted)
