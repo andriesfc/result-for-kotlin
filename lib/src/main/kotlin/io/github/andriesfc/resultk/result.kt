@@ -75,7 +75,7 @@ fun <E, T> T.success(): Result<E, T> = Success(this)
 /**
  * Wraps this value of [E] as [Result.Failure]
  */
-fun <E, T> E.getWrappedFailureOrNull(): Result<E, T> = Failure(this)
+fun <E, T> E.failure(): Result<E, T> = Failure(this)
 
 
 /**
@@ -114,7 +114,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
         action()
     } catch (e: Throwable) {
         when (e) {
-            is E -> e.getWrappedFailureOrNull()
+            is E -> e.failure()
             else -> throw e
         }
     }
@@ -246,7 +246,7 @@ fun <T> Result<*, T>.toOptional(): Optional<T> {
 inline fun <E, T> Optional<T>.toResult(missingError: () -> E): Result<E, T> {
     return when {
         isPresent -> get().success()
-        else -> missingError().getWrappedFailureOrNull()
+        else -> missingError().failure()
     }
 }
 
@@ -265,7 +265,7 @@ inline fun <E, T, R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
  */
 inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
     return when (this) {
-        is Failure -> mapError(error).getWrappedFailureOrNull()
+        is Failure -> mapError(error).failure()
         is Success -> this
     }
 }
@@ -276,7 +276,7 @@ inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
 fun <E, T> Result<E, T>.transpose(): Result<T, E> {
     return when (this) {
         is Failure -> error.success()
-        is Success -> value.getWrappedFailureOrNull()
+        is Success -> value.failure()
     }
 }
 

@@ -68,7 +68,7 @@ internal class ResultDemo {
     }
 
     private fun whenReadTextReportIOExceptionToCaller(message: String? = null) {
-        every { textReader.readText() }.returns((message?.let(::IOException) ?: IOException()).getWrappedFailureOrNull())
+        every { textReader.readText() }.returns((message?.let(::IOException) ?: IOException()).failure())
     }
 
     @Nested
@@ -176,7 +176,7 @@ internal class ResultDemo {
         )
         fun transpose_failure_with_success(failureCode: String?, successPrice: Double?) {
 
-            val given = failureCode?.getWrappedFailureOrNull()
+            val given = failureCode?.failure()
                 ?: successPrice?.success()
                 ?: throw IllegalArgumentException("Both failureCode and successPrice cannot be null")
 
@@ -201,7 +201,7 @@ internal class ResultDemo {
 
             val given: Result<String, Int> =
                 beansCounted?.success()
-                    ?: beanCountingErrorCode?.getWrappedFailureOrNull()
+                    ?: beanCountingErrorCode?.failure()
                     ?: throw IllegalArgumentException()
 
             lateinit var consumeValue: Any
@@ -263,7 +263,7 @@ internal class ResultDemo {
 
             val given: Result<String, Int> = when {
                 beansCounted != null -> beansCounted.success()
-                beanCountingErrorCode != null -> beanCountingErrorCode.getWrappedFailureOrNull()
+                beanCountingErrorCode != null -> beanCountingErrorCode.failure()
                 else -> throw IllegalArgumentException(
                     "Both beansCounted and beanCountedErrors cannot be set to null."
                 )
