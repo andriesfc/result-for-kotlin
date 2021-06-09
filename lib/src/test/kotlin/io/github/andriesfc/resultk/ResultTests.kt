@@ -208,8 +208,8 @@ internal class ResultTests {
             var isOnSuccess: Boolean? = null
 
             given
-                .alsoOn { consumeValue = it; isOnSuccess = true }
-                .alsoOnFailure { consumeValue = it; isOnSuccess = false }
+                .onSuccess { consumeValue = it; isOnSuccess = true }
+                .onFailure { consumeValue = it; isOnSuccess = false }
 
             when (isOnSuccess) {
                 true -> assertThat(consumeValue, "onSuccess{}").isEqualTo(beansCounted)

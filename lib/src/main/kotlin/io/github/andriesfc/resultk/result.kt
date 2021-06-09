@@ -59,11 +59,10 @@ sealed class Result<out E, out T>  {
  * Returns a getter for the of the successful result value in the first position, or
  * an getter which will thrown in exception in the case of error.
  *
- * > **NOTE**: If the result is a [Result.Failure], calling [UnsafeGet.get] will
+ * > **NOTE**: If the result is a [Result.Failure], calling [Result.get] may result in an exception being thrown.
  * > throw an exception.
  *
  * @see Result.get
- * @see Failure.raiseThis
  */
 operator fun <T> Result<*, T>.component1(): Result<*,T> = this
 
@@ -188,7 +187,7 @@ fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
  * @return This receiver.
  * @receiver A [Result]
  */
-fun <E, T> Result<E, T>.alsoOn(process: (T) -> Unit): Result<E, T> {
+fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
     if (this is Success) process(value)
     return this
 }
@@ -196,7 +195,7 @@ fun <E, T> Result<E, T>.alsoOn(process: (T) -> Unit): Result<E, T> {
 /**
  * Also do something with a error if this receiver is an [Failure]
  */
-fun <E, T> Result<E, T>.alsoOnFailure(processFailure: (E) -> Unit): Result<E, T> {
+fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit): Result<E, T> {
     if (this is Failure) processFailure(error)
     return this
 }
@@ -272,6 +271,13 @@ fun <E, T> Result<E, T>.transpose(): Result<T, E> {
     }
 }
 
+/**
+ * Casts thia result to specific type result of either the [E], or [T] value type.
+ *
+ * @param E The error type parameter
+ * @param T The result type parameter
+ * @return This result if either error value is of type [E], or the value of type [T], or `null`.
+ */
 @Suppress("UNCHECKED_CAST")
 inline fun <reified E,reified T> Result<*,*>.castAsOrNull():Result<E,T>? {
     return when (this) {
@@ -280,7 +286,31 @@ inline fun <reified E,reified T> Result<*,*>.castAsOrNull():Result<E,T>? {
     }
 }
 
+/**
+ * Casts thia result to specific type result of either the [E], or [T] value type.
+ *
+ * @param E The error type parameter
+ * @param errorClass The class of expected error value type
+ * @param T The result type parameter
+ * @param valueClass The class of the expected value type.
+ * @return This result if either error value is of type [E], or the value of type [T], or `null`.
+ */
+@Suppress("UNCHECKED_CAST")
+fun <E, T> Result<*, *>.castAsOrNull(errorClass: Class<out E>, valueClass: Class<out T>): Result<E, T>? {
+    return when  {
+        this is Failure && errorClass.isInstance(error) -> this as Failure<E>
+        this is Success && valueClass.isInstance(value) -> this as Success<T>
+        else -> null
+    }
+}
 
+/**
+ * Attempts to cast a failure of to specific error value type, or failing returns a null.
+ *
+ * @param E The expected error value class.
+ *
+ * @return The failure with the expected value type of [E], or null.
+ */
 @Suppress("UNCHECKED_CAST")
 inline fun <reified E> Failure<*>.castAsOrNull(): Failure<E>? {
     return when (error) {
@@ -289,10 +319,51 @@ inline fun <reified E> Failure<*>.castAsOrNull(): Failure<E>? {
     }
 }
 
+
+/**
+ * Attempts to cast a failure of to specific error value type, or failing returns a null.
+ *
+ * @param E The expected error value class.
+ * @param errorClass The class of the expected error value.
+ *
+ * @return The failure with the expected value type of [E], or null.
+ */
+@Suppress("UNCHECKED_CAST")
+fun <E> Failure<*>.castAsNull(errorClass: Class<out E>): Failure<E>? {
+    return when {
+        errorClass.isInstance(error) -> this as Failure<E>
+        else -> null
+    }
+}
+
+/**
+ * Attempts to cast this success to value of a specific type of [T]. If the cast cannot
+ * succeed, a `null` value will be returned.
+ *
+ * @param T The expected [Success.value] type parameter.
+ *
+ * @return A Success which value is of type [T], or `null` of the cast will cannot succeed.
+ */
 @Suppress("UNCHECKED_CAST")
 inline fun <reified T> Success<*>.castAsOrNull(): Success<T>? {
     return when (value) {
         is T -> this as Success<T>
+        else -> null
+    }
+}
+
+/**
+ * Attempts to cast this success to value of a specific type of [T]. If the cast cannot
+ * succeed, a `null` value will be returned.
+ *
+ * @param T The expected [Success.value] type parameter.
+ * @param valueClass The expected value class of [T]
+ * @return A Success which value is of type [T], or `null` of the cast will cannot succeed.
+ */
+@Suppress("UNCHECKED_CAST")
+fun <T> Success<*>.castAsOrNull(valueClass: Class<out T>): Success<T>? {
+    return when {
+        valueClass.isInstance(value) -> this as Success<T>
         else -> null
     }
 }
