@@ -6,7 +6,7 @@ import io.github.andriesfc.resultk.Result.Success
 import java.util.*
 
 /**
- * Result is an sealed type which represents a result of an operation. A result can either be a [Success], or an [Failure].
+ * Result is an sealed type which represents a result of an operation: A result can either be a [Success], or an [Failure].
  * This type is specifically designed to provide explicit and precise control over results produced by a function, or an
  * API.
  *
@@ -20,25 +20,38 @@ sealed class Result<out E, out T>  {
      *
      * @property value The value returned.
      */
-    data class Success<T>(val value: T) : Result<Nothing, T>()
+    data class Success<T>(val value: T) : Result<Nothing, T>() {
+
+        /**
+         * Returns this [value]
+         */
+        override fun get(): T = value
+    }
 
     /**
      * A failure/error value.
      *
      * @property error The error returned as an result.
      */
-    data class Failure<E>(val error: E) : Result<E, Nothing>()
+    data class Failure<E>(val error: E) : Result<E, Nothing>() {
+
+        /**
+         * Raises this failure as Exception: It is up to the caller to catch and handle the raised
+         * exception.
+         */
+        override fun get(): Nothing {
+            throw when (error) {
+                is Throwable -> error
+                else -> UnhandledFailureException(this)
+            }
+        }
+    }
 
     /**
      * Calling [Result.get] is unsafe, as get may fail (in the case of a [Failure]) - causing the
-     * the [Failure] to be raised via the [WrappedUnThrowableFailureException.raise] function.
+     * the [Failure] to be raised via the [raiseThis] function.
      */
-    fun get(): T {
-        return when (this) {
-            is Success -> value
-            is Failure -> WrappedUnThrowableFailureException.raise(this)
-        }
-    }
+    abstract fun get(): T
 }
 
 
@@ -49,8 +62,8 @@ sealed class Result<out E, out T>  {
  * > **NOTE**: If the result is a [Result.Failure], calling [UnsafeGet.get] will
  * > throw an exception.
  *
- * @see UnsafeGet.get
- * @see WrappedUnThrowableFailureException.raise
+ * @see Result.get
+ * @see Failure.raiseThis
  */
 operator fun <T> Result<*, T>.component1(): Result<*,T> = this
 
@@ -143,7 +156,7 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  * Returns the value of this result contains an success value, or throws an an exception if the success value is not present.
  *
  * **NOTE:**  The actual exception being thrown depends on the type of the [Failure.error] value.
- * If the error is an throwable, it will throw it, otherwise wrap into a [WrappedUnThrowableFailureException]
+ * If the error is an throwable, it will throw it, otherwise wrap into a [UnhandledFailureException]
  *
  * If this is not the desired behaviour use any of the following operations:
  *
@@ -152,7 +165,7 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  *
  * @see [Failure.get]
  * @see [Result.mapFailure]
- * @see [WrappedUnThrowableFailureException.unwrapAs]
+ * @see [UnhandledFailureException.getFailureOrNull]
  */
 fun <T> Result<*, T>.getOrThrow(): T = get()
 
@@ -259,3 +272,27 @@ fun <E, T> Result<E, T>.transpose(): Result<T, E> {
     }
 }
 
+@Suppress("UNCHECKED_CAST")
+inline fun <reified E,reified T> Result<*,*>.castAsOrNull():Result<E,T>? {
+    return when (this) {
+        is Failure -> (error as? E)?.let { this as Failure<E> }
+        is Success -> (value as? T)?.let { this as Success<T> }
+    }
+}
+
+
+@Suppress("UNCHECKED_CAST")
+inline fun <reified E> Failure<*>.castAsOrNull(): Failure<E>? {
+    return when (error) {
+        is E -> this as Failure<E>
+        else -> null
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+inline fun <reified T> Success<*>.castAsOrNull(): Success<T>? {
+    return when (value) {
+        is T -> this as Success<T>
+        else -> null
+    }
+}
