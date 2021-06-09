@@ -16,7 +16,7 @@ import io.github.andriesfc.resultk.Result.Failure
  */
 class WrappedUnThrowableFailureException private constructor(
     message: String,
-    val wrappedFailure: Result.Failure<*>
+    val wrappedFailure: Failure<*>
 ) : RuntimeException(message) {
 
     internal companion object {
@@ -25,7 +25,7 @@ class WrappedUnThrowableFailureException private constructor(
          * a [Throwable], or throw the actual [Failure.error] produced.
          */
         @JvmStatic
-        internal fun raise(failure: Result.Failure<*>): Nothing = throw when (failure.error) {
+        internal fun raise(failure: Failure<*>): Nothing = throw when (failure.error) {
             is Throwable -> failure.error
             else -> WrappedUnThrowableFailureException("Operation failed with: ${failure.error}", failure)
         }
