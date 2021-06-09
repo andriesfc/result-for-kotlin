@@ -42,14 +42,15 @@ sealed class Result<out E, out T>  {
         override fun get(): Nothing {
             throw when (error) {
                 is Throwable -> error
-                else -> UnhandledFailureException(this)
+                else -> UnhandledFailureAsException(this)
             }
         }
     }
 
     /**
-     * Calling [Result.get] is unsafe, as get may fail (in the case of a [Failure]) - causing the
-     * the [Failure] to be raised via the [raiseThis] function.
+     * Calling [Result.get] is unsafe, as the may fail (in the case of a [Failure]) with an exception being thrown.
+     *
+     * @see UnhandledFailureAsException.captured - in the case where the [Failure.error] is not a throwable type.
      */
     abstract fun get(): T
 }
@@ -155,7 +156,7 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  * Returns the value of this result contains an success value, or throws an an exception if the success value is not present.
  *
  * **NOTE:**  The actual exception being thrown depends on the type of the [Failure.error] value.
- * If the error is an throwable, it will throw it, otherwise wrap into a [UnhandledFailureException]
+ * If the error is an throwable, it will throw it, otherwise wrap into a [UnhandledFailureAsException]
  *
  * If this is not the desired behaviour use any of the following operations:
  *
@@ -164,7 +165,7 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  *
  * @see [Failure.get]
  * @see [Result.mapFailure]
- * @see [UnhandledFailureException.getFailureOrNull]
+ * @see [UnhandledFailureAsException.getFailureOrNull]
  */
 fun <T> Result<*, T>.getOrThrow(): T = get()
 
@@ -287,7 +288,7 @@ inline fun <reified E,reified T> Result<*,*>.castAsOrNull():Result<E,T>? {
 }
 
 /**
- * Casts thia result to specific type result of either the [E], or [T] value type.
+ * Casts this result to specific type result of either the error ([E]), or success value ([T]) type.
  *
  * @param E The error type parameter
  * @param errorClass The class of expected error value type
@@ -329,7 +330,7 @@ inline fun <reified E> Failure<*>.castAsOrNull(): Failure<E>? {
  * @return The failure with the expected value type of [E], or null.
  */
 @Suppress("UNCHECKED_CAST")
-fun <E> Failure<*>.castAsNull(errorClass: Class<out E>): Failure<E>? {
+fun <E> Failure<*>.castAsOrNull(errorClass: Class<out E>): Failure<E>? {
     return when {
         errorClass.isInstance(error) -> this as Failure<E>
         else -> null
@@ -365,5 +366,30 @@ fun <T> Success<*>.castAsOrNull(valueClass: Class<out T>): Success<T>? {
     return when {
         valueClass.isInstance(value) -> this as Success<T>
         else -> null
+    }
+}
+
+/**
+ * Indicates that an error occurred, but the [Failure.error] itself could not be thrown as it
+ * is not of a `Throwable` type.
+ *
+ * @property captured Reports the actual unhandled failure.
+ *
+ * @aee Result.get
+ * @see Result.Failure
+ * @see resultOf
+ */
+class UnhandledFailureAsException internal constructor(val captured: Failure<*>) :
+    RuntimeException("Unhandled error raised: ${captured.error}")
+
+/**
+ * Attempts to unwrap any failure raised via a [UnhandledFailureAsException]
+ *
+ * @see UnhandledFailureAsException.captured
+ */
+fun Throwable.tryUnwrappingFailure(): Optional<Failure<Any>> {
+    return when (this) {
+        is UnhandledFailureAsException -> captured.castAsOrNull<Any>()?.let { Optional.ofNullable(it) } ?: Optional.empty()
+        else -> Optional.empty()
     }
 }
