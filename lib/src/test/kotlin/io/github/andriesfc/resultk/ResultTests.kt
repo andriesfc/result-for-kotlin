@@ -27,7 +27,7 @@ import kotlin.test.fail
 
 @ExtendWith(MockKExtension::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class ResultDemo {
+internal class ResultTests {
 
     private interface TextReader {
         fun readText(): Result<IOException, String>

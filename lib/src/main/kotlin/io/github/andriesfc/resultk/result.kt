@@ -55,7 +55,7 @@ fun interface UnsafeGet<out T> {
  * > throw an exception.
  *
  * @see UnsafeGet.get
- * @see UnsafeGet.UnsafeGetFailedException.raise
+ * @see WrappedUnThrowableFailureException.raise
  */
 operator fun <T> Result<*, T>.component1(): UnsafeGet<T> = when (this) {
     is Failure -> UnsafeGet { WrappedUnThrowableFailureException.raise(this) }

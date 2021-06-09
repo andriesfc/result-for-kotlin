@@ -29,6 +29,7 @@ class ResultFromJavaTest {
     @Test
     void handlingErrorWithTraditionalTryCatch() {
 
+        //noinspection unchecked
         var error = new CalculationError("taxRef", "badError", mapOf(
                 new Pair<>(Indicator.AmountNotInRange, "30 is not in range"),
                 new Pair<>(Indicator.TechnicalError, "Try again")));
