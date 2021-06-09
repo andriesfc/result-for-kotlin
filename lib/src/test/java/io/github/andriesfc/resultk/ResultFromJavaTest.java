@@ -42,7 +42,7 @@ class ResultFromJavaTest {
         System.out.println(r);
 
         try {
-            System.out.println(ResultOperations.get(r));
+            System.out.println(r.get());
         } catch (Exception e) {
             var re = ResultOperations.getErrorOrNull(r);
             System.out.println(re);

@@ -13,16 +13,14 @@ import java.util.*
  * @param E The error type
  * @param T The successful/expected value.
  */
-sealed class Result<out E, out T> {
+sealed class Result<out E, out T>  {
 
     /**
      * A successful/expected value.
      *
      * @property value The value returned.
      */
-    data class Success<T>(val value: T) : Result<Nothing, T>(), UnsafeGet<T> {
-        override fun get(): T = value
-    }
+    data class Success<T>(val value: T) : Result<Nothing, T>()
 
     /**
      * A failure/error value.
@@ -30,22 +28,19 @@ sealed class Result<out E, out T> {
      * @property error The error returned as an result.
      */
     data class Failure<E>(val error: E) : Result<E, Nothing>()
-}
-
-/**
- * A functional interface representing value which may throw an exception if the underlying value is a error.
- */
-fun interface UnsafeGet<out T> {
 
     /**
-     * Returns the expected value
-     *
-     * @throws WrappedUnThrowableFailureException if the underlying failure result is not an exception, otherwise the underlying
-     * exception is simply thrown.
+     * Calling [Result.get] is unsafe, as get may fail (in the case of a [Failure]) - causing the
+     * the [Failure] to be raised via the [WrappedUnThrowableFailureException.raise] function.
      */
-    @Throws(WrappedUnThrowableFailureException::class)
-    fun get(): T
+    fun get(): T {
+        return when (this) {
+            is Success -> value
+            is Failure -> WrappedUnThrowableFailureException.raise(this)
+        }
+    }
 }
+
 
 /**
  * Returns a getter for the of the successful result value in the first position, or
@@ -57,10 +52,7 @@ fun interface UnsafeGet<out T> {
  * @see UnsafeGet.get
  * @see WrappedUnThrowableFailureException.raise
  */
-operator fun <T> Result<*, T>.component1(): UnsafeGet<T> = when (this) {
-    is Failure -> UnsafeGet { WrappedUnThrowableFailureException.raise(this) }
-    is Success -> this
-}
+operator fun <T> Result<*, T>.component1(): Result<*,T> = this
 
 /**
  * Returns the actual error if present or `null` in the second position.
@@ -163,19 +155,6 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  * @see [WrappedUnThrowableFailureException.unwrapAs]
  */
 fun <T> Result<*, T>.getOrThrow(): T = get()
-
-/**
- * Returns the value or throws an exception.
- *
- * @see WrappedUnThrowableFailureException
- * @see Result.Failure
- */
-fun <T> Result<*, T>.get(): T {
-    return when (this) {
-        is Failure -> WrappedUnThrowableFailureException.raise(this)
-        is Success -> value
-    }
-}
 
 /**
  * Returns an success value, or in the case of an error a `null` value.
