@@ -8,24 +8,55 @@ abstract class Either<out Left,out Right>
 
 By conventions the left side (denoted by `Left`) indicates the error value, followed by the right side for the result. Only one value can be present. Hence the 'either' moniker.
 
-## Design considerations of the Library
+## Design considerations of the Result library
 
-This project is an experiment to implement a more fluent and natural implementation of the `Result` by:
+This project is an experiment to implement a more fluent and natural implementation of the `Result` pattern by:
 
-- Providing a procedural (non Object Orientated) style of handling exceptions(and errors) in Kotlin.
-- Provide a more rigorous handling of errors from a functional perspective.
-- At the same time not forcing developers which is more comfortable with the try-catch style of handling exceptions to adopt a new functional style.
+1. Introducing errors handling to a domain in an explicit and deliberate way.
+2. Providing a rich `Result` type which can be returned by APIs and consumed by callers.
+3. Providing a procedural (non Object Orientated) style of handling exceptions(and errors).
+4. Provide a more rigorous handling of errors from a functional perspective.
+5. At the same time not forcing developers which is more comfortable with the try-catch style of handling exceptions to adopt a new functional style.
+
+To understand the driving force of these considerations, consider why not using `kotlin.Result` class.
+
+### Why Not `kotlin.Result`?
+
+
+
+
 
 ## High Level Overview
 
-The Result Library can summarized by the following UML diagram:
+The Result library implementation can summarized by the following UML diagrams:
 
-![uml](resultk.png)
+![uml](result.png)
 ---
 
-> **Important things to note**:
->
-> 1. `ResultOperations` exposes set of  functional style of operations operates on the `Result` hierarchy of classes & objects.
-> 2. The`WrappedUnThrowableFailureException` class, and the `WrappedFailureOperations` functions bridge the procedural style of error handling and the more traditional Object Orientated style of `try-catch` prevalent in most OO languages. The former wraps a non throwable error as an exception which can be thrown and caught, while the latter exposes general functions to retrieve wrapped errors in type safe manner.
-> 3. The `Success` and `Failure` classes are special containers which stores either an result of successful computation, or the error of failed computation respectively. They are subclasses of the sealed `Result` class hierarchy.
+At this point note that:
+
+1. `ResultOperations` represent a common library of operations applicable to`Result` types. 
+2. These operations exposes a high level API which enables the user to leverage both traditional _try-catch_ semantics as well as _higher functions_ via lambdas.
+3. The `UnhandledFailureAsException` class along with the `tryUnwrappingFailure()` function is used to bridge between functional style of error handling, and the more traditional OO style of using a `try-catch` 
+4. Notice also that `Success.get()` returns an actual success value, while `Failure.get()` actually does not return anything. *In fact* –  the latter throws an exception if called.
+5. The `Result<E,T>` class hierarchy is sealed. This means that at compile- and runtime there can only be, either an `Success<T>`, or `Failure<E>` instance for given `Result` instance.
+6. 
+
+## Library Use Case Patterns
+
+A major objective of this library is to make domain errors front and center when implementing an API. This allows the caller/client on an API to know up front what can be go wrong with a call during normal operation,  and act accordingly.
+
+For the reminder for this section is will be discussed in the context of a fictional digital wallet, called Acme Digital Wallet. The wallet is accessible via standard rest API as defined by an Open API spec.
+
+### Improved API Design
+
+### Pure Functional Error Handling
+
+### Traditional Object Orientated Error Handling
+
+### Hybrid Approach of Error handling
+
+
+
+
 
