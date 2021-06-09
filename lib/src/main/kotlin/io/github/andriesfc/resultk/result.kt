@@ -160,7 +160,7 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  *
  * @see [Failure.get]
  * @see [Result.mapFailure]
- * @see [WrappedUnThrowableFailureException.unwrapFailure]
+ * @see [WrappedUnThrowableFailureException.unwrapAs]
  */
 fun <T> Result<*, T>.getOrThrow(): T = get()
 
