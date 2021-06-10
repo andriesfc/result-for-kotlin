@@ -102,7 +102,7 @@ fun <E> Result<E, *>.getErrorOrNull(): E? {
  * @param compute The function to apply on given receiver.
  */
 inline fun <T, reified E, R> T.computeResultWith(compute: T.() -> Result<E, R>): Result<E, R> {
-    return resultOf { compute() }
+    return Result { compute() }
 }
 
 
@@ -114,7 +114,8 @@ inline fun <T, reified E, R> T.computeResultWith(compute: T.() -> Result<E, R>):
  * @throws Throwable if the caught exception is not of type [E]
  * @return A result.
  */
-inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
+@Suppress("FunctionName")
+inline fun <reified E, T> Result(action: () -> Result<E, T>): Result<E, T> {
     return try {
         action()
     } catch (e: Throwable) {
@@ -125,6 +126,26 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
     }
 }
 
+/**
+ * Takes computation and wraps any exception (if [E] is an [Throwable])
+ * as a [Result.Failure].
+ *
+ * @param action Action to produce an [Result]
+ * @param errorClass The expected error class.
+ * @throws Throwable if the caught exception is not of type [E]
+ * @return A result.
+ */
+@Suppress("FunctionName")
+fun <E,T> Result(errorClass: Class<E>, action: () -> Result<E, T>): Result<E,T> {
+    return try {
+        action()
+    } catch (e: Throwable) {
+        when {
+            errorClass.isInstance(e) -> errorClass.cast(e).failure()
+            else -> throw e
+        }
+    }
+}
 
 /**
  * Gets a value from a result, or maps an error to desired type. This is similar to [Result.fold] operation,
@@ -377,7 +398,7 @@ fun <T> Success<*>.castAsOrNull(valueClass: Class<out T>): Success<T>? {
  *
  * @aee Result.get
  * @see Result.Failure
- * @see resultOf
+ * @see Result
  */
 class UnhandledFailureAsException internal constructor(val captured: Failure<*>) :
     RuntimeException("Unhandled error raised: ${captured.error}")

@@ -230,7 +230,7 @@ internal class ResultTests {
 
             class BeanCountingException(val errorCode: String) : Exception(errorCode)
 
-            val given = resultOf<BeanCountingException, Int> {
+            val given = Result<BeanCountingException, Int> {
                 when {
                     beansCounted != null -> beansCounted.success()
                     beanCountingErrorCode != null -> throw BeanCountingException(beanCountingErrorCode)
