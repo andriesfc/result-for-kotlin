@@ -1,5 +1,6 @@
 # `Result` Implementation for Kotlin 1.5
 
+
 The `Result` class can be seen as specialized version of the `Either` monad. This monad by conventions allows the caller of function to return either the actual result, or the error. By convention this monad is declared (in general) terms:
 
 ```kotlin
@@ -18,13 +19,19 @@ This project is an experiment to implement a more fluent and natural implementat
 4. Provide a more rigorous handling of errors from a functional perspective.
 5. At the same time not forcing developers which is more comfortable with the try-catch style of handling exceptions to adopt a new functional style.
 
-To understand the driving force of these considerations, consider why not using `kotlin.Result` class.
+## Why Not ...?
 
-### Why Not `kotlin.Result`?
+Both Java and Kotlin has some mechanisms which can be exploited to handle error conditions in an API serfuce. Lets explore some reasons of why neither of these standard library API  fails to deliver.
 
+### Use `kotlin.Result`
 
+### Java  World
 
+#### Use Java's `Optional<T>`
 
+Java's optional is not intended to handle errors, rather it used to handle `null` in very explicit manner. Specifically an optional only indicate that a value is present, or not.
+
+#### Use of domain exceptions
 
 ## High Level Overview
 
@@ -40,7 +47,6 @@ At this point note that:
 3. The `UnhandledFailureAsException` class along with the `tryUnwrappingFailure()` function is used to bridge between functional style of error handling, and the more traditional OO style of using a `try-catch` 
 4. Notice also that `Success.get()` returns an actual success value, while `Failure.get()` actually does not return anything. *In fact* –  the latter throws an exception if called.
 5. The `Result<E,T>` class hierarchy is sealed. This means that at compile- and runtime there can only be, either an `Success<T>`, or `Failure<E>` instance for given `Result` instance.
-6. 
 
 ## Library Use Case Patterns
 
@@ -55,8 +61,3 @@ For the reminder for this section is will be discussed in the context of a ficti
 ### Traditional Object Orientated Error Handling
 
 ### Hybrid Approach of Error handling
-
-
-
-
-
