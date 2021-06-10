@@ -230,7 +230,7 @@ internal class ResultTests {
 
             class BeanCountingException(val errorCode: String) : Exception(errorCode)
 
-            val given = Result<BeanCountingException, Int> {
+            val given = resultOf<BeanCountingException, Int> {
                 when {
                     beansCounted != null -> beansCounted.success()
                     beanCountingErrorCode != null -> throw BeanCountingException(beanCountingErrorCode)
@@ -340,7 +340,7 @@ internal class ResultTests {
         }
 
         private fun preparedFileSize(): Result<IOException, Long> {
-            return file.computeResultWith {
+            return file.resultWith {
                 if (exists()) {
                     length().success()
                 } else {

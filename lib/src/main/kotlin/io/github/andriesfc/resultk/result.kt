@@ -48,7 +48,7 @@ sealed class Result<out E, out T>  {
     }
 
     /**
-     * Calling [Result.get] is unsafe, as the may fail (in the case of a [Failure]) with an exception being thrown.
+     * Calling get is unsafe, as the may fail (in the case of a [Failure.get]) with an exception being thrown.
      *
      * @see UnhandledFailureAsException.captured - in the case where the [Failure.error] is not a throwable type.
      */
@@ -60,25 +60,22 @@ sealed class Result<out E, out T>  {
  * Returns a getter for the of the successful result value in the first position, or
  * an getter which will thrown in exception in the case of error.
  *
- * > **NOTE**: If the result is a [Result.Failure], calling [Result.get] may result in an exception being thrown.
- * > throw an exception.
- *
- * @see Result.get
+ * > **NOTE**: If the result is a [Failure], calling [get] may result in an exception being thrown.
  */
 operator fun <T> Result<*, T>.component1(): Result<*,T> = this
 
 /**
  * Returns the actual error if present or `null` in the second position.
  */
-operator fun <E> Result<E, *>.component2(): E? = fold({ it }, { null })
+operator fun <E> Result<E, *>.component2(): E? = getErrorOrNull()
 
 /**
- * Wraps this value of [T] as [Result.Success]
+ * Wraps this value of [T] as [Success]
  */
 fun <E, T> T.success(): Result<E, T> = Success(this)
 
 /**
- * Wraps this value of [E] as [Result.Failure]
+ * Wraps this value of [E] as [Failure]
  */
 fun <E, T> E.failure(): Result<E, T> = Failure(this)
 
@@ -86,7 +83,7 @@ fun <E, T> E.failure(): Result<E, T> = Failure(this)
 /**
  * Returns an error or `null` for a given Result.
  *
- * @receiver A [Result]
+ * @receiver A [resultOf]
  */
 fun <E> Result<E, *>.getErrorOrNull(): E? {
     return when (this) {
@@ -101,21 +98,20 @@ fun <E> Result<E, *>.getErrorOrNull(): E? {
  * @receiver A value to compute a result.
  * @param compute The function to apply on given receiver.
  */
-inline fun <T, reified E, R> T.computeResultWith(compute: T.() -> Result<E, R>): Result<E, R> {
-    return Result { compute() }
+inline fun <T, reified E, R> T.resultWith(compute: T.() -> Result<E, R>): Result<E, R> {
+    return resultOf { compute() }
 }
 
 
 /**
  * Takes computation and wraps any exception (if [E] is an [Throwable])
- * as a [Result.Failure].
+ * as a [Failure].
  *
  * @param action Action to produce an [Result]
  * @throws Throwable if the caught exception is not of type [E]
  * @return A result.
  */
-@Suppress("FunctionName")
-inline fun <reified E, T> Result(action: () -> Result<E, T>): Result<E, T> {
+inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
     return try {
         action()
     } catch (e: Throwable) {
@@ -128,15 +124,15 @@ inline fun <reified E, T> Result(action: () -> Result<E, T>): Result<E, T> {
 
 /**
  * Takes computation and wraps any exception (if [E] is an [Throwable])
- * as a [Result.Failure].
+ * as a [resultOf.Failure].
  *
- * @param action Action to produce an [Result]
+ * @param action Action to produce an [resultOf]
  * @param errorClass The expected error class.
  * @throws Throwable if the caught exception is not of type [E]
  * @return A result.
  */
 @Suppress("FunctionName")
-fun <E,T> Result(errorClass: Class<E>, action: () -> Result<E, T>): Result<E,T> {
+fun <E,T> resultOf(errorClass: Class<E>, action: () -> Result<E, T>): Result<E,T> {
     return try {
         action()
     } catch (e: Throwable) {
@@ -148,7 +144,7 @@ fun <E,T> Result(errorClass: Class<E>, action: () -> Result<E, T>): Result<E,T> 
 }
 
 /**
- * Gets a value from a result, or maps an error to desired type. This is similar to [Result.fold] operation,
+ * Gets a value from a result, or maps an error to desired type. This is similar to [resultOf.fold] operation,
  * except this only cater for mapping the error if it is present.
  */
 inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
@@ -159,7 +155,7 @@ inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
 }
 
 /**
- * A get operation which ensures that an exception is thrown if the result is a [Result.Failure]. Thr caller needs
+ * A get operation which ensures that an exception is thrown if the result is a [resultOf.Failure]. Thr caller needs
  * to supply a function to map the error value to the correct instance of [X
  *
  * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
@@ -182,10 +178,10 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  * If this is not the desired behaviour use any of the following operations:
  *
  * - Supplying a mapping function.
- * - Map the failure first via the [Result.mapFailure] followed by [Result.get]
+ * - Map the failure first via the [resultOf.mapFailure] followed by [resultOf.get]
  *
  * @see [Failure.get]
- * @see [Result.mapFailure]
+ * @see [resultOf.mapFailure]
  * @see [UnhandledFailureAsException.getFailureOrNull]
  */
 fun <T> Result<*, T>.getOrThrow(): T = get()
@@ -195,7 +191,7 @@ fun <T> Result<*, T>.getOrThrow(): T = get()
  *
  * @receiver This result.
  * @param T The result type.
- * @return The value of the result or null in the case of [Result.Failure]
+ * @return The value of the result or null in the case of [resultOf.Failure]
  */
 fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
@@ -207,7 +203,7 @@ fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
  * @param E The error type.
  * @param T The value type
  * @return This receiver.
- * @receiver A [Result]
+ * @receiver A [resultOf]
  */
 fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
     if (this is Success) process(value)
@@ -242,7 +238,7 @@ inline fun <E, T, R> Result<E, T>.fold(mapError: (E) -> R, mapValue: (T) -> R): 
 }
 
 /**
- * Converts a [Result] to an plain old Java [Optional]
+ * Converts a [resultOf] to an plain old Java [Optional]
  */
 fun <T> Result<*, T>.toOptional(): Optional<T> {
     return when (this) {
@@ -253,7 +249,7 @@ fun <T> Result<*, T>.toOptional(): Optional<T> {
 
 
 /**
- * Converts Java's [Optional] to a [Result]. Note the caller has to supply a function which
+ * Converts Java's [Optional] to a [resultOf]. Note the caller has to supply a function which
  * supplies the missing error if there is no value present on the Optional.
  */
 inline fun <E, T> Optional<T>.toResult(missingError: () -> E): Result<E, T> {
@@ -397,8 +393,8 @@ fun <T> Success<*>.castAsOrNull(valueClass: Class<out T>): Success<T>? {
  * @property captured Reports the actual unhandled failure.
  *
  * @aee Result.get
- * @see Result.Failure
- * @see Result
+ * @see Failure
+ * @see resultOf
  */
 class UnhandledFailureAsException internal constructor(val captured: Failure<*>) :
     RuntimeException("Unhandled error raised: ${captured.error}")
@@ -408,7 +404,7 @@ class UnhandledFailureAsException internal constructor(val captured: Failure<*>)
  *
  * @see UnhandledFailureAsException.captured
  */
-fun Throwable.tryUnwrappingFailure(): Optional<Failure<Any>> {
+fun Throwable.unwrapFailure(): Optional<Failure<Any>> {
     return when (this) {
         is UnhandledFailureAsException -> captured.castAsOrNull<Any>()?.let { Optional.ofNullable(it) } ?: Optional.empty()
         else -> Optional.empty()
