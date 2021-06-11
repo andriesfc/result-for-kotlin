@@ -233,7 +233,7 @@ internal class ResultTests {
 
             class BeanCountingException(val errorCode: String) : Exception(errorCode)
 
-            val given = resultOf<BeanCountingException, Int> {
+            val given = result<BeanCountingException, Int> {
                 when {
                     beansCounted != null -> beansCounted.success()
                     beanCountingErrorCode != null -> throw BeanCountingException(beanCountingErrorCode)
@@ -301,7 +301,7 @@ internal class ResultTests {
             when (beansCounted) {
                 null -> {
                     assertThat(counterError).isEqualTo("unknown_bean_counting_error")
-                    assertThrows<UnhandledFailureAsException> { counted.get() }
+                    assertThrows<WrappedFailureAsException> { counted.get() }
                 }
                 else -> {
                     assertThat(counted.get()).isEqualTo(beansCounted)
