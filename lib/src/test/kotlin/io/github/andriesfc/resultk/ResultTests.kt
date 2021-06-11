@@ -33,6 +33,9 @@ internal class ResultTests {
         fun readText(): Result<IOException, String>
     }
 
+    @MockK(relaxed = true)
+    private lateinit var textReader: TextReader
+
     @Nested
     inner class ProceduralStyleHandling {
 
@@ -366,9 +369,6 @@ internal class ResultTests {
             }
         }
     }
-
-    @MockK(relaxed = true)
-    private lateinit var textReader: TextReader
 }
 
 

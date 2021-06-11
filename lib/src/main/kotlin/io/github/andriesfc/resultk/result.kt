@@ -124,7 +124,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
 
 /**
  * Takes computation and wraps any exception (if [E] is an [Throwable])
- * as a [resultOf.Failure].
+ * as a [Failure].
  *
  * @param action Action to produce an [resultOf]
  * @param errorClass The expected error class.
