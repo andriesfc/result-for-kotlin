@@ -13,7 +13,6 @@ plugins {
 }
 
 val artifactName = "resultk"
-val artifactGroup = "io.github.andriesfc.resultk"
 
 val sourcesJar by tasks.creating(Jar::class) {
     group = "Build"
@@ -56,7 +55,7 @@ fun MavenPom.withPublisingDetails() {
 publishing {
     publications {
         create<MavenPublication>("Lib") {
-            groupId = artifactGroup
+            groupId = "${project.group}"
             artifactId = artifactName
             description = "Idomstic result handling in Kotlin"
             version = "${project.version}"

@@ -1,6 +1,6 @@
-package io.github.andriesfc.resultk.demo.taxcalc
+package io.github.andriesfc.kotlin.result.demo.taxcalc
 
-import io.github.andriesfc.resultk.Result
+import io.github.andriesfc.kotlin.result.Result
 import java.math.BigInteger
 import java.time.LocalDateTime
 import java.util.*
@@ -27,6 +27,7 @@ interface TaxCalculationService {
                 other is CalculationError -> (other.taxRef == taxRef)
                         && (other.message == message)
                         && (other.size == size)
+                        && (entries.size == other.entries.size)
                         && entries.containsAll(other.entries)
                 else -> false
             }

@@ -1,8 +1,8 @@
 @file:JvmName("ResultOperations")
-package io.github.andriesfc.resultk
+package io.github.andriesfc.kotlin.result
 
-import io.github.andriesfc.resultk.Result.Failure
-import io.github.andriesfc.resultk.Result.Success
+import io.github.andriesfc.kotlin.result.Result.Failure
+import io.github.andriesfc.kotlin.result.Result.Success
 import java.util.*
 
 /**
@@ -62,7 +62,7 @@ sealed class Result<out E, out T>  {
  *
  * > **NOTE**: If the result is a [Failure], calling [get] may result in an exception being thrown.
  */
-operator fun <T> Result<*, T>.component1(): Result<*,T> = this
+operator fun <T> Result<*, T>.component1(): Result<*, T> = this
 
 /**
  * Returns the actual error if present or `null` in the second position.
@@ -131,8 +131,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
  * @throws Throwable if the caught exception is not of type [E]
  * @return A result.
  */
-@Suppress("FunctionName")
-fun <E,T> resultOf(errorClass: Class<E>, action: () -> Result<E, T>): Result<E,T> {
+fun <E,T> resultOf(errorClass: Class<E>, action: () -> Result<E, T>): Result<E, T> {
     return try {
         action()
     } catch (e: Throwable) {
@@ -181,8 +180,6 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  * - Map the failure first via the [resultOf.mapFailure] followed by [resultOf.get]
  *
  * @see [Failure.get]
- * @see [resultOf.mapFailure]
- * @see [UnhandledFailureAsException.getFailureOrNull]
  */
 fun <T> Result<*, T>.getOrThrow(): T = get()
 
@@ -297,7 +294,7 @@ fun <E, T> Result<E, T>.transpose(): Result<T, E> {
  * @return This result if either error value is of type [E], or the value of type [T], or `null`.
  */
 @Suppress("UNCHECKED_CAST")
-inline fun <reified E,reified T> Result<*,*>.castAsOrNull():Result<E,T>? {
+inline fun <reified E,reified T> Result<*, *>.castAsOrNull(): Result<E, T>? {
     return when (this) {
         is Failure -> (error as? E)?.let { this as Failure<E> }
         is Success -> (value as? T)?.let { this as Success<T> }

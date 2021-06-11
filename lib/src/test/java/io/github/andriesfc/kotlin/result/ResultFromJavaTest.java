@@ -1,10 +1,10 @@
-package io.github.andriesfc.resultk;
+package io.github.andriesfc.kotlin.result;
 
-import io.github.andriesfc.resultk.demo.taxcalc.TaxCalculationService;
-import io.github.andriesfc.resultk.demo.taxcalc.TaxCalculationService.CalculationError;
-import io.github.andriesfc.resultk.demo.taxcalc.TaxCalculationService.CalculationError.Indicator;
-import io.github.andriesfc.resultk.demo.taxcalc.TaxCalculationService.TaxCalculation;
-import io.github.andriesfc.resultk.demo.taxcalc.TaxCalculationService.TaxableEntity;
+import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService;
+import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.CalculationError;
+import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.CalculationError.Indicator;
+import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.TaxCalculation;
+import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.TaxableEntity;
 import kotlin.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ class ResultFromJavaTest {
     void handlingErrorWithTraditionalTryCatch() {
 
         //noinspection unchecked
-        var error = new CalculationError("taxRef", "badError", mapOf(
+        var error = new CalculationError("taxRef", "badError",mapOf(
                 new Pair<>(Indicator.AmountNotInRange, "30 is not in range"),
                 new Pair<>(Indicator.TechnicalError, "Try again")));
 

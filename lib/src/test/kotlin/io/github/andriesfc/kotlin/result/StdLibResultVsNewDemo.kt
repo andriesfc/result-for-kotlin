@@ -1,4 +1,4 @@
-package io.github.andriesfc.resultk
+package io.github.andriesfc.kotlin.result
 
 import org.junit.jupiter.api.Test
 import java.io.IOException
