@@ -136,6 +136,7 @@ tasks.withType<DokkaTask> {
         named("main") {
             moduleName.set("ResultK")
             includes.from("module.md")
+            jdkVersion.set(javaCompileLangVersion.asInt())
             sourceLink {
                 remoteLineSuffix.set("#L")
                 localDirectory.set(file("src/main/kotlin"))

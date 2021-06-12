@@ -6,6 +6,6 @@ Idiomatic safe handling of exceptions in Kotlin in functional manner.
 
 Result handling Library main package.
 
-# Package io.github.andriesfc.kotlin.interop
+# Package io.github.andriesfc.kotlin.result.interop
 
 General Kotlin classes which handles special interop with the JVM where required.
