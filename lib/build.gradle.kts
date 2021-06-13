@@ -78,6 +78,7 @@ publishing {
 
 val javaCompileLangVersion = JavaLanguageVersion.of("11")
 val kotlinComileLangVersion = "1.5"
+val isRelease by extra { !"$version".endsWith("-snapshot", ignoreCase = true) }
 
 javaToolchains {
     compilerFor {
@@ -88,6 +89,15 @@ javaToolchains {
 repositories {
     mavenCentral()
 }
+/*
+signing {
+    setRequired(Callable { isRelease })
+    useGpgCmd()
+    sign(publishing.publications["Lib"])
+}
+
+println(isRelease)
+*/
 
 dependencies {
     // Align versions of all Kotlin components
