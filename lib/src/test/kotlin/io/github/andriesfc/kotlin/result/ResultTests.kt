@@ -272,7 +272,7 @@ internal class ResultTests {
                 )
             }
 
-            val optional: Optional<Int> = given.toOptional()
+            val optional: Optional<Int> = given.optional()
 
             when {
                 beanCountingErrorCode != null -> {
@@ -296,7 +296,7 @@ internal class ResultTests {
         fun convert_optional_to_proper_result(beansCounted: Int?) {
 
             val given = Optional.ofNullable(beansCounted)
-            val (counted, counterError) = given.toResult { "unknown_bean_counting_error" }
+            val (counted, counterError) = result(given) { "unknown_bean_counting_error" }
 
             when (beansCounted) {
                 null -> {

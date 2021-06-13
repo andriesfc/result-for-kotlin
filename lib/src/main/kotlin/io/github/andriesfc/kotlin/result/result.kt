@@ -3,6 +3,7 @@ package io.github.andriesfc.kotlin.result
 
 import io.github.andriesfc.kotlin.result.Result.Failure
 import io.github.andriesfc.kotlin.result.Result.Success
+import io.github.andriesfc.kotlin.result.interop.ThrowableProducer
 import io.github.andriesfc.kotlin.result.interop.accepting
 import java.util.*
 import java.util.function.Consumer
@@ -130,14 +131,14 @@ inline fun <reified E, T> result(action: () -> Result<E, T>): Result<E, T> {
  * Takes computation and wraps any exception (if [E] is an [Throwable])
  * as a [Failure].
  *
- * @param action Action to produce an [result]
+ * @param producer A Java Lambda which can throw an exception.
  * @param errorClass The expected error class.
  * @throws Throwable if the caught exception is not of type [E]
  * @return A result.
  */
-fun <E, T> result(errorClass: Class<E>, action: () -> Result<E, T>): Result<E, T> {
+fun <E, T> result(errorClass: Class<E>, producer: ThrowableProducer<T>): Result<E, T> {
     return try {
-        action()
+        producer.produce().success()
     } catch (e: Throwable) {
         when {
             errorClass.isInstance(e) -> errorClass.cast(e).failure()
@@ -245,7 +246,7 @@ inline fun <E, T, R> Result<E, T>.fold(mapError: (E) -> R, mapValue: (T) -> R): 
 /**
  * Converts a [result] to an plain old Java [Optional]
  */
-fun <T> Result<*, T>.toOptional(): Optional<T> {
+fun <T> Result<*, T>.optional(): Optional<T> {
     return when (this) {
         is Failure -> Optional.empty()
         is Success -> Optional.ofNullable(get())
@@ -257,10 +258,10 @@ fun <T> Result<*, T>.toOptional(): Optional<T> {
  * Converts Java's [Optional] to a [result]. Note the caller has to supply a function which
  * supplies the missing error if there is no value present on the Optional.
  */
-inline fun <E, T> Optional<T>.toResult(missingError: () -> E): Result<E, T> {
+inline fun <E, T> result(optional: Optional<T>, getError: () -> E): Result<E, T> {
     return when {
-        isPresent -> get().success()
-        else -> missingError().failure()
+        optional.isPresent -> optional.get().success()
+        else -> getError().failure()
     }
 }
 
@@ -322,12 +323,14 @@ fun Throwable.unwrapFailure(): Optional<Failure<Any>> {
     }
 }
 
-/**
- * Converts a [kotlin.Result] value to [Result]
- */
-fun <T> StdResult<T>.result(): Result<Throwable, T> {
-    return result { getOrThrow().success() }
+fun <T> result(r: StdResult<T>):Result<Throwable, T> {
+    return result { r.getOrThrow().success() }
 }
+
+fun <E,T> result(r: StdResult<T>, error:(Throwable) -> E): Result<E,T> {
+    return result(r).mapFailure(error)
+}
+
 
 /**
  * Converts this [Result] to a standard library [kotlin.Result]
