@@ -346,7 +346,7 @@ inline fun <E, T> Result<E, T>.toStdResult(
             else -> WrappedFailureAsException(f)
         }
     }
-): kotlin.Result<T> {
+): StdResult<T> {
     return when (this) {
         is Failure -> StdResult.failure(failureAsThrowable(this))
         is Success -> StdResult.success(value)
