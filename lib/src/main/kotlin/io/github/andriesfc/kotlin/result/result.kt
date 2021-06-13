@@ -1,9 +1,9 @@
 @file:JvmName("ResultOperations")
 package io.github.andriesfc.kotlin.result
 
-import io.github.andriesfc.kotlin.result.interop.accepting
 import io.github.andriesfc.kotlin.result.Result.Failure
 import io.github.andriesfc.kotlin.result.Result.Success
+import io.github.andriesfc.kotlin.result.interop.accepting
 import java.util.*
 import java.util.function.Consumer
 import kotlin.Result as StdResult
