@@ -3,6 +3,7 @@ package io.github.andriesfc.kotlin.result
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.*
+import io.github.andriesfc.kotlin.result.Result.Failure
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
@@ -36,6 +37,42 @@ internal class ResultTests {
     @MockK(relaxed = true)
     private lateinit var textReader: TextReader
 
+    private fun whenReadTextReturnWith(expectedText: String) {
+        every { textReader.readText() }.returns(expectedText.success())
+    }
+
+    private fun whenReadTextReportIOExceptionToCaller(message: String? = null) {
+        every { textReader.readText() }.returns(
+            when (message) {
+                null -> IOException().failure()
+                else -> IOException(message).failure()
+            }
+        )
+    }
+
+    @Nested
+    inner class FailureWrappingTest {
+
+        @Test
+        fun non_throwable_is_wrapped() {
+            val nonThrowableError = 1
+            val throwable = Failure(nonThrowableError).throwable()
+            assertThat(throwable).isInstanceOf(WrappedFailureAsException::class)
+            assertThat(throwable.wrappedFailure().isPresent)
+            assertThat(throwable.wrappedFailure().get().error).isEqualTo(nonThrowableError)
+        }
+
+        @Test
+        fun throwable_is_not_wrapped() {
+            val expected = IOException("Read/Write error")
+            val actual = Failure(expected).throwable()
+            assertThat(actual).isEqualTo(expected)
+            assertThat(actual.message).isEqualTo(expected.message)
+            assertThat(actual.wrappedFailure().isEmpty)
+        }
+
+    }
+
     @Nested
     inner class ProceduralStyleHandling {
 
@@ -64,14 +101,6 @@ internal class ResultTests {
             assertThat { textReader.readText().get() }.isSuccess().isEqualTo(expectedText)
         }
 
-    }
-
-    private fun whenReadTextReturnWith(expectedText: String) {
-        every { textReader.readText() }.returns(expectedText.success())
-    }
-
-    private fun whenReadTextReportIOExceptionToCaller(message: String? = null) {
-        every { textReader.readText() }.returns((message?.let(::IOException) ?: IOException()).failure())
     }
 
     @Nested
@@ -126,7 +155,7 @@ internal class ResultTests {
     }
 
     @Nested
-    internal inner class FunctionalProcessing {
+    inner class FunctionalProcessing {
 
         @Test
         fun map_then_fold() {
@@ -312,7 +341,7 @@ internal class ResultTests {
     }
 
     @Nested
-    internal inner class LetsComputeSomeFileSizesTest {
+    inner class LetsComputeSomeFileSizesTest {
 
         @TempDir
         internal lateinit var workDir: File

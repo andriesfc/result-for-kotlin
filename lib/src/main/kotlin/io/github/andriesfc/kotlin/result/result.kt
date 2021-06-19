@@ -54,7 +54,7 @@ sealed class Result<out E, out T>  {
     /**
      * Calling get is unsafe, as the may fail (in the case of a [Failure.get]) with an exception being thrown.
      *
-     * @see WrappedFailureAsException.wrapped - in the case where the [Failure.error] is not a throwable type.
+     * @see WrappedFailureAsException.wrappedFailure - in the case where the [Failure.error] is not a throwable type.
      */
     abstract fun get(): T
 }
@@ -121,7 +121,7 @@ inline fun <reified E, T> result(action: () -> Result<E, T>): Result<E, T> {
         action()
     } catch (e: Throwable) {
         when (e) {
-            is E -> e.failure()
+            is E -> Failure(e)
             else -> throw e
         }
     }
@@ -314,9 +314,9 @@ class WrappedFailureAsException(wrapped: Failure<*>) : RuntimeException("${wrapp
 /**
  * Attempts to unwrap any failure raised via a [WrappedFailureAsException]
  *
- * @see WrappedFailureAsException.wrapped
+ * @see WrappedFailureAsException.wrappedFailure
  */
-fun Throwable.unwrapFailure(): Optional<Failure<Any>> {
+fun Throwable.wrappedFailure(): Optional<Failure<Any>> {
     return when (this) {
         is WrappedFailureAsException -> Optional.of(wrapped)
         else -> Optional.empty()
@@ -331,27 +331,35 @@ fun <E,T> result(r: StdResult<T>, error:(Throwable) -> E): Result<E,T> {
     return result(r).mapFailure(error)
 }
 
+/**
+ * Represents this [Failure.error] as Throwable by either returning the
+ * error if error is a [Throwable], or wrapping it via the [WrappedFailureAsException]
+ * class.
+ *
+ * @return A throwable instance representing this failure.
+ */
+fun Failure<*>.throwable(): Throwable {
+    return (error as? Throwable) ?: WrappedFailureAsException(this)
+}
 
 /**
  * Converts this [Result] to a standard library [kotlin.Result]
  *
- * @param failureAsThrowable A function which takes a failure an convert it to [Throwable] instance.
+ * @param asThrowableOf A function which takes a failure and converts it to [Throwable] instance. The
+ * default implementation simply uses the [Failure.throwable] extension function for conversion.
  * @param E The error type parameter
  * @param T The value type parameter
  *
  * @return A standard [kotlin.Result]
+ *
+ * @see Failure.throwable
  */
 @JvmOverloads
 inline fun <E, T> Result<E, T>.toStdResult(
-    failureAsThrowable: (Failure<E>) -> Throwable = { f ->
-        when (f.error) {
-            is Throwable -> f.error
-            else -> WrappedFailureAsException(f)
-        }
-    }
+    asThrowableOf: (Failure<E>) -> Throwable = Failure<E>::throwable
 ): StdResult<T> {
     return when (this) {
-        is Failure -> StdResult.failure(failureAsThrowable(this))
+        is Failure -> StdResult.failure(asThrowableOf(this))
         is Success -> StdResult.success(value)
     }
 }
