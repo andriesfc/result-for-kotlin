@@ -37,7 +37,7 @@ val htmlDokkaJar by tasks.creating(Jar::class) {
     from(buildDir.resolve("dokka/html"))
 }
 
-fun MavenPom.withPublisingDetails() {
+fun MavenPom.withPublisherDetails() {
     developers {
         developer {
             name.set("Andries")
@@ -52,14 +52,18 @@ fun MavenPom.withPublisingDetails() {
     }
 }
 
+fun MavenPublication.withLibraryDetails() {
+    groupId = "${project.group}"
+    artifactId = artifactName
+    description = "Idomstic result handling in Kotlin"
+    version = "${project.version}"
+    pom.withPublisherDetails()
+}
+
 publishing {
     publications {
         create<MavenPublication>("Lib") {
-            groupId = "${project.group}"
-            artifactId = artifactName
-            description = "Idomstic result handling in Kotlin"
-            version = "${project.version}"
-            pom.withPublisingDetails()
+            withLibraryDetails()
             from(components["java"])
             artifact(sourcesJar)
             artifact(javadocJar)
