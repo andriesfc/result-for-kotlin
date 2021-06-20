@@ -1,10 +1,31 @@
 package io.github.andriesfc.kotlin.result;
 
+import static io.github.andriesfc.kotlin.result.ResultOperations.errorOrEmpty;
+import static io.github.andriesfc.kotlin.result.ResultOperations.errorOrNull;
+import static io.github.andriesfc.kotlin.result.ResultOperations.failure;
+import static io.github.andriesfc.kotlin.result.ResultOperations.onFailure;
+import static io.github.andriesfc.kotlin.result.ResultOperations.onSuccess;
+import static io.github.andriesfc.kotlin.result.ResultOperations.result;
+import static io.github.andriesfc.kotlin.result.ResultOperations.success;
+import static java.util.Collections.emptySet;
+import static kotlin.collections.MapsKt.mapOf;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService;
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.CalculationError;
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.CalculationError.Indicator;
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.TaxCalculation;
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.TaxableEntity;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
 import kotlin.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,18 +33,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Optional;
-
-import static io.github.andriesfc.kotlin.result.ResultOperations.*;
-import static java.util.Collections.emptySet;
-import static kotlin.collections.MapsKt.mapOf;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 class JavaInteropTest {
 
@@ -56,7 +65,7 @@ class JavaInteropTest {
         try {
             System.out.println(r.get());
         } catch (Exception e) {
-            var re = getErrorOrNull(r);
+            var re = errorOrNull(r);
             System.out.println(re);
             assert re != null;
             System.out.println(re.hashCode());
@@ -64,45 +73,30 @@ class JavaInteropTest {
 
     }
 
-    @ParameterizedTest
-    @CsvSource(value = {"@null", "6"}, nullValues = "@null")
-    void convertingOptionalToResult(Integer beansCounted) {
-        Optional<Integer> optional = Optional.ofNullable(beansCounted);
-        Result<String, Integer> r = result(optional, () -> "bean_counter_offline");
-        if (optional.isPresent()) {
-            assertEquals(beansCounted, r.get());
-        } else {
-            assertEquals("bean_counter_offline", getErrorOrNull(r));
-        }
+    @Test
+    void testIdiomaticUseOnExpectedFailure() {
+        final String expectedError = "error";
+        final Result<String, Integer> result = result(String.class, () -> failure(expectedError));
+        assertThrows(WrappedFailureAsException.class, result::get);
+        assertEquals(expectedError, errorOrNull(result));
     }
 
     @Test
-    void resultHandlingOnThrowingException() {
-        File file = new File(System.getProperty("user.home"), "819fe5fe-1722-4457-810b-978525f6999b");
-        Result<IOException, Long> fileSize = result(IOException.class, () -> {
-            if (!file.exists()) {
-                throw new FileNotFoundException(String.format("File not found: %s", file));
-            }
-            if (!file.isFile()) {
-                throw new IOException("Unexpected file type : " + file);
-            }
-            return file.length();
-        });
-        onSuccess(fileSize, j -> {
-            System.out.println("file size = " + j);
-        });
-        onFailure(fileSize, e -> {
-            System.out.println("error = " + e);
-        });
-        assertTrue(isFailure(fileSize));
-        assertThrows(IOException.class, fileSize::get);
-
-        Result<String, Long> fileSizeString = mapFailure(fileSize, Throwable::getMessage);
-        System.out.printf("%s%n", fileSizeString);
-
-        var error = getErrorOrNull(fileSize);
-        if (error != null) {
-            error.printStackTrace();
-        }
+    void testIdiomaticUseOnExpectedOnSuccess() {
+        final int expectedCount = 10;
+        final Result<String,Integer> result = result(String.class, () -> success(expectedCount));
+        assertDoesNotThrow(result::get);
+        assertEquals(expectedCount, result.get());
     }
+
+    @Test
+    void testIdiomaticUseOnExpectedFailureAsOptional() {
+        final String expectedError = "bean_counter_offline";
+        final Result<String,Integer> result = result(String.class, () -> failure(expectedError));
+        final Optional<String> error = errorOrEmpty(result);
+        assertThrows(WrappedFailureAsException.class, result::get);
+        assertTrue(error.isPresent());
+        assertEquals(expectedError, error.get());
+    }
+
 }

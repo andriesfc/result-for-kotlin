@@ -3,7 +3,7 @@ package io.github.andriesfc.kotlin.result
 
 import io.github.andriesfc.kotlin.result.Result.Failure
 import io.github.andriesfc.kotlin.result.Result.Success
-import io.github.andriesfc.kotlin.result.interop.ThrowableProducer
+import io.github.andriesfc.kotlin.result.interop.ThrowingProducer
 import io.github.andriesfc.kotlin.result.interop.accepting
 import java.util.*
 import java.util.function.Consumer
@@ -57,10 +57,28 @@ sealed class Result<out E, out T>  {
      * @see WrappedFailureAsException.wrappedFailure - in the case where the [Failure.error] is not a throwable type.
      */
     abstract fun get(): T
+
+    val isSuccess: Boolean get() = this is Success
+    val isFailure: Boolean get() = this is Failure
+
 }
 
-val Result<*, *>.isSuccess: Boolean get() = this is Success
-val Result<*, *>.isFailure: Boolean get() = this is Failure
+
+/**
+ * Returns an error or `null` for a given Result.
+ *
+ * @receiver A [result]
+ */
+fun <E> Result<E,*>.errorOrNull(): E? {
+    return when (this) {
+        is Failure -> error
+        else -> null
+    }
+}
+
+fun <E> Result<E,*>.errorOrEmpty(): Optional<E> {
+    return Optional.ofNullable(errorOrNull())
+}
 
 /**
  * Returns result in the first variable position - use [Result.get] to to retrieve the success value.
@@ -72,12 +90,21 @@ operator fun <T> Result<*, T>.component1(): Result<*, T> = this
 /**
  * Returns the actual error if present or `null` in the second position.
  */
-operator fun <E> Result<E, *>.component2(): E? = getErrorOrNull()
+operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
+
+
+val SUCCESS_UNIT = Success(Unit)
 
 /**
  * Wraps this value of [T] as [Success]
  */
-fun <E, T> T.success(): Result<E, T> = Success(this)
+fun <E,T> T.success(): Result<E, T> {
+    @Suppress("UNCHECKED_CAST")
+    return when (this) {
+        Unit -> SUCCESS_UNIT as Success<T>
+        else -> Success(this)
+    }
+}
 
 /**
  * Wraps this value of [E] as [Failure]
@@ -136,13 +163,14 @@ inline fun <reified E, T> result(action: () -> Result<E, T>): Result<E, T> {
  * @throws Throwable if the caught exception is not of type [E]
  * @return A result.
  */
-fun <E, T> result(errorClass: Class<E>, producer: ThrowableProducer<T>): Result<E, T> {
+fun <E, T> result(errorClass: Class<E>, producer: ThrowingProducer<Result<E, T>>): Result<E, T> {
     return try {
-        producer.produce().success()
+        producer.produce()
     } catch (e: Throwable) {
-        when {
-            errorClass.isInstance(e) -> errorClass.cast(e).failure()
-            else -> throw e
+        if (errorClass.isInstance(e)) {
+            errorClass.cast(e).failure()
+        } else {
+            throw e
         }
     }
 }
@@ -223,8 +251,6 @@ fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit): Result<E, T> {
 fun <E, T> Result<E, T>.onFailure(consumer: Consumer<E>): Result<E, T> = onFailure(consumer.accepting())
 fun <E, T> Result<E, T>.onSuccess(consumer: Consumer<T>): Result<E, T> = onSuccess(consumer.accepting())
 
-
-
 /**
  * Folds this result to a single value. The caller has to supply both a [mapError], and [mapValue]
  * function to translate the given value or error.
@@ -249,7 +275,7 @@ inline fun <E, T, R> Result<E, T>.fold(mapError: (E) -> R, mapValue: (T) -> R): 
 fun <T> Result<*, T>.optional(): Optional<T> {
     return when (this) {
         is Failure -> Optional.empty()
-        is Success -> Optional.ofNullable(get())
+        is Success -> Optional.ofNullable(value)
     }
 }
 
@@ -257,21 +283,40 @@ fun <T> Result<*, T>.optional(): Optional<T> {
 /**
  * Converts Java's [Optional] to a [result]. Note the caller has to supply a function which
  * supplies the missing error if there is no value present on the Optional.
+ *
+ * @param errorOfMissingResult A function which produces a error when the [Optional.isEmpty] returns `true`
+ * @param optional The [Optional] instance to convert to a proper `Result`
+ *
+ * @return A [Result] which has either an value, or a error.
  */
-inline fun <E, T> result(optional: Optional<T>, getError: () -> E): Result<E, T> {
+inline fun <E, T> result(optional: Optional<T>, errorOfMissingResult: () -> E): Result<E, T> {
     return when {
         optional.isPresent -> optional.get().success()
-        else -> getError().failure()
+        else -> errorOfMissingResult().failure()
     }
 }
 
 /**
  * Maps a result's success value.
  */
-inline fun <E, T, R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
+inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     return when (this) {
         is Failure -> this
         is Success -> mapValue(value).success()
+    }
+}
+
+inline fun <E,T,R> Result<E,T>.flatMap(flatMapValue:(T) -> Result<E,R>): Result<E,R> {
+    return when (this) {
+        is Failure -> this
+        is Success -> flatMapValue(value)
+    }
+}
+
+inline fun <E,T,R> Result<E,T>.flatMapFailure(flatMapFailure:(E) -> Result<R,T>): Result<R,T> {
+    return when(this) {
+        is Failure -> flatMapFailure(error)
+        is Success -> this
     }
 }
 
