@@ -13,7 +13,7 @@ import java.io.File
 import kotlin.random.Random
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class SampleErrorHandling {
+class TestDemoFileOps {
 
     @TempDir
     lateinit var tempDir: File

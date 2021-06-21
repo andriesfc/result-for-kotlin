@@ -16,7 +16,7 @@ import static io.github.andriesfc.kotlin.result.ResultOperations.flatmap;
 import static io.github.andriesfc.kotlin.result.demo.DemoFileOpsKt.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-class TestSampleErrorHandlingInJava {
+class TestDemoFileOpsWithJava {
 
 	@Test
 	void testFileSizeResultHandlingOnNonExistingFile() {
