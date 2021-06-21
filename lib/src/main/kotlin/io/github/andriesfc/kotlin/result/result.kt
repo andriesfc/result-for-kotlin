@@ -236,13 +236,14 @@ fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
 
 /**
- * Do also something on the [Success.value] if the receiver is a [Success]
+ * Do something on the [Success.value] if the receiver is a [Success]
  *
  * @param process Process the success value if present.
- * @param E The error type.
- * @param T The value type
+ * @param E The error type parameter.
+ * @param T The value type parameter
  * @return This receiver.
  * @receiver A [result]
+ * @return [this]
  */
 fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
     if (this is Success) process(value)
@@ -251,9 +252,15 @@ fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
 
 /**
  * Also do something with a error if this receiver is an [Failure]
+ *
+ * @param E [Failure.error] value type parameter
+ * @param T [Success.value] value type parameter
+ * @param consume A function to which accepts a [Failure.error] value of type [E] for processing.
+ * @receiver Any [Result] which may have an error value of [E]
+ * @return [this]
  */
-fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit): Result<E, T> {
-    if (this is Failure) processFailure(error)
+fun <E, T> Result<E, T>.onFailure(consume: (E) -> Unit): Result<E, T> {
+    if (this is Failure) consume(error)
     return this
 }
 
