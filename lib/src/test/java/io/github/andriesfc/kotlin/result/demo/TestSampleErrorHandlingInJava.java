@@ -1,7 +1,7 @@
-package io.github.andriesfc.kotlin.result;
+package io.github.andriesfc.kotlin.result.demo;
 
 import static io.github.andriesfc.kotlin.result.ResultOperations.errorOrEmpty;
-import static io.github.andriesfc.kotlin.result.ResultOperations.flatMap;
+import static io.github.andriesfc.kotlin.result.ResultOperations.flatmap;
 import static io.github.andriesfc.kotlin.result.ResultOperations.result;
 import static io.github.andriesfc.kotlin.result.ResultOperations.success;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +19,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+
+import io.github.andriesfc.kotlin.result.Result;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -99,7 +101,7 @@ class TestSampleErrorHandlingInJava {
 	void testFileSizeResultHandlingOnDirectory(@TempDir File tempDir) {
 
 		final Result<IOException, File> dir = createDir(new File(tempDir, String.format("dir-%s", UUID.randomUUID())));
-		final Result<IOException,Long> fileSize = flatMap(dir, TestSampleErrorHandlingInJava::fileSizeOf);
+		final Result<IOException,Long> fileSize = flatmap(dir, TestSampleErrorHandlingInJava::fileSizeOf);
 		final Optional<IOException> fileSizeError = errorOrEmpty(fileSize);
 
 		fileSizeError.ifPresent(System.out::println);

@@ -38,17 +38,14 @@ internal class ResultTests {
     @MockK(relaxed = true)
     private lateinit var textReader: TextReader
 
-    private fun whenReadTextReturnWith(expectedText: String) {
-        every { textReader.readText() }.returns(expectedText.success())
-    }
+    @TempDir
+    internal lateinit var workDir: File
 
-    private fun whenReadTextReportIOExceptionToCaller(message: String? = null) {
-        every { textReader.readText() }.returns(
-            when (message) {
-                null -> IOException().failure()
-                else -> IOException(message).failure()
-            }
-        )
+    private lateinit var file: File
+
+    @BeforeEach
+    fun prepare() {
+        file = File(workDir, "test-${randomUUID()}.dat")
     }
 
     @Test
@@ -182,6 +179,15 @@ internal class ResultTests {
     }
 
     @Test
+    fun flatMap_value() {
+        val expectedText = "24"
+        val r = result<String, Int> { 12.success() }
+        val r1: Result<String, String> = r.flatmap { a, e -> e ?: a.map { v ->  "${v * 2}" } }
+        assertTrue(r1.isSuccess)
+        assertThat(r1.get()).isEqualTo(expectedText)
+    }
+
+    @Test
     fun map_IOException_to_enum() {
         whenReadTextReportIOExceptionToCaller("bang!")
         val (_, error) = textReader.readText().mapFailure { ErrorCode.of(it) }
@@ -251,7 +257,7 @@ internal class ResultTests {
             "@nothing, bean_counter_offline"
         ]
     )
-    fun use_resultOf_function_to_compose_result(beansCounted: Int?, beanCountingErrorCode: String?) {
+    fun use_result_function_to_compose_result(beansCounted: Int?, beanCountingErrorCode: String?) {
 
         class BeanCountingException(val errorCode: String) : Exception(errorCode)
 
@@ -333,15 +339,6 @@ internal class ResultTests {
     }
 
 
-    @TempDir
-    internal lateinit var workDir: File
-    private lateinit var file: File
-
-    @BeforeEach
-    fun prepare() {
-        file = File(workDir, "test-${randomUUID()}.dat")
-    }
-
     @Test
     fun lets_caught_file_not_found_on_missing_file() {
         val (size, ex) = preparedFileSize()
@@ -361,6 +358,7 @@ internal class ResultTests {
         assertThat(fileSizeInBytes.get(), "fileSizeInBytes.get()").isEqualTo(expectedByteSize)
     }
 
+
     private fun preparedFileSize(): Result<IOException, Long> {
         return file.resultWith {
             if (exists()) {
@@ -370,6 +368,21 @@ internal class ResultTests {
             }
         }
     }
+
+    private fun whenReadTextReturnWith(expectedText: String) {
+        every { textReader.readText() }.returns(expectedText.success())
+    }
+
+    private fun whenReadTextReportIOExceptionToCaller(message: String? = null) {
+        every { textReader.readText() }.returns(
+            when (message) {
+                null -> IOException().failure()
+                else -> IOException(message).failure()
+            }
+        )
+    }
+
+
 
     private enum class ErrorCode {
         EndOfFile,

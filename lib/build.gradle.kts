@@ -1,6 +1,7 @@
 @file:Suppress("LocalVariableName", "SpellCheckingInspection")
 
 import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 
 plugins {
@@ -138,10 +139,11 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+tasks.withType<KotlinCompile> {
     kotlinOptions {
         languageVersion = kotlinComileLangVersion
         apiVersion = kotlinComileLangVersion
+        jvmTarget = "$javaCompileLangVersion"
     }
 }
 

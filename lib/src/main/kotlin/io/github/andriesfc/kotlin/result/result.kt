@@ -30,6 +30,8 @@ sealed class Result<out E, out T>  {
          * Returns this [value]
          */
         override fun get(): T = value
+
+        override fun toString(): String = "${Success::class.simpleName}($value)"
     }
 
     /**
@@ -48,6 +50,10 @@ sealed class Result<out E, out T>  {
                 is Throwable -> error
                 else -> WrappedFailureAsException(this)
             }
+        }
+
+        override fun toString(): String {
+            return "${Failure::class.simpleName}($error)"
         }
     }
 
@@ -77,7 +83,10 @@ fun <E> Result<E,*>.errorOrNull(): E? {
 }
 
 fun <E> Result<E,*>.errorOrEmpty(): Optional<E> {
-    return Optional.ofNullable(errorOrNull())
+    return when (this) {
+        is Failure -> Optional.ofNullable(error)
+        else -> Optional.empty()
+    }
 }
 
 /**
@@ -306,18 +315,31 @@ inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> 
     }
 }
 
-inline fun <E,T,R> Result<E,T>.flatMap(flatMapValue:(T) -> Result<E,R>): Result<E,R> {
+/**
+ * Maps a success value to a new [Result]
+ *
+ * @param flatMapValue A function which takes a success value if present and maps to a new result.
+ *
+ */
+inline fun <E,T,R> Result<E,T>.flatmap(flatMapValue:(T) -> Result<E,R>): Result<E,R> {
     return when (this) {
         is Failure -> this
         is Success -> flatMapValue(value)
     }
 }
 
-inline fun <E,T,R> Result<E,T>.flatMapFailure(flatMapFailure:(E) -> Result<R,T>): Result<R,T> {
-    return when(this) {
+/**
+ * Maps an error value to a new [Result]
+ */
+inline fun <E, T, R> Result<E, T>.flatmapFailure(flatMapFailure: (E) -> Result<R, T>): Result<R, T> {
+    return when (this) {
         is Failure -> flatMapFailure(error)
         is Success -> this
     }
+}
+
+inline fun <E, T, Er, Tr> Result<E, T>.flatmap(flatMap: (Result<E, T>, Failure<E>?) -> Result<Er, Tr>): Result<Er, Tr> {
+    return flatMap(this, this as? Failure<E>)
 }
 
 /**
