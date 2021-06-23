@@ -92,7 +92,7 @@ fun <E> Result<E,*>.errorOrEmpty(): Optional<E> {
 /**
  * Returns result in the first variable position - use [Result.get] to to retrieve the success value.
  *
- * > **NOTE**: If the result is a [Failure], calling [get] may result in an exception being thrown.
+ * > **NOTE**: If the result is a [Failure], calling [get] throw an exception.
  */
 operator fun <T> Result<*, T>.component1(): Result<*, T> = this
 
