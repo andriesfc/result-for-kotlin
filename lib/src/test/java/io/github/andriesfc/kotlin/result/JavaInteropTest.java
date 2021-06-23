@@ -1,38 +1,24 @@
 package io.github.andriesfc.kotlin.result;
 
-import static io.github.andriesfc.kotlin.result.ResultOperations.errorOrEmpty;
-import static io.github.andriesfc.kotlin.result.ResultOperations.errorOrNull;
-import static io.github.andriesfc.kotlin.result.ResultOperations.failure;
-import static io.github.andriesfc.kotlin.result.ResultOperations.onFailure;
-import static io.github.andriesfc.kotlin.result.ResultOperations.onSuccess;
-import static io.github.andriesfc.kotlin.result.ResultOperations.result;
-import static io.github.andriesfc.kotlin.result.ResultOperations.success;
-import static java.util.Collections.emptySet;
-import static kotlin.collections.MapsKt.mapOf;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService;
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.CalculationError;
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.CalculationError.Indicator;
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.TaxCalculation;
 import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.TaxableEntity;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.UUID;
 import kotlin.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.util.Optional;
+
+import static io.github.andriesfc.kotlin.result.ResultOperations.*;
+import static java.util.Collections.emptySet;
+import static kotlin.collections.MapsKt.mapOf;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 class JavaInteropTest {
 

@@ -4,7 +4,8 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isTrue
 import assertk.assertions.messageContains
-import io.github.andriesfc.kotlin.result.*
+import io.github.andriesfc.kotlin.result.errorOrEmpty
+import io.github.andriesfc.kotlin.result.flatmap
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
