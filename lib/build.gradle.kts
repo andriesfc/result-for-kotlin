@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.5.10"
+    id("org.jetbrains.kotlin.jvm") version "1.5.20"
     id("org.jetbrains.dokka") version "1.4.32"
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
@@ -91,9 +91,13 @@ javaToolchains {
     }
 }
 
+
+
 repositories {
     mavenCentral()
 }
+
+
 /*
 signing {
     setRequired(Callable { isRelease })
@@ -140,11 +144,9 @@ tasks.withType<Test> {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        languageVersion = kotlinComileLangVersion
-        apiVersion = kotlinComileLangVersion
-        jvmTarget = "$javaCompileLangVersion"
-    }
+    kotlinOptions.jvmTarget = javaCompileLangVersion.toString()
+    kotlinOptions.apiVersion = kotlinComileLangVersion
+    kotlinOptions.languageVersion = kotlinComileLangVersion
 }
 
 tasks.withType<DokkaTask> {
