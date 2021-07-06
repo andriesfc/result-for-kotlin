@@ -1,4 +1,4 @@
-# `Result` Implementation for Kotlin 1.5
+# Result Implementation for Kotlin 1.5
 
 
 The `Result` class can be seen as specialized version of the `Either` monad. This monad by conventions allows the caller of function to return either the actual result, or the error. By convention this monad is declared (in general) terms:
@@ -50,11 +50,8 @@ At this point note that:
 
 ## Library Use Case Patterns
 
-A major objective of this library is to make domain errors front and center when implementing an API. This allows the caller/client on an API to know up front what can be go wrong with a call during normal operation,  and act accordingly.
-
-For the reminder for this section is will be discussed in the context of a fictional digital wallet, called Acme Digital Wallet. The wallet is accessible via standard rest API as defined by an Open API spec.
-
 ### Improved API Design
+
 
 ### Pure Functional Error Handling
 
