@@ -41,13 +41,27 @@ sealed class Result<out E, out T>  {
      */
     data class Failure<E>(val error: E) : Result<E, Nothing>() {
 
+
+        /**
+         * Implement this your own result value to indicate that any
+         * failure value returned should determine which [kotlin.Throwable]
+         * should be raised as not handled via default wrapped exception.
+         *
+         * @see Failure.get
+         * @see WrappedFailureAsException.wrappedFailure
+         */
+        interface Throwable {
+            fun throwable(): kotlin.Throwable
+        }
+
         /**
          * Raises this failure as Exception: It is up to the caller to catch and handle the raised
          * exception.
          */
         override fun get(): Nothing {
             throw when (error) {
-                is Throwable -> error
+                is Throwable -> throw error.throwable()
+                is kotlin.Throwable -> throw error
                 else -> WrappedFailureAsException(this)
             }
         }
