@@ -1,9 +1,9 @@
-package io.github.andriesfc.kotlin.result
+package resultk
 
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.*
-import io.github.andriesfc.kotlin.result.Result.Failure
+import resultk.Result.Failure
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension

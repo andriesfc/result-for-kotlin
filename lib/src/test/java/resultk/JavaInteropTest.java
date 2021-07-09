@@ -1,19 +1,14 @@
-package io.github.andriesfc.kotlin.result;
+package resultk;
 
-import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService;
-import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.CalculationError;
-import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.CalculationError.Indicator;
-import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.TaxCalculation;
-import io.github.andriesfc.kotlin.result.demo.taxcalc.TaxCalculationService.TaxableEntity;
 import kotlin.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import resultk.demo.taxcalc.TaxCalculationService;
 
 import java.util.Optional;
 
-import static io.github.andriesfc.kotlin.result.ResultOperations.*;
 import static java.util.Collections.emptySet;
 import static kotlin.collections.MapsKt.mapOf;
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,24 +29,24 @@ class JavaInteropTest {
     void handlingErrorWithTraditionalTryCatch() {
 
         //noinspection unchecked
-        var error = new CalculationError("taxRef", "badError",mapOf(
-                new Pair<>(Indicator.AmountNotInRange, "30 is not in range"),
-                new Pair<>(Indicator.TechnicalError, "Try again")));
+        var error = new TaxCalculationService.CalculationError("taxRef", "badError", mapOf(
+                new Pair<>(TaxCalculationService.CalculationError.Indicator.AmountNotInRange, "30 is not in range"),
+                new Pair<>(TaxCalculationService.CalculationError.Indicator.TechnicalError, "Try again")));
 
-        when(taxCalculationService.calculateTax(any(TaxableEntity.class), any(), any())).thenReturn(failure(error));
+        when(taxCalculationService.calculateTax(any(TaxCalculationService.TaxableEntity.class), any(), any())).thenReturn(resultk.ResultOperations.failure(error));
 
-        Result<CalculationError, TaxCalculation> r = taxCalculationService.calculateTax(
-                new TaxableEntity("", ""), emptySet(), emptySet());
+        Result<TaxCalculationService.CalculationError, TaxCalculationService.TaxCalculation> r = taxCalculationService.calculateTax(
+                new TaxCalculationService.TaxableEntity("", ""), emptySet(), emptySet());
 
         System.out.println(r);
 
-        onFailure(r, e -> {});
-        onSuccess(r, v -> {});
+        resultk.ResultOperations.onFailure(r, e -> {});
+        resultk.ResultOperations.onSuccess(r, v -> {});
 
         try {
             System.out.println(r.get());
         } catch (Exception e) {
-            var re = errorOrNull(r);
+            var re = resultk.ResultOperations.errorOrNull(r);
             System.out.println(re);
             assert re != null;
             System.out.println(re.hashCode());
@@ -62,15 +57,15 @@ class JavaInteropTest {
     @Test
     void testIdiomaticUseOnExpectedFailure() {
         final String expectedError = "error";
-        final Result<String, Integer> result = result(String.class, () -> failure(expectedError));
+        final Result<String, Integer> result = resultk.ResultOperations.result(String.class, () -> resultk.ResultOperations.failure(expectedError));
         assertThrows(WrappedFailureAsException.class, result::get);
-        assertEquals(expectedError, errorOrNull(result));
+        assertEquals(expectedError, resultk.ResultOperations.errorOrNull(result));
     }
 
     @Test
     void testIdiomaticUseOnExpectedOnSuccess() {
         final int expectedCount = 10;
-        final Result<String,Integer> result = result(String.class, () -> success(expectedCount));
+        final Result<String,Integer> result = resultk.ResultOperations.result(String.class, () -> resultk.ResultOperations.success(expectedCount));
         assertDoesNotThrow(result::get);
         assertEquals(expectedCount, result.get());
     }
@@ -78,8 +73,8 @@ class JavaInteropTest {
     @Test
     void testIdiomaticUseOnExpectedFailureAsOptional() {
         final String expectedError = "bean_counter_offline";
-        final Result<String,Integer> result = result(String.class, () -> failure(expectedError));
-        final Optional<String> error = errorOrEmpty(result);
+        final Result<String,Integer> result = resultk.ResultOperations.result(String.class, () -> resultk.ResultOperations.failure(expectedError));
+        final Optional<String> error = resultk.ResultOperations.errorOrEmpty(result);
         assertThrows(WrappedFailureAsException.class, result::get);
         assertTrue(error.isPresent());
         assertEquals(expectedError, error.get());

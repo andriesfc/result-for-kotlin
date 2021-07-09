@@ -1,10 +1,10 @@
 @file:JvmName("ResultOperations")
-package io.github.andriesfc.kotlin.result
+package resultk
 
-import io.github.andriesfc.kotlin.result.Result.Failure
-import io.github.andriesfc.kotlin.result.Result.Success
-import io.github.andriesfc.kotlin.result.interop.ThrowingProducer
-import io.github.andriesfc.kotlin.result.interop.accepting
+import resultk.Result.Failure
+import resultk.Result.Success
+import resultk.interop.ThrowingProducer
+import resultk.interop.accepting
 import java.util.*
 import java.util.function.Consumer
 import kotlin.Result as StdResult
@@ -89,14 +89,14 @@ sealed class Result<out E, out T>  {
  *
  * @receiver A [result]
  */
-fun <E> Result<E,*>.errorOrNull(): E? {
+fun <E> Result<E, *>.errorOrNull(): E? {
     return when (this) {
         is Failure -> error
         else -> null
     }
 }
 
-fun <E> Result<E,*>.errorOrEmpty(): Optional<E> {
+fun <E> Result<E, *>.errorOrEmpty(): Optional<E> {
     return when (this) {
         is Failure -> Optional.ofNullable(error)
         else -> Optional.empty()
@@ -342,7 +342,7 @@ inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> 
  * @param flatMapValue A function which takes a success value if present and maps to a new result.
  *
  */
-inline fun <E,T,R> Result<E,T>.flatmap(flatMapValue:(T) -> Result<E,R>): Result<E,R> {
+inline fun <E,T,R> Result<E, T>.flatmap(flatMapValue:(T) -> Result<E, R>): Result<E, R> {
     return when (this) {
         is Failure -> this
         is Success -> flatMapValue(value)
@@ -411,11 +411,11 @@ fun Throwable.wrappedFailure(): Optional<Failure<Any>> {
     }
 }
 
-fun <T> result(r: StdResult<T>):Result<Throwable, T> {
+fun <T> result(r: StdResult<T>): Result<Throwable, T> {
     return result { r.getOrThrow().success() }
 }
 
-fun <E,T> result(r: StdResult<T>, error:(Throwable) -> E): Result<E,T> {
+fun <E,T> result(r: StdResult<T>, error:(Throwable) -> E): Result<E, T> {
     return result(r).mapFailure(error)
 }
 

@@ -1,11 +1,11 @@
-package io.github.andriesfc.kotlin.result.demo
+package resultk.demo
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isTrue
 import assertk.assertions.messageContains
-import io.github.andriesfc.kotlin.result.errorOrEmpty
-import io.github.andriesfc.kotlin.result.flatmap
+import resultk.errorOrEmpty
+import resultk.flatmap
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow

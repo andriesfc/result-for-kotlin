@@ -1,8 +1,8 @@
-package io.github.andriesfc.kotlin.result.demo
+package resultk.demo
 
-import io.github.andriesfc.kotlin.result.Result
-import io.github.andriesfc.kotlin.result.result
-import io.github.andriesfc.kotlin.result.success
+import resultk.Result
+import resultk.result
+import resultk.success
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException

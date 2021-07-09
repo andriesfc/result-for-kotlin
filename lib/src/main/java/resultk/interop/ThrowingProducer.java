@@ -1,4 +1,4 @@
-package io.github.andriesfc.kotlin.result.interop;
+package resultk.interop;
 
 import org.jetbrains.annotations.NotNull;
 

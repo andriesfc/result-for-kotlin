@@ -1,8 +1,8 @@
 @file:JvmName("JavaInterop")
-package io.github.andriesfc.kotlin.result.interop
+package resultk.interop
 
-import io.github.andriesfc.kotlin.result.onFailure
-import io.github.andriesfc.kotlin.result.onSuccess
+import resultk.onFailure
+import resultk.onSuccess
 import java.util.function.Consumer
 
 
