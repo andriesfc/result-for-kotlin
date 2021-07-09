@@ -57,12 +57,11 @@ internal class ResultErrorWithCodesTest {
         Result.Failure.Throwable {
         abstract val description: String
 
-
         class WasherMotorControlFailure(
             val controllerAddress: Long,
             val failureState: String
         ) : WasherFailure<String>(code = "[AB1:${controllerAddress.toString(16)}:$failureState]") {
-            override val description: String = "Motor control failure, for details report $code"
+            override val description: String = "Motor control failure, for details report"
         }
 
         override fun throwable(): Throwable {
