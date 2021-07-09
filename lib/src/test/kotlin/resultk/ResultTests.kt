@@ -56,24 +56,6 @@ internal class ResultTests {
     }
 
     @Test
-    fun non_throwable_is_wrapped() {
-        val nonThrowableError = 1
-        val throwable = Failure(nonThrowableError).throwable()
-        assertThat(throwable).isInstanceOf(WrappedFailureAsException::class)
-        assertThat(throwable.wrappedFailure().isPresent)
-        assertThat(throwable.wrappedFailure().get().error).isEqualTo(nonThrowableError)
-    }
-
-    @Test
-    fun throwable_is_not_wrapped() {
-        val expected = IOException("Read/Write error")
-        val actual = Failure(expected).throwable()
-        assertThat(actual).isEqualTo(expected)
-        assertThat(actual.message).isEqualTo(expected.message)
-        assertThat(actual.wrappedFailure().isEmpty)
-    }
-
-    @Test
     fun handle_error_explicit_idiomatic() {
         whenReadTextReportIOExceptionToCaller("kaboom")
         val (text, e) = textReader.readText()
@@ -360,7 +342,7 @@ internal class ResultTests {
 
 
     private fun preparedFileSize(): Result<IOException, Long> {
-        return file.resultWith {
+        return file.compute {
             if (exists()) {
                 length().success()
             } else {

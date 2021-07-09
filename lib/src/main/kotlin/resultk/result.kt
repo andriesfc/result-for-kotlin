@@ -7,12 +7,12 @@ import resultk.interop.ThrowingProducer
 import resultk.interop.accepting
 import java.util.*
 import java.util.function.Consumer
-import kotlin.Result as StdResult
 
 /**
  * Result is an sealed type which represents a result of an operation: A result can either be a [Success], or an [Failure].
- * This type is specifically designed to provide explicit and precise control over results produced by a function, or an
- * API.
+ * This type is specifically designed to provide explicit and precise control over results produced by a function.
+ *
+ * > **NOTE:** Most of the operations are implemented as extension functions.
  *
  * @param E The error type
  * @param T The successful/expected value.
@@ -43,26 +43,34 @@ sealed class Result<out E, out T>  {
 
 
         /**
-         * Implement this your own result value to indicate that any
-         * failure value returned should determine which [kotlin.Throwable]
-         * should be raised as not handled via default wrapped exception.
+         * Implement this on your error codes, or values, to control which exception is raised on calling
+         * [Failure.get] function.
          *
-         * @see Failure.get
-         * @see WrappedFailureAsException.wrappedFailure
          */
         interface Throwable {
             fun throwable(): kotlin.Throwable
         }
 
         /**
-         * Raises this failure as Exception: It is up to the caller to catch and handle the raised
-         * exception.
+         * Failures does not have an result value, only a [error]. Calling get on a failure
+         * will therefore result in an exception being thrown.
+         *
+         * The exact exception being thrown is determined by the nature of the [error] value. Note that the error
+         * value will be wrapped if neither the [error] is a [kotlin.Throwable], nor a [Failure.Throwable],
+         *
+         * @see WrappedFailureAsException
          */
         override fun get(): Nothing {
-            throw when (error) {
-                is Throwable -> throw error.throwable()
-                is kotlin.Throwable -> throw error
-                else -> WrappedFailureAsException(this)
+            when (error) {
+                is Throwable -> {
+                    throw error.throwable()
+                }
+                is kotlin.Throwable -> {
+                    throw error
+                }
+                else -> {
+                    throw WrappedFailureAsException(this)
+                }
             }
         }
 
@@ -153,7 +161,7 @@ fun <E> Result<E, *>.getErrorOrNull(): E? {
  * @receiver A value to compute a result.
  * @param compute The function to apply on given receiver.
  */
-inline fun <T, reified E, R> T.resultWith(compute: T.() -> Result<E, R>): Result<E, R> {
+inline fun <T, reified E, R> T.compute(compute: T.() -> Result<E, R>): Result<E, R> {
     return result { compute() }
 }
 
@@ -225,26 +233,11 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
 }
 
 /**
- * Returns the value of this result contains an success value, or throws an an exception if the success value is not present.
- *
- * **NOTE:**  The actual exception being thrown depends on the type of the [Failure.error] value.
- * If the error is an throwable, it will throw it, otherwise wrap into a [WrappedFailureAsException]
- *
- * If this is not the desired behaviour use any of the following operations:
- *
- * - Supplying a mapping function.
- * - Map the failure first via the [result.mapFailure] followed by [result.get]
- *
- * @see [Failure.get]
- */
-fun <T> Result<*, T>.getOrThrow(): T = get()
-
-/**
  * Returns an success value, or in the case of an error a `null` value.
  *
  * @receiver This result.
  * @param T The result type.
- * @return The value of the result or null in the case of [result.Failure]
+ * @return The value of the result or null in the case of [Failure]
  */
 fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
@@ -349,16 +342,6 @@ inline fun <E,T,R> Result<E, T>.flatmap(flatMapValue:(T) -> Result<E, R>): Resul
     }
 }
 
-/**
- * Maps an error value to a new [Result]
- */
-inline fun <E, T, R> Result<E, T>.flatmapFailure(flatMapFailure: (E) -> Result<R, T>): Result<R, T> {
-    return when (this) {
-        is Failure -> flatMapFailure(error)
-        is Success -> this
-    }
-}
-
 inline fun <E, T, Er, Tr> Result<E, T>.flatmap(flatMap: (Result<E, T>, Failure<E>?) -> Result<Er, Tr>): Result<Er, Tr> {
     return flatMap(this, this as? Failure<E>)
 }
@@ -408,46 +391,5 @@ fun Throwable.wrappedFailure(): Optional<Failure<Any>> {
     return when (this) {
         is WrappedFailureAsException -> Optional.of(wrapped)
         else -> Optional.empty()
-    }
-}
-
-fun <T> result(r: StdResult<T>): Result<Throwable, T> {
-    return result { r.getOrThrow().success() }
-}
-
-fun <E,T> result(r: StdResult<T>, error:(Throwable) -> E): Result<E, T> {
-    return result(r).mapFailure(error)
-}
-
-/**
- * Represents this [Failure.error] as Throwable by either returning the
- * error if error is a [Throwable], or wrapping it via the [WrappedFailureAsException]
- * class.
- *
- * @return A throwable instance representing this failure.
- */
-fun Failure<*>.throwable(): Throwable {
-    return (error as? Throwable) ?: WrappedFailureAsException(this)
-}
-
-/**
- * Converts this [Result] to a standard library [kotlin.Result]
- *
- * @param asThrowableOf A function which takes a failure and converts it to [Throwable] instance. The
- * default implementation simply uses the [Failure.throwable] extension function for conversion.
- * @param E The error type parameter
- * @param T The value type parameter
- *
- * @return A standard [kotlin.Result]
- *
- * @see Failure.throwable
- */
-@JvmOverloads
-inline fun <E, T> Result<E, T>.toStdResult(
-    asThrowableOf: (Failure<E>) -> Throwable = Failure<E>::throwable
-): StdResult<T> {
-    return when (this) {
-        is Failure -> StdResult.failure(asThrowableOf(this))
-        is Success -> StdResult.success(value)
     }
 }
