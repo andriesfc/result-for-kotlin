@@ -30,7 +30,7 @@ internal class StdlibKtTest {
 
     @Test
     fun convertLibStandardToResultKWhenThereIsNoFailure() {
-        val r = result<Exception, Int> { (1 + 10).success() }.toCompatible()
+        val r = result<Exception, Int> { (1 + 10).success() }.toStandard()
         val expected = runCatching { 1 + 10 }
         assertThat(r).isEqualTo(expected)
     }

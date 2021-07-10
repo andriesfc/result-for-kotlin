@@ -5,3 +5,9 @@ allprojects {
     group = "io.github.andriesfc.kotlin"
     version = buildVersion
 }
+
+tasks.register("build") {
+    group = "Build"
+    description = "Builds all modules, including running test verification tasks."
+    dependsOn(":lib:build")
+}

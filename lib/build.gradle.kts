@@ -7,7 +7,6 @@ import java.net.URL
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.5.20"
     id("org.jetbrains.dokka") version "1.4.32"
-    // Apply the java-library plugin for API and implementation separation.
     `java-library`
     `maven-publish`
     signing
@@ -91,22 +90,9 @@ javaToolchains {
     }
 }
 
-
-
 repositories {
     mavenCentral()
 }
-
-
-/*
-signing {
-    setRequired(Callable { isRelease })
-    useGpgCmd()
-    sign(publishing.publications["Lib"])
-}
-
-println(isRelease)
-*/
 
 dependencies {
     // Align versions of all Kotlin components

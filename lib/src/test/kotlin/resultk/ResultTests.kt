@@ -3,7 +3,6 @@ package resultk
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.*
-import resultk.Result.Failure
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
@@ -12,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import resultk.assertions.doesNotExists
+import resultk.assertions.error
 import java.io.EOFException
 import java.io.File
 import java.io.FileNotFoundException
@@ -172,12 +173,12 @@ internal class ResultTests {
     @Test
     fun map_IOException_to_enum() {
         whenReadTextReportIOExceptionToCaller("bang!")
-        val (_, error) = textReader.readText().mapFailure { ErrorCode.of(it) }
+        val (_, error) = textReader.readText().mapFailure { IOError.mappedBy(it) }
         assertNotNull(error)
         val (e, code) = error
         assertThat(e).isInstanceOf(IOException::class.java)
         assertThat(e.message).isEqualTo("bang!")
-        assertThat(code).isEqualTo(ErrorCode.GeneralIOError)
+        assertThat(code).isEqualTo(IOError.GeneralIOError)
     }
 
     @ParameterizedTest
@@ -340,9 +341,36 @@ internal class ResultTests {
         assertThat(fileSizeInBytes.get(), "fileSizeInBytes.get()").isEqualTo(expectedByteSize)
     }
 
+    @Test
+    fun lets_catch_throwable_on_result() {
+        assertThat(file).doesNotExists()
+        val (fileSize, ex) = file.resultCatching {
+            when {
+                exists() -> length().success()
+                else -> throw FileNotFoundException(path)
+            }
+        }
+        assertThat(ex).isNotNull().isInstanceOf(IOException::class)
+        assertThat { fileSize.get() }.isFailure().isInstanceOf(IOException::class)
+    }
+
+
+    @Test
+    fun lets_catch_throwable_and_build_proper_error_code() {
+        assertThat(file).doesNotExists()
+        val fileSize = file.resultCatching(IOError::of) {
+            when {
+                exists() -> length().success()
+                else -> throw FileNotFoundException()
+            }
+        }
+        println(fileSize)
+        assertThat(fileSize).error().isEqualTo(IOError.FileNotFound)
+    }
+
 
     private fun preparedFileSize(): Result<IOException, Long> {
-        return file.compute {
+        return file.computeResult {
             if (exists()) {
                 length().success()
             } else {
@@ -364,18 +392,28 @@ internal class ResultTests {
         )
     }
 
-
-
-    private enum class ErrorCode {
+    private enum class IOError {
         EndOfFile,
         GeneralIOError,
-        RemoteException;
+        RemoteException,
+        FileNotFound;
 
         companion object {
-            fun of(e: IOException): Pair<IOException, ErrorCode> {
+
+            fun of(e: IOException): IOError {
+                return when (e) {
+                    is FileNotFoundException -> FileNotFound
+                    is SocketException -> RemoteException
+                    is EOFException -> EndOfFile
+                    else -> GeneralIOError
+                }
+            }
+
+            fun mappedBy(e: IOException): Pair<IOException, IOError> {
                 return e to when (e) {
                     is SocketException -> RemoteException
                     is EOFException -> EndOfFile
+                    is FileNotFoundException -> FileNotFound
                     else -> GeneralIOError
                 }
             }

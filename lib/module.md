@@ -1,11 +1,11 @@
 # Module ResultK
 
-Idiomatic safe handling of exceptions in Kotlin in functional manner.
+Idiomatic kotlin handling of errors as first class domain citizens.
 
-# Package io.github.andriesfc.kotlin.result
+# Package resultk
 
 Result handling Library main package.
 
-# Package io.github.andriesfc.kotlin.result.interop
+# Package resultk.interop
 
-General Kotlin classes which handles special interop with the JVM where required.
+General Kotlin classes which handles special interop with the JVM, as well as interop with Kotlin's own [Result](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/) type. 
