@@ -272,10 +272,11 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
         val upstreamProviderErrorMessage: String?
     ) : PaymentProcessorError("upstream.$upstreamProvider.$upstreamErrorCode") {
 
+       
         private fun getDetailsMessageKey() = "$messageKey.details"
 
         override fun message(): String {
-            val generalMessage = super.message()
+            val generalMessage = message("error.upstream").get()
             val knownUpstreamMessage = message(getDetailsMessageKey())
             return buildString {
                 fun appendSentence(sentence: String) {
@@ -318,6 +319,19 @@ class PaymentProcessorException internal constructor(
 ) : RuntimeException(message)
 ```
 
+And this is the properties resource for English: 
+
+```properties
+# file: resultk/demo/acmepayments/PaymentProcessorMessages_en.properties
+error.payment_declined=Sorry, your payment has been declined. Please Acme Payments for more details.
+error.blacklisted_permanently=Please contact Acme Payments urgently in regards to this matter.
+error.insufficient_funds=Unable to complete this transaction: There is not sufficient funds available.
+error.upstreamn=Please try again later.
+```
+
+
+
 ---
 
 [^1]: [Stripe Error codes](https://stripe.com/docs/error-codes)
+

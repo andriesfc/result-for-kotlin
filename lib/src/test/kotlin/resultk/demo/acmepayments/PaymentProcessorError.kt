@@ -22,12 +22,12 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
         val upstreamProvider: String,
         val upstreamErrorCode: String,
         val upstreamProviderErrorMessage: String?
-    ) : PaymentProcessorError("upstream") {
+    ) : PaymentProcessorError("upstream.$upstreamProvider.$upstreamErrorCode") {
 
-        private fun getDetailsMessageKey() = "$messageKey.details.$upstreamProvider.$upstreamErrorCode"
+        private fun getDetailsMessageKey() = "$messageKey.details"
 
         override fun message(): String {
-            val generalMessage = super.message()
+            val generalMessage = message("error.upstream").get()
             val knownUpstreamMessage = message(getDetailsMessageKey())
             return buildString {
                 fun appendSentence(sentence: String) {
