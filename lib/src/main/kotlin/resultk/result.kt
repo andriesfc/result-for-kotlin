@@ -31,6 +31,7 @@ import java.util.function.Consumer
  * - Operations to map from one type of [E], or [T] to another via the family of  _mapping_ operators.
  * - Operations to retrieve the expected success value ([T]) via a family of get operations
  * - Operations to retrieve the possible error value ([E]) via a family of get operations.
+ * - Operations to take/not take an error or value based on a supplied predicate.
  * - Processing operations to transform either the success value, or the error value to another type.
  * - Terminal operations which will only be triggered in either the presence of an error or success value.
  *
@@ -78,12 +79,12 @@ sealed class Result<out E, out T>  {
 
 
         /**
-         * Implement this on your error codes, or values, to control which exception is raised on calling
+         * Implement this on your errors  to control which exception is raised on calling
          * [Failure.get] function.
          *
          */
-        interface Throwable {
-            fun throwable(): kotlin.Throwable
+        interface ThrowableProvider {
+            fun throwable(): Throwable
         }
 
         /**
@@ -93,7 +94,7 @@ sealed class Result<out E, out T>  {
          * The exact exception being thrown is determined by the nature of the [error] value:
          *
          * - If the actual [error] is a [kotlin.Throwable] it will simply be thrown as expected.
-         * - If the [error] implements the [Failure.Throwable] interface, the `error.throwable()` function will
+         * - If the [error] implements the [Failure.ThrowableProvider] interface, the `error.throwable()` function will
          * be called to determine which throwable will be thrown.
          * - Lastly, of neither of the above applies, the error value will be wrapped a [WrappedFailureAsException]
          * instance, before being thrown.
@@ -101,14 +102,14 @@ sealed class Result<out E, out T>  {
          * Regardless, it is up the caller to handle, or ignore the thrown exception as usual business.
          *
          * @see WrappedFailureAsException
-         * @see Result.Failure.Throwable
+         * @see Result.Failure.ThrowableProvider
          */
         override fun get(): Nothing {
             when (error) {
-                is Throwable -> {
+                is ThrowableProvider -> {
                     throw error.throwable()
                 }
-                is kotlin.Throwable -> {
+                is Throwable -> {
                     throw error
                 }
                 else -> {
@@ -420,7 +421,10 @@ inline fun <T, R> T.resultCatching(resultFromThis: T.() -> Result<Throwable, R>)
 }
 
 /**
- * Maps a result's success value.
+ * Maps the the success value into a new type of [R], new result type.
+ *
+ * @param mapValue
+ *      A code block which takes the current results returns a new
  */
 inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     return when (this) {
@@ -429,22 +433,6 @@ inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> 
     }
 }
 
-/**
- * Maps a success value to a new [Result]
- *
- * @param flatMapValue A function which takes a success value if present and maps to a new result.
- *
- */
-inline fun <E,T,R> Result<E, T>.flatmap(flatMapValue:(T) -> Result<E, R>): Result<E, R> {
-    return when (this) {
-        is Failure -> this
-        is Success -> flatMapValue(value)
-    }
-}
-
-inline fun <E, T, Er, Tr> Result<E, T>.flatmap(flatMap: (Result<E, T>, Failure<E>?) -> Result<Er, Tr>): Result<Er, Tr> {
-    return flatMap(this, this as? Failure<E>)
-}
 
 /**
  * Maps a result's failure value
@@ -466,6 +454,49 @@ fun <E, T> Result<E, T>.transpose(): Result<T, E> {
     }
 }
 
+
+/**
+ * Returns a success value if this a success and [Success.value] matches the predicate.
+ */
+fun <E, T> Result<E, T>.takeValueIf(predicate: (T) -> Boolean): Success<T>? {
+    return when {
+        this is Success && predicate(value) -> this
+        else -> null
+    }
+}
+
+/**
+ * Returns a success value if this is success and [Success.value] does not match the predicate.
+ */
+fun <E, T> Result<E, T>.takeValueUnless(predicate: (T) -> Boolean): Success<T>? {
+    return when {
+        this is Success && !predicate(value) -> this
+        else -> null
+    }
+}
+
+
+/**
+ * Returns the error if this is an failure and the [Failure.error] matches the predicate.
+ */
+fun <E, T> Result<E, T>.takeErrorIf(predicate: (E) -> Boolean): Failure<E>? {
+    return when {
+        this is Failure && predicate(error) -> this
+        else -> null
+    }
+}
+
+
+/**
+ * Returns the error if this is an failure and the [Failure.error] does not match the predicate.
+ */
+fun <E, T> Result<E, T>.takeErrorUnless(predicate: (E) -> Boolean): Failure<E>? {
+    return when {
+        this is Failure && !predicate(error) -> this
+        else -> null
+    }
+}
+
 /**
  * The purpose of this class is to bridge the functional model of the [Result] operations with the traditional
  * _try-catch_ world of Object Oriented contract which specifies that failures should be raised and the current
@@ -483,9 +514,9 @@ class WrappedFailureAsException(wrapped: Failure<*>) : RuntimeException("${wrapp
 }
 
 /**
- * Attempts to unwrap any failure raised via a [WrappedFailureAsException]
+ * Attempts to unwrap any error raised via a [WrappedFailureAsException]
  *
- * @see WrappedFailureAsException.wrappedFailure
+ * @see WrappedFailureAsException.wrapped
  */
 fun Throwable.wrappedFailure(): Optional<Failure<Any>> {
     return when (this) {

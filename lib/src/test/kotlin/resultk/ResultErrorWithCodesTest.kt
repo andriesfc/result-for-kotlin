@@ -54,7 +54,7 @@ internal class ResultErrorWithCodesTest {
         val code: T,
         val cause: Exception? = null
     ) :
-        Result.Failure.Throwable {
+        Result.Failure.ThrowableProvider {
         abstract val description: String
 
         class WasherMotorControlFailure(
@@ -69,7 +69,7 @@ internal class ResultErrorWithCodesTest {
         }
     }
 
-    enum class ControllerErrorCode(val description: String) : Result.Failure.Throwable {
+    enum class ControllerErrorCode(val description: String) : Result.Failure.ThrowableProvider {
 
         CN_001("Unexpected down"),
         CN_002("Unexpected up.")

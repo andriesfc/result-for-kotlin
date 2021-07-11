@@ -13,6 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import resultk.assertions.doesNotExists
 import resultk.assertions.error
+import resultk.assertions.value
 import java.io.EOFException
 import java.io.File
 import java.io.FileNotFoundException
@@ -159,15 +160,6 @@ internal class ResultTests {
         whenReadTextReturnWith("$expected")
         val (n, _) = textReader.readText().map { it.toInt() }
         assertThat(n.get()).isEqualTo(expected)
-    }
-
-    @Test
-    fun flatMap_value() {
-        val expectedText = "24"
-        val r = result<String, Int> { 12.success() }
-        val r1: Result<String, String> = r.flatmap { a, e -> e ?: a.map { v ->  "${v * 2}" } }
-        assertTrue(r1.isSuccess)
-        assertThat(r1.get()).isEqualTo(expectedText)
     }
 
     @Test
