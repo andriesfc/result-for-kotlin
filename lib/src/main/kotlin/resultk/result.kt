@@ -458,7 +458,7 @@ fun <E, T> Result<E, T>.transpose(): Result<T, E> {
 /**
  * Returns a success value if this a success and [Success.value] matches the predicate.
  */
-fun <E, T> Result<E, T>.takeValueIf(predicate: (T) -> Boolean): Success<T>? {
+fun <E, T> Result<E, T>.takeSuccessIf(predicate: (T) -> Boolean): Success<T>? {
     return when {
         this is Success && predicate(value) -> this
         else -> null
@@ -468,7 +468,7 @@ fun <E, T> Result<E, T>.takeValueIf(predicate: (T) -> Boolean): Success<T>? {
 /**
  * Returns a success value if this is success and [Success.value] does not match the predicate.
  */
-fun <E, T> Result<E, T>.takeValueUnless(predicate: (T) -> Boolean): Success<T>? {
+fun <E, T> Result<E, T>.takeSuccessUnless(predicate: (T) -> Boolean): Success<T>? {
     return when {
         this is Success && !predicate(value) -> this
         else -> null
@@ -479,7 +479,7 @@ fun <E, T> Result<E, T>.takeValueUnless(predicate: (T) -> Boolean): Success<T>? 
 /**
  * Returns the error if this is an failure and the [Failure.error] matches the predicate.
  */
-fun <E, T> Result<E, T>.takeErrorIf(predicate: (E) -> Boolean): Failure<E>? {
+fun <E, T> Result<E, T>.takeFailureIf(predicate: (E) -> Boolean): Failure<E>? {
     return when {
         this is Failure && predicate(error) -> this
         else -> null
@@ -490,7 +490,7 @@ fun <E, T> Result<E, T>.takeErrorIf(predicate: (E) -> Boolean): Failure<E>? {
 /**
  * Returns the error if this is an failure and the [Failure.error] does not match the predicate.
  */
-fun <E, T> Result<E, T>.takeErrorUnless(predicate: (E) -> Boolean): Failure<E>? {
+fun <E, T> Result<E, T>.takeFailureUnless(predicate: (E) -> Boolean): Failure<E>? {
     return when {
         this is Failure && !predicate(error) -> this
         else -> null

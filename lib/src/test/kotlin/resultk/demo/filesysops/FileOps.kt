@@ -5,8 +5,20 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 
-fun File.size(): Result<IOException, Long> = found().map(File::length)
-fun File.existingKind(): Result<IOException, FileKind> = found().map {
+fun File.size(): Result<IOException, Long> = result {
+
+    if (!exists()) {
+        throw FileNotFoundException(path)
+    }
+
+    if (!isFile) {
+        throw IOException("Expected regular file: $path")
+    }
+
+    length().success()
+}
+
+fun File.kind(): Result<IOException, FileKind> = found().map {
     when {
         isDirectory -> FileKind.Directory
         isFile -> FileKind.RegularFile
@@ -21,12 +33,11 @@ fun File.found(): Result<IOException, File> = result {
     success()
 }
 
-fun File.create(kind: FileKind.Known, includeParents: Boolean = false): Result<IOException, File> {
+fun File.create(kind: FileKind.Known, includeParents: Boolean = false): Result<IOException, File> = result {
 
-    val existAlreadyAsDifferentKind = existingKind().takeValueIf { it != kind }?.value
-    if (existAlreadyAsDifferentKind != null) {
+    kind().takeSuccessIf { it != kind }?.also { existAlreadyAsDifferentKind ->
         throw IOException(
-            "Unable to create a $kind as it already exists a ${existAlreadyAsDifferentKind.name} here: $path"
+            "Unable to create a $kind as it already exists a ${existAlreadyAsDifferentKind.value.name} here: $path"
         )
     }
 
@@ -34,30 +45,30 @@ fun File.create(kind: FileKind.Known, includeParents: Boolean = false): Result<I
         return success()
     }
 
-    if (!parentFile.exists()) {
-        if (!includeParents) {
-            throw IOException("Unable to create ${kind.name} as the parent folder does not exist here: $parent")
+    if (!parentFile.exists() && !includeParents) {
+        throw IOException("Unable to create directory named $name as the parent path does not exists: $parent")
+    }
+
+    when (kind) {
+        FileKind.Directory -> if (!mkdirs()) {
+            throw IOException("Unable to create directory: $path")
         }
-        if (!mkdirs()) {
-            throw IOException("Unable to create parent folder for $this")
+        FileKind.RegularFile -> if (!createNewFile()) {
+            throw IOException("Unable to create regular file: $path")
         }
     }
 
-    val created = when (kind) {
-        FileKind.Directory -> mkdir()
-        FileKind.RegularFile -> createNewFile()
-    }
-
-    if (!created) {
-        throw IOException("Unable to create ${kind.name} here: $path")
-    }
-
-    return success()
+    success()
 }
 
 sealed class FileKind(val name: String) {
     override fun toString(): String = name
-    sealed class Known(name: String) : FileKind(name)
+    sealed class Known(name: String) : FileKind(name) {
+        companion object {
+            fun values() = Known::class.sealedSubclasses.mapNotNull { it.objectInstance }
+        }
+    }
+
     object Directory : Known("directory")
     object RegularFile : Known("regular_file")
     object Unknown : FileKind("unknown")
