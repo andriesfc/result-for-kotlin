@@ -513,14 +513,11 @@ class WrappedFailureAsException(wrapped: Failure<*>) : RuntimeException("${wrapp
     val wrapped: Failure<Any> = wrapped as Failure<Any>
 }
 
-/**
- * Attempts to unwrap any error raised via a [WrappedFailureAsException]
- *
- * @see WrappedFailureAsException.wrapped
- */
-fun Throwable.wrappedFailure(): Optional<Failure<Any>> {
-    return when (this) {
-        is WrappedFailureAsException -> Optional.of(wrapped)
-        else -> Optional.empty()
+inline fun <reified E> Throwable.unwrapFailure(): Failure<E> {
+    @Suppress("UNCHECKED_CAST")
+    if (this is WrappedFailureAsException && wrapped.error is E) {
+        return wrapped as Failure<E>
+    } else {
+        throw this
     }
 }

@@ -13,7 +13,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import resultk.assertions.doesNotExists
 import resultk.assertions.error
-import resultk.assertions.value
 import java.io.EOFException
 import java.io.File
 import java.io.FileNotFoundException
@@ -360,6 +359,14 @@ internal class ResultTests {
         assertThat(fileSize).error().isEqualTo(IOError.FileNotFound)
     }
 
+    @Test
+    fun using_try_catch_to_handle_error_code() {
+        val r = result<IOError, Long> { IOError.GeneralIOError.failure() }
+        assertThat { r.get() }
+            .isFailure().isInstanceOf(Throwable::class.java)
+            .transform { it.unwrapFailure<IOError>().error }
+            .isEqualTo(IOError.GeneralIOError)
+    }
 
     private fun preparedFileSize(): Result<IOException, Long> {
         return file.computeResult {
