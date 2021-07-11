@@ -17,19 +17,25 @@
       - [1.1.2.5. Conditionally handling errors and success values.](#1125-conditionally-handling-errors-and-success-values)
   - [1.2. Advance Modelling of error Codes](#12-advance-modelling-of-error-codes)
 
-_ResultK_ is a smallish library to bring error handling as first class concern to a domain implementation. The traditional way for any Object Orientated language is to resort to either special Enums, or constants, or what is more common nowadays, throwing an exception.
+_ResultK_ is a smallish library to bring error handling as first class concern to a domain implementation. The traditional way for any Object Orientated language is to resort to either special Enums, or constants, or what is more common nowadays, throwing exceptions.
 
 Consider the unintended consequences of using exceptions as error handling within a domain:
 
 - Most of the time, the business code throwing the exception is far removed from where the caught exception is handled. This can range from many lines, to even files which are not even in the same project.
-- Throwing an catching an exception is an expensive operation, as the JVM brings with it stack unwrapping as well as the associated complex data structures to support it during runtime.
+- Throwing and catching an exception is an expensive operation, as the JVM brings with it stack unwrapping as well as the associated complex data structures to support it during runtime.
 - Real business errors gets lost in translation because of the practice of wrapping one exception into another. This is even more pronounce in Java which employs checked exceptions.
 
 I’m sure this list can be expanded on, but these are the high level reasons which motivated the creation of this library.
 
-This library implementation is based on the classic `Either<Left,Right>` monad which is very common in functional languages such as Haskel & Scala. By convention the left side is used to indicate that a computation has not completed with an expected result, but rather an error. Conversely, the right side is refers to the expected result of an operation. It is also important to keep in mind that this is just an convention, and `Either` may be used on other ways.
+The traditional `Either` monad is very common in functional languages such as Haskel & Scala. By convention the left side indicates that a computation has not completed with an expected result, but rather an error. Conversely, the right side is refers to the expected result of an operation. It is also important to keep in mind that this is just a convention, and some uses `Either` may use the left and right side for different purposes.
 
-As an example of error as first class domain citizen, consider the some error codes reported by the Stripe^TM^[^1] API:
+Because of this, this library implements a special variant of the classic `Either<Left,Right>` monad, with some important differences:
+
+1. This `Result` type _always_ treats the left side as an **error**.
+2. This `Result` type _always_ treats the right side as a **success** value. 
+3. This library will always decompose the result value in the pattern of `(result,error?)`
+
+As an example of error as first class domain citizen, consider the some error codes reported by the Stripe[^1] API:
 
 - `billing_invalid_mandate`
 - `card_declined`
@@ -59,27 +65,25 @@ sealed class Result<out E, out T> {
 }
 ```
 
-Result is an sealed type which represents a result of an operation: A result can either be a Success, or an Failure. This type is specifically designed to provide precise functional control over errors, include the standard Kotlin Throwable class.
+Result is a sealed type which represents a result of an operation: A result can either be a Success, or an Failure. This type provides precise functional control over errors, include the standard Kotlin Throwable class.
 
-Control over the use of exceptions are errors is achieved by treating exceptions in the same way as normal (non throwable) error codes.
-
-The library applies the following logic within a `result { ... }` code block:
+This implementation achieves precise control even over the use of exceptions as errors by handling any call in wrapped in a special `result { ... }` code block in a very specific manner: 
 
 - If the caller specifies an exception as error via the `Result<E,*>` the exception is captured as per normal contract, otherwise it is thrown.
-- If the caller calls `Result.get `and the captured `Failure.error `is an actual `kotlin.Throwable`, it will be thrown, (again as is the normal Object Oriented way).
+- If the caller calls `Result.get `and the captured `Failure.error `is an actual `kotlin.Throwable`, it will be thrown, (again as is the normal Object-Oriented way).
 - If the caller calls `Result.get` and the captured `Failure.error`, is not something which can be thrown, this library will wrap it as `WrappedFailureAsException`, and throw it.
 
-Further more, this library provides a rich set of functions to transform/process either the `Result.Success.value`, or in the case of a `Result.Failure` the underlying `Result.Failure.error` value. These operations can roughly be group as follows:
+Furthermore, this library provides a rich set of functions to transform/process either the `Result.Success.value`, or in the case the underlying `Result.Failure.error` value. These operations are roughly grouped as follows:
 
-- Operations to map from one type of E, or T to another via the family of mapping operators.
-- Operations to retrieve the expected success value (T) via a family of get operations
-- Operations to retrieve the possible error value (E) via a family of get operations.
-- Operations to take/not take an error or value based on a supplied predicate.
-- Processing operations to transform either the success value, or the error value to another type.
+- Operations which maps from one type of E, or T to another via the family of mapping operators.
+- Operations which retrieves the expected success value (T) via a family of get operations
+- Operations which retrieve the possible error value (E) via a family of get operations.
+- Operations which take/not take an error, or value, based on a supplied predicate.
+- Operations which transform either the success value, or the error value to another type.
 - Terminal operations which will only be triggered in either the presence of an error or success value.
 
 Lastly, just a note on interop with the the standard `kotlin.Result`. The library provides the following convenience operations to transform a Result to the standard `kotlin.Result `type (and visa versa):
-
+S
 - `resultk.interop.toResult` to convert a `kotlin.Result` to this implementation.
 - `resultk.interop.toStandard` to convert this result implementation to the standard `kotlin.Result` type.
 
@@ -206,7 +210,7 @@ val errorCodeOption: Optional<ErrorCode> = fileSize.getErrorOptional()
 
 Conditionally handling comes in 2 flavors:
 
-- The set of 1^st^ is seen as terminal operations. These operations do not return any values:
+- The set of 1st is seen as terminal operations. These operations do not return any values:
 
 ```kotlin
 fileSize.onSuccess {
@@ -218,7 +222,7 @@ fileSize.onFailure { ex ->
 }
 ```
 
-- The 2^nd^ flavor actually returns values:
+- The 2nd flavor actually returns values:
 
 ```kotlin
 // Take the success value based on predicate, and return -1 for any other err
@@ -227,10 +231,10 @@ val bytesFound = fileSize.takeSuccessIf { true }?.get() ?: -1
 
 There operations also have mirror counter parts:
 
-|        | Success                          | Failure                      |
-| ------ | -------------------------------- | ---------------------------- |
-| take   | `r.takeSuccessIf(predictare)`    | `r.takeFailureIf(predicate)` |
-| negate | `r.takeSuccessUnless(predicate)` | `r.takeUnless(predicate)`    |
+|             | Success                          | Failure                      |
+| ----------- | -------------------------------- | ---------------------------- |
+| take        | `r.takeSuccessIf(predictare)`    | `r.takeFailureIf(predicate)` |
+| do not take | `r.takeSuccessUnless(predicate)` | `r.takeUnless(predicate)`    |
 
 ## 1.2. Advance Modelling of error Codes
 
@@ -238,9 +242,9 @@ The `resultk.Result` removes most of the burden to use exceptions as error model
 
 Bellow is an example which:
 
-- Provide error codes which are both constant (like enums), and normal classes.
-- Retrieve detail error messages based on language resource bundles.
-- Cater for known and unknown error codes, including upstream provided ones.
+- Provides error codes which are both constant (like enums), and normal classes.
+- Retrieves detail error messages based on language resource bundles.
+- Caters for known and unknown error codes, including upstream provided ones.
 - Includes detailed description to upstream error codes.
 - Throws a custom error if the case where caller does not handle the error
 
@@ -319,18 +323,15 @@ class PaymentProcessorException internal constructor(
 ) : RuntimeException(message)
 ```
 
-And this is the properties resource for English: 
+And this is the English resource bundle: 
 
 ```properties
 # file: resultk/demo/acmepayments/PaymentProcessorMessages_en.properties
-error.payment_declined=Sorry, your payment has been declined. Please Acme Payments for more details.
+error.payment_declined=Sorry, your payment has been declined. Please contact Acme Payments for more details.
 error.blacklisted_permanently=Please contact Acme Payments urgently in regards to this matter.
-error.insufficient_funds=Unable to complete this transaction: There is not sufficient funds available.
+error.insufficient_funds=Unable to complete this transaction: There is no sufficient funds available.
 error.upstreamn=Please try again later.
 ```
-
-
-
 ---
 
 [^1]: [Stripe Error codes](https://stripe.com/docs/error-codes)
