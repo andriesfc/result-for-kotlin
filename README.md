@@ -251,6 +251,8 @@ This library is best use in functional manner. Keeping to the functional style m
 ### 1.2.1. Ignore errors as long as possible to continue on the happy path.
 
 
+
+
 ### 1.2.2. Rather map errors at then end, or deal  as soon as possible with them.
 
 ### 1.2.3. Do not pass a any `result.Result` instance directly to other functions or methods except your _own private_ ones.
@@ -274,19 +276,16 @@ Bellow is an example demonstrating how to:
 
 Here are some sample error messages to illustrate how helpful such error message could be with this approach:
 
-```
-Upstream provider has not completed the request. The following upstream errors details were reported by provider [new_upstream_provider_701]: [error_code: E_342, error_message: Unconfigured down stream requestor] This upstream error code is not mapped. Please add the following key [error.upstream.new_upstream_provider_701.E_342] to this resource bundle: /resultk/demo/acmepayments/PaymentProcessorMessages [Locale: English]
-```
+> Upstream provider has not completed the request. The following upstream errors details were reported by provider [new_upstream_provider_701]: [error_code: E_342, error_message: Unconfigured down stream requestor] This upstream error code is not mapped. Please add the following key [error.upstream.new_upstream_provider_701.E_342] to this resource bundle: /resultk/demo/acmepayments/PaymentProcessorMessages [Locale: English]
 
-```
-Upstream provider has not completed the request. This account monthly limit has been exceeded. The following upstream errors details were reported by provider [moon68inc]: [error_code: E_660-011, error_message: **Detail** error message was not supplied by upstream provider!]
-```
+> Upstream provider has not completed the request. This account monthly limit has been exceeded. The following upstream errors details were reported by provider [moon68inc]: [error_code: E_660-011, error_message: `**Detail**` error message was not supplied by upstream provider!]
 
-```
-resultk.demo.acmepayments.PaymentProcessorException: Unhandled payment processor error has occurred with the following code [payment_declined]. Details: Sorry, your payment has been declined. Please contact Acme Payments for more details.
+```stacktrace
+resultk.demo.acmepayments.PaymentProcessorException: 
+    Unhandled payment processor error has occurred with the following code [payment_declined]. 
+        Details: Sorry, your payment has been declined. Please   contact Acme Payments for more details.
  	at resultk.demo.acmepayments.PaymentProcessorError.throwable(PaymentProcessorError.kt:19)
 ```
-
 
 
 ```kotlin
