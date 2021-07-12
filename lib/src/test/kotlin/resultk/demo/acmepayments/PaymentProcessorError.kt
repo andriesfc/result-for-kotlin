@@ -9,7 +9,7 @@ import java.util.ResourceBundle.getBundle
 
 sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableProvider {
 
-    protected val messageKey = "error.$code"
+    internal val messageKey = "error.$code"
 
     object PaymentDeclined : PaymentProcessorError("payment_declined")
     object BlackedListenerPermanently : PaymentProcessorError("blacklisted_permanently")
@@ -17,6 +17,7 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
 
     open fun message(): String = message(messageKey).get()
     override fun throwable(): Throwable = PaymentProcessorException(this)
+    override fun toString(): String = code
 
     class UpstreamError(
         val upstreamProvider: String,
@@ -27,6 +28,8 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
         private fun getDetailsMessageKey() = "$messageKey.details"
 
         override fun message(): String {
+            val seeDetailsMessage =
+                message("error.upstream.see_details", "[$upstreamProvider:$upstreamErrorCode]").get()
             val generalMessage = message("error.upstream").get()
             val knownUpstreamMessage = message(getDetailsMessageKey())
             return buildString {
@@ -40,6 +43,7 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
                 append(generalMessage)
                 knownUpstreamMessage.onSuccess(::appendSentence)
                 upstreamProviderErrorMessage?.also(::appendSentence)
+                appendSentence(seeDetailsMessage)
             }
         }
     }
@@ -52,7 +56,7 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
     }
 
     companion object {
-        const val PAYMENT_PROCESSOR_MESSAGES = "/resultk/demo/acmepayments/PaymentProcessorMessages"
+        internal const val PAYMENT_PROCESSOR_MESSAGES = "resultk/demo/acmepayments/PaymentProcessorMessages"
+        val constants = PaymentProcessorError::class.sealedSubclasses.mapNotNull { it.objectInstance }
     }
-
 }
