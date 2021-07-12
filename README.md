@@ -17,8 +17,8 @@
       - [1.1.2.5. Conditionally handling errors and success values.](#1125-conditionally-handling-errors-and-success-values)
   - [1.2. Usage Patterns `resultk.Result` promotes](#12-usage-patterns-resultkresult-promotes)
     - [1.2.1. Ignore errors as long as possible to continue on the happy path.](#121-ignore-errors-as-long-as-possible-to-continue-on-the-happy-path)
-    - [1.2.2. Rather map errors at then end, or deal as soon as possible with them.](#122-rather-map-errors-at-then-end-or-deal-as-soon-as-possible-with-them)
-    - [1.2.3. Do not pass a any `result.Result` instance directly to other functions/methods exception your own private ones.](#123-do-not-pass-a-any-resultresult-instance-directly-to-other-functionsmethods-exception-your-own-private-ones)
+    - [1.2.2. Rather map errors at then end, or deal  as soon as possible with them.](#122-rather-map-errors-at-then-end-or-deal--as-soon-as-possible-with-them)
+    - [1.2.3. Do not pass a any `result.Result` instance directly to other functions or methods except your _own private_ ones.](#123-do-not-pass-a-any-resultresult-instance-directly-to-other-functions-or-methods-except-your-own-private-ones)
     - [1.2.4. It is _OK_ to return a `result.Result` instance from function.](#124-it-is-ok-to-return-a-resultresult-instance-from-function)
     - [1.2.5. It is _OK_ to wrap IO or external calls in a `result {}` block which captures external exceptions](#125-it-is-ok-to-wrap-io-or-external-calls-in-a-result--block-which-captures-external-exceptions)
   - [1.3. Advance Modelling of error Codes.](#13-advance-modelling-of-error-codes)
@@ -248,18 +248,12 @@ This library is best use in functional manner. Keeping to the functional style m
 
 > It also important to note that using functional call style unifies both, the expected output flow, and the error flow in one “happy path”.
 
-For example consider this snippet:
-
-```kotlin
-// ..part some bigger piece code...
-```
-
 ### 1.2.1. Ignore errors as long as possible to continue on the happy path.
 
 
 ### 1.2.2. Rather map errors at then end, or deal  as soon as possible with them.
 
-### 1.2.3. Do not pass a any `result.Result` instance directly to other functions or methods exception your own private ones.
+### 1.2.3. Do not pass a any `result.Result` instance directly to other functions or methods except your _own private_ ones.
 
 ### 1.2.4. It is _OK_ to return a `result.Result` instance from function. 
 
@@ -277,6 +271,23 @@ Bellow is an example demonstrating how to:
 4. Includes detailed description of mapped upstream error codes.
 5. Throws a custom error if the case where caller does not handle the error.
 6. Seals the hierarchy in order that no other 3d party library can just add add more types of their own. 
+
+Here are some sample error messages to illustrate how helpful such error message could be with this approach:
+
+```
+Upstream provider has not completed the request. The following upstream errors details were reported by provider [new_upstream_provider_701]: [error_code: E_342, error_message: Unconfigured down stream requestor] This upstream error code is not mapped. Please add the following key [error.upstream.new_upstream_provider_701.E_342] to this resource bundle: /resultk/demo/acmepayments/PaymentProcessorMessages [Locale: English]
+```
+
+```
+Upstream provider has not completed the request. This account monthly limit has been exceeded. The following upstream errors details were reported by provider [moon68inc]: [error_code: E_660-011, error_message: **Detail** error message was not supplied by upstream provider!]
+```
+
+```
+resultk.demo.acmepayments.PaymentProcessorException: Unhandled payment processor error has occurred with the following code [payment_declined]. Details: Sorry, your payment has been declined. Please contact Acme Payments for more details.
+ 	at resultk.demo.acmepayments.PaymentProcessorError.throwable(PaymentProcessorError.kt:19)
+```
+
+
 
 ```kotlin
 package resultk.demo.acmepayments
@@ -306,58 +317,51 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
         upstreamProviderErrorMessage: String? = null
     ) : PaymentProcessorError("upstream.$upstreamProvider.$upstreamErrorCode") {
 
-        val upstreamIsMapped: Boolean
-        val mappedUpstreamMessage: String?
-        val upstreamProviderErrorMessage: String?
-
-        init {
-            val mappedMessage = message(messageKey)
-            upstreamIsMapped = mappedMessage.isSuccess
-            mappedUpstreamMessage = mappedMessage.getOrNull()
-            this.upstreamProviderErrorMessage 
-            	= upstreamProviderErrorMessage 
-            	?: mappedUpstreamMessage
-        }
-
-        private val fullMessage by lazy {
-
-            val seeDetailsMessage = message(
+        private val detailedMessage = buildString {
+            val generalMessage = message("error.upstream").get()
+            val mappedUpstreamErrorKey = "error.upstream.$upstreamProvider.$upstreamErrorCode"
+            val mappedUpstreamMessage = message(mappedUpstreamErrorKey).getOrNull()
+            val upstreamDetailMessage = message(
                 "error.upstream.see_details",
                 upstreamProvider,
                 upstreamErrorCode,
-                upstreamProviderErrorMessage
+                upstreamProviderErrorMessage ?: notSuppliedByUpstreamProvider
             ).get()
-
-            val generalMessage = message("error.upstream").get()
-
-            val noteUnmapped = if (upstreamIsMapped) null else message(
-                "error.upstream.note.unmapped",
-                messageKey,
-                PAYMENT_PROCESSOR_MESSAGES
-            ).get()
-
-            buildString {
-                append(generalMessage)
-                appendSentence(mappedUpstreamMessage)
-                appendSentence(seeDetailsMessage)
-                appendSentence(noteUnmapped)
+            val noteThatUpstreamIsNotMapped = when (mappedUpstreamMessage) {
+                null -> message(
+                    "error.upstream.note.unmapped",
+                    mappedUpstreamErrorKey,
+                    PAYMENT_PROCESSOR_MESSAGES,
+                    Locale.getDefault().displayLanguage
+                ).get()
+                else -> null
             }
+            appendSentence(generalMessage)
+            appendSentence(mappedUpstreamMessage)
+            appendSentence(upstreamDetailMessage)
+            appendSentence(noteThatUpstreamIsNotMapped)
         }
 
-        override fun message(): String = fullMessage
+        override fun message(): String = detailedMessage
     }
 
+
     companion object {
+        private val notSuppliedByUpstreamProvider =
+        	message("sentence_building.not_supplied_by_upstream_provider").get()
         private val punctuation = message("sentence_building.punctuation").get().toSet()
         private val fullStop = message("sentence_building.fullstop").get().first()
         private val oneSpace = message("sentence_building.onespace").get()
         private val Char.isNotPunctuation: Boolean get() = this !in punctuation
+        
         val constants = PaymentProcessorError::class.sealedSubclasses
         	.mapNotNull { it.objectInstance }
+        
         internal const val PAYMENT_PROCESSOR_MESSAGES 
         	= "resultk/demo/acmepayments/PaymentProcessorMessages"
+        
         internal fun message(key: String, vararg args: Any?)
-        : Result<MissingResourceException, String> {
+        	: Result<MissingResourceException, String> {
             return result {
                 getBundle(PAYMENT_PROCESSOR_MESSAGES).getString(key).run {
                     when {
@@ -381,6 +385,7 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
 
     }
 }
+
 ```
 
 And here is the custom error:
@@ -408,16 +413,14 @@ error.blacklisted_permanently=Please contact Acme Payments urgently in regards t
 error.insufficient_funds=Unable to complete this transaction: There is not sufficient funds available.
 error.upstream=Upstream provider has not completed the request.
 error.upstream.see_details=The following upstream errors details were reported by provider [%s]: [error_code: %s, error_message: %s]
-error.upstream.note.unmapped=This upstream error code is not mapped. Please add the following key [%s] to this resource bundle: /%s
+error.upstream.note.unmapped=This upstream error code is not mapped. Please add the following key [%s] to this resource bundle: /%s [Locale: %s]
 error.upstream.moon68inc.E_660-011=This account monthly limit has been exceeded.
 paymentProcessorException.message=Unhandled payment processor error has occurred with the following code [%s]. Details: %s
 sentence_building.fullstop=\u002E
 sentence_building.onespace=\u0020
 sentence_building.punctuation=.;:"?!,`'<>{}[]
+sentence_building.not_supplied_by_upstream_provider=**Detail** error message was not supplied by upstream provider!
 ```
 
 
----
-
-[^1]: [Stripe Error codes](https://stripe.com/docs/error-codes)
 

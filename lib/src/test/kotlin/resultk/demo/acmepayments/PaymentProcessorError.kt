@@ -25,47 +25,37 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
         upstreamProviderErrorMessage: String? = null
     ) : PaymentProcessorError("upstream.$upstreamProvider.$upstreamErrorCode") {
 
-        val upstreamIsMapped: Boolean
-        val mappedUpstreamMessage: String?
-        val upstreamProviderErrorMessage: String?
-
-        init {
-            val mappedMessage = message(messageKey)
-            upstreamIsMapped = mappedMessage.isSuccess
-            mappedUpstreamMessage = mappedMessage.getOrNull()
-            this.upstreamProviderErrorMessage = upstreamProviderErrorMessage ?: mappedUpstreamMessage
-        }
-
-        private val fullMessage by lazy {
-
-            val seeDetailsMessage = message(
+        private val detailedMessage = buildString {
+            val generalMessage = message("error.upstream").get()
+            val mappedUpstreamErrorKey = "error.upstream.$upstreamProvider.$upstreamErrorCode"
+            val mappedUpstreamMessage = message(mappedUpstreamErrorKey).getOrNull()
+            val upstreamDetailMessage = message(
                 "error.upstream.see_details",
                 upstreamProvider,
                 upstreamErrorCode,
-                upstreamProviderErrorMessage
+                upstreamProviderErrorMessage ?: notSuppliedByUpstreamProvider
             ).get()
-
-            val generalMessage = message("error.upstream").get()
-
-            val noteUnmapped = if (upstreamIsMapped) null else message(
-                "error.upstream.note.unmapped",
-                messageKey,
-                PAYMENT_PROCESSOR_MESSAGES
-            ).get()
-
-            buildString {
-                append(generalMessage)
-                appendSentence(mappedUpstreamMessage)
-                appendSentence(seeDetailsMessage)
-                appendSentence(noteUnmapped)
+            val noteThatUpstreamIsNotMapped = when (mappedUpstreamMessage) {
+                null -> message(
+                    "error.upstream.note.unmapped",
+                    mappedUpstreamErrorKey,
+                    PAYMENT_PROCESSOR_MESSAGES,
+                    Locale.getDefault().displayLanguage
+                ).get()
+                else -> null
             }
+            appendSentence(generalMessage)
+            appendSentence(mappedUpstreamMessage)
+            appendSentence(upstreamDetailMessage)
+            appendSentence(noteThatUpstreamIsNotMapped)
         }
 
-        override fun message(): String = fullMessage
+        override fun message(): String = detailedMessage
     }
 
 
     companion object {
+        private val notSuppliedByUpstreamProvider = message("sentence_building.not_supplied_by_upstream_provider").get()
         private val punctuation = message("sentence_building.punctuation").get().toSet()
         private val fullStop = message("sentence_building.fullstop").get().first()
         private val oneSpace = message("sentence_building.onespace").get()

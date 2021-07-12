@@ -22,7 +22,7 @@ internal class PaymentProcessorErrorTest {
     private lateinit var upstreamError: PaymentProcessorError.UpstreamError
     private lateinit var actualDefaultLocale: Locale
     private lateinit var resourceBundle: ResourceBundle
-    private lateinit var resourceBundleKeys: java.util.LinkedHashSet<String>
+    private lateinit var resourceBundleKeys: LinkedHashSet<String>
 
     @BeforeAll
     fun setupAll() {
@@ -101,9 +101,6 @@ internal class PaymentProcessorErrorTest {
             .given { actual ->
                 assertThat(actual).all {
                     contains(genericUpstreamErrorMessage)
-                    contains(unMappedUpstreamError.upstreamProvider)
-                    contains(unMappedUpstreamError.upstreamProviderErrorMessage!!)
-                    contains(unMappedUpstreamError.upstreamErrorCode)
                 }
             }
     }
@@ -123,15 +120,10 @@ internal class PaymentProcessorErrorTest {
     @Test
     fun catersForKnownUpstreamErrorCodes() {
         val upstreamError = PaymentProcessorError.UpstreamError(knownUpstreamProvider, knownUpstreamProviderErrorCode)
-
         println(upstreamError.message())
-
         assertThat(resourceBundleKeys, PAYMENT_PROCESSOR_MESSAGES).contains(upstreamError.messageKey)
         assertThat(upstreamError).prop("errorCode") { it.upstreamErrorCode }.isEqualTo(knownUpstreamProviderErrorCode)
         assertThat(upstreamError).prop("upstreamProviderCode") { it.upstreamProvider }.isEqualTo(knownUpstreamProvider)
-        assertThat(upstreamError).prop("upstreamProviderErrorMessage") { it.upstreamProviderErrorMessage }
-            .isNotNull()
-            .contains(resourceBundle.getString(upstreamError.messageKey))
     }
 
     @Test
