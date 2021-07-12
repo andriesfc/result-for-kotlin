@@ -1,7 +1,7 @@
 package resultk.demo.acmepayments
 
 import resultk.Result
-import resultk.onSuccess
+import resultk.getOrNull
 import resultk.result
 import resultk.success
 import java.util.*
@@ -22,41 +22,77 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
     class UpstreamError(
         val upstreamProvider: String,
         val upstreamErrorCode: String,
-        val upstreamProviderErrorMessage: String?
+        upstreamProviderErrorMessage: String? = null
     ) : PaymentProcessorError("upstream.$upstreamProvider.$upstreamErrorCode") {
 
-        private fun getDetailsMessageKey() = "$messageKey.details"
+        val upstreamIsMapped: Boolean
+        val mappedUpstreamMessage: String?
+        val upstreamProviderErrorMessage: String?
 
-        override fun message(): String {
-            val seeDetailsMessage =
-                message("error.upstream.see_details", "[$upstreamProvider:$upstreamErrorCode]").get()
+        init {
+            val mappedMessage = message(messageKey)
+            upstreamIsMapped = mappedMessage.isSuccess
+            mappedUpstreamMessage = mappedMessage.getOrNull()
+            this.upstreamProviderErrorMessage = upstreamProviderErrorMessage ?: mappedUpstreamMessage
+        }
+
+        private val fullMessage by lazy {
+
+            val seeDetailsMessage = message(
+                "error.upstream.see_details",
+                upstreamProvider,
+                upstreamErrorCode,
+                upstreamProviderErrorMessage
+            ).get()
+
             val generalMessage = message("error.upstream").get()
-            val knownUpstreamMessage = message(getDetailsMessageKey())
-            return buildString {
-                fun appendSentence(sentence: String) {
-                    if (isNotEmpty()) {
-                        if (last() != '.') append('.')
-                        append(' ')
-                    }
-                    append(sentence)
-                }
+
+            val noteUnmapped = if (upstreamIsMapped) null else message(
+                "error.upstream.note.unmapped",
+                messageKey,
+                PAYMENT_PROCESSOR_MESSAGES
+            ).get()
+
+            buildString {
                 append(generalMessage)
-                knownUpstreamMessage.onSuccess(::appendSentence)
-                upstreamProviderErrorMessage?.also(::appendSentence)
+                appendSentence(mappedUpstreamMessage)
                 appendSentence(seeDetailsMessage)
+                appendSentence(noteUnmapped)
             }
         }
+
+        override fun message(): String = fullMessage
     }
 
-    protected fun message(key: String, vararg args: Any?): Result<MissingResourceException, String> {
-        return result {
-            val message = getBundle(PAYMENT_PROCESSOR_MESSAGES).getString(key)
-            if (args.isEmpty()) message.success() else message.format(* args).success()
-        }
-    }
 
     companion object {
-        internal const val PAYMENT_PROCESSOR_MESSAGES = "resultk/demo/acmepayments/PaymentProcessorMessages"
+        private val punctuation = message("sentence_building.punctuation").get().toSet()
+        private val fullStop = message("sentence_building.fullstop").get().first()
+        private val oneSpace = message("sentence_building.onespace").get()
+        private val Char.isNotPunctuation: Boolean get() = this !in punctuation
         val constants = PaymentProcessorError::class.sealedSubclasses.mapNotNull { it.objectInstance }
+        internal const val PAYMENT_PROCESSOR_MESSAGES = "resultk/demo/acmepayments/PaymentProcessorMessages"
+        internal fun message(key: String, vararg args: Any?): Result<MissingResourceException, String> {
+            return result {
+                getBundle(PAYMENT_PROCESSOR_MESSAGES).getString(key).run {
+                    when {
+                        args.isEmpty() -> this
+                        else -> format(* args)
+                    }
+                }.success()
+            }
+        }
+
+        private fun StringBuilder.appendSentence(sentence: String?) {
+            if (sentence.isNullOrEmpty()) return
+            if (isNotEmpty()) {
+                if (last().isWhitespace()) trimEnd(Char::isWhitespace)
+                if (last().isNotPunctuation) append(fullStop)
+                append(oneSpace)
+            }
+            append(sentence.trimEnd(Char::isWhitespace))
+            if (last().isNotPunctuation) append(fullStop)
+        }
+
     }
 }

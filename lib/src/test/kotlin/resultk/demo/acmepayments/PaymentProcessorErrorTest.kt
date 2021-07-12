@@ -4,6 +4,7 @@ import assertk.all
 import assertk.assertThat
 import assertk.assertions.*
 import org.junit.jupiter.api.*
+import resultk.demo.acmepayments.PaymentProcessorError.Companion.PAYMENT_PROCESSOR_MESSAGES
 import resultk.failure
 import java.util.*
 import java.util.ResourceBundle.getBundle
@@ -11,18 +12,24 @@ import java.util.ResourceBundle.getBundle
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PaymentProcessorErrorTest {
 
+    private val knownUpstreamProvider = "moon68inc"
+    private val knownUpstreamProviderErrorCode = "E_660-011"
     private val testLocale = Locale.ENGLISH
+
     private lateinit var upstreamErrorCode: String
     private lateinit var upstreamErrorProvider: String
     private var upstreamProviderErrorMessage: String? = null
     private lateinit var upstreamError: PaymentProcessorError.UpstreamError
     private lateinit var actualDefaultLocale: Locale
-
+    private lateinit var resourceBundle: ResourceBundle
+    private lateinit var resourceBundleKeys: java.util.LinkedHashSet<String>
 
     @BeforeAll
     fun setupAll() {
         actualDefaultLocale = Locale.getDefault()
         Locale.setDefault(testLocale)
+        resourceBundle = getBundle(PAYMENT_PROCESSOR_MESSAGES)
+        resourceBundleKeys = LinkedHashSet(resourceBundle.keys.toList())
     }
 
     @AfterAll
@@ -41,6 +48,7 @@ internal class PaymentProcessorErrorTest {
             upstreamProviderErrorMessage = upstreamProviderErrorMessage
         )
     }
+
 
     @Test
     fun errorCodedAsEnumLikeAndClassLike() {
@@ -68,18 +76,15 @@ internal class PaymentProcessorErrorTest {
         println("-------------------------------------------------------------------------------------------------")
         expectedMappedMessageKeys.forEachIndexed { index, messageKey -> println("${index + 1}. $messageKey") }
         println()
-        assertThat { getBundle(PaymentProcessorError.PAYMENT_PROCESSOR_MESSAGES) }
-            .isSuccess()
-            .given { actualResourceBundle ->
-                val actualResourceKeys = actualResourceBundle.keys.toList()
-                assertThat(actualResourceKeys).containsAll(* expectedMappedMessageKeys)
-            }
+        assertThat(resourceBundle)
+            .transform("resourceBundle.key") { it.keys.toList() }
+            .containsAll(* expectedMappedMessageKeys)
     }
 
     @Test
     fun catersForUpstreamErrorsWithNoSpecialMappedCodes() {
 
-        val genericUpstreamErrorMessage = getBundle(PaymentProcessorError.PAYMENT_PROCESSOR_MESSAGES)
+        val genericUpstreamErrorMessage = getBundle(PAYMENT_PROCESSOR_MESSAGES)
             .getString("error.upstream")
 
         val unMappedUpstreamError = PaymentProcessorError.UpstreamError(
@@ -113,6 +118,26 @@ internal class PaymentProcessorErrorTest {
 
         assertThat { paymentCompletionId.get() }.isFailure().isInstanceOf(PaymentProcessorException::class)
 
+    }
+
+    @Test
+    fun catersForKnownUpstreamErrorCodes() {
+        val upstreamError = PaymentProcessorError.UpstreamError(knownUpstreamProvider, knownUpstreamProviderErrorCode)
+
+        println(upstreamError.message())
+
+        assertThat(resourceBundleKeys, PAYMENT_PROCESSOR_MESSAGES).contains(upstreamError.messageKey)
+        assertThat(upstreamError).prop("errorCode") { it.upstreamErrorCode }.isEqualTo(knownUpstreamProviderErrorCode)
+        assertThat(upstreamError).prop("upstreamProviderCode") { it.upstreamProvider }.isEqualTo(knownUpstreamProvider)
+        assertThat(upstreamError).prop("upstreamProviderErrorMessage") { it.upstreamProviderErrorMessage }
+            .isNotNull()
+            .contains(resourceBundle.getString(upstreamError.messageKey))
+    }
+
+    @Test
+    fun allConstantErrorsAreHaveMappedMessageKeys() {
+        val expectedMessageKeys = PaymentProcessorError.constants.map(PaymentProcessorError::messageKey).sorted()
+        assertThat(resourceBundleKeys).containsAll(* expectedMessageKeys.toTypedArray())
     }
 
 }
