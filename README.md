@@ -15,7 +15,13 @@
       - [1.1.2.3. Mapping result to a single value](#1123-mapping-result-to-a-single-value)
       - [1.1.2.4. Inspecting success values and failure](#1124-inspecting-success-values-and-failure)
       - [1.1.2.5. Conditionally handling errors and success values.](#1125-conditionally-handling-errors-and-success-values)
-  - [1.2. Advance Modelling of error Codes](#12-advance-modelling-of-error-codes)
+  - [1.2. Usage Patterns `resultk.Result` promotes](#12-usage-patterns-resultkresult-promotes)
+    - [1.2.1. Ignore errors as long as possible to continue on the happy path.](#121-ignore-errors-as-long-as-possible-to-continue-on-the-happy-path)
+    - [1.2.2. Rather map errors at then end, or deal as soon as possible with them.](#122-rather-map-errors-at-then-end-or-deal-as-soon-as-possible-with-them)
+    - [1.2.3. Do not pass a any `result.Result` instance directly to other functions/methods exception your own private ones.](#123-do-not-pass-a-any-resultresult-instance-directly-to-other-functionsmethods-exception-your-own-private-ones)
+    - [1.2.4. It is _OK_ to return a `result.Result` instance from function.](#124-it-is-ok-to-return-a-resultresult-instance-from-function)
+    - [1.2.5. It is _OK_ to wrap IO or external calls in a `result {}` block which captures external exceptions](#125-it-is-ok-to-wrap-io-or-external-calls-in-a-result--block-which-captures-external-exceptions)
+  - [1.3. Advance Modelling of error Codes.](#13-advance-modelling-of-error-codes)
 
 _ResultK_ is a smallish library to bring error handling as first class concern to a domain implementation. The traditional way for any Object Orientated language is to resort to either special Enums, or constants, or what is more common nowadays, throwing exceptions.
 
@@ -65,9 +71,9 @@ sealed class Result<out E, out T> {
 }
 ```
 
-Result is a sealed type which represents a result of an operation: A result can either be a Success, or an Failure. This type provides precise functional control over errors, include the standard Kotlin Throwable class.
+Result is a sealed type which represents a result of an operation: A result can either be a `Success`, or an `Failure`. This models the data structure to deal with errors and success values (including the standard `kotlin.Throwable` class).
 
-This implementation achieves precise control even over the use of exceptions as errors by handling any call in wrapped in a special `result { ... }` code block in a very specific manner: 
+This implementation achieves precise control even over the use of exceptions as errors by all calls wrapped in a special `result { ... }` code block in a very specific manner: 
 
 - If the caller specifies an exception as error via the `Result<E,*>` the exception is captured as per normal contract, otherwise it is thrown.
 - If the caller calls `Result.get `and the captured `Failure.error `is an actual `kotlin.Throwable`, it will be thrown, (again as is the normal Object-Oriented way).
@@ -75,7 +81,7 @@ This implementation achieves precise control even over the use of exceptions as 
 
 Furthermore, this library provides a rich set of functions to transform/process either the `Result.Success.value`, or in the case the underlying `Result.Failure.error` value. These operations are roughly grouped as follows:
 
-- Operations which maps from one type of E, or T to another via the family of mapping operators.
+- Operations which maps from one type of error, or value to another type via the family of mapping operators.
 - Operations which retrieves the expected success value (T) via a family of get operations
 - Operations which retrieve the possible error value (E) via a family of get operations.
 - Operations which take/not take an error, or value, based on a supplied predicate.
@@ -83,7 +89,6 @@ Furthermore, this library provides a rich set of functions to transform/process 
 - Terminal operations which will only be triggered in either the presence of an error or success value.
 
 Lastly, just a note on interop with the the standard `kotlin.Result`. The library provides the following convenience operations to transform a Result to the standard `kotlin.Result `type (and visa versa):
-S
 - `resultk.interop.toResult` to convert a `kotlin.Result` to this implementation.
 - `resultk.interop.toStandard` to convert this result implementation to the standard `kotlin.Result` type.
 
@@ -236,24 +241,48 @@ There operations also have mirror counter parts:
 | take        | `r.takeSuccessIf(predictare)`    | `r.takeFailureIf(predicate)` |
 | do not take | `r.takeSuccessUnless(predicate)` | `r.takeUnless(predicate)`    |
 
-## 1.2. Advance Modelling of error Codes
+
+## 1.2. Usage Patterns `resultk.Result` promotes
+
+This library is best use in functional manner. Keeping to the functional style means that error and success processing will always be restricted, and managed by the library. Only when something truly unexpected happens will control flow  exit the happy path.
+
+> It also important to note that using functional call style unifies both, the expected output flow, and the error flow in one “happy path”.
+
+For example consider this snippet:
+
+```kotlin
+// ..part some bigger piece code...
+```
+
+### 1.2.1. Ignore errors as long as possible to continue on the happy path.
+
+
+### 1.2.2. Rather map errors at then end, or deal  as soon as possible with them.
+
+### 1.2.3. Do not pass a any `result.Result` instance directly to other functions or methods exception your own private ones.
+
+### 1.2.4. It is _OK_ to return a `result.Result` instance from function. 
+
+### 1.2.5. It is _OK_ to wrap IO or external calls in a `result {}` block which captures external exceptions
+
+## 1.3. Advance Modelling of error Codes.
 
 The `resultk.Result` removes most of the burden to use exceptions as error modelling on a domain. This opens up the door for a more expressive modeling.
 
-Bellow is an example which:
+Bellow is an example demonstrating how to:
 
-- Provides error codes which are both constant (like enums), and normal classes.
-- Retrieves detail error messages based on language resource bundles.
-- Caters for known and unknown error codes, including upstream provided ones.
-- Includes detailed description to upstream error codes.
-- Throws a custom error if the case where caller does not handle the error
+1. Provides error codes which are both constants (like `enums`), and normal classes.
+2. Retrieves detail, and ***helpful***, error messages based on language resource bundles.
+3. Caters for both known and unknown upstream errors.
+4. Includes detailed description of mapped upstream error codes.
+5. Throws a custom error if the case where caller does not handle the error.
+6. Seals the hierarchy in order that no other 3d party library can just add add more types of their own. 
 
 ```kotlin
-// file: resultk/demo/acmepayments/PaymentProcessorError.kt
 package resultk.demo.acmepayments
 
 import resultk.Result
-import resultk.onSuccess
+import resultk.getOrNull
 import resultk.result
 import resultk.success
 import java.util.*
@@ -261,7 +290,7 @@ import java.util.ResourceBundle.getBundle
 
 sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableProvider {
 
-    protected val messageKey = "error.$code"
+    internal val messageKey = "error.$code"
 
     object PaymentDeclined : PaymentProcessorError("payment_declined")
     object BlackedListenerPermanently : PaymentProcessorError("blacklisted_permanently")
@@ -269,58 +298,105 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
 
     open fun message(): String = message(messageKey).get()
     override fun throwable(): Throwable = PaymentProcessorException(this)
+    override fun toString(): String = code
 
     class UpstreamError(
         val upstreamProvider: String,
         val upstreamErrorCode: String,
-        val upstreamProviderErrorMessage: String?
+        upstreamProviderErrorMessage: String? = null
     ) : PaymentProcessorError("upstream.$upstreamProvider.$upstreamErrorCode") {
 
-       
-        private fun getDetailsMessageKey() = "$messageKey.details"
+        val upstreamIsMapped: Boolean
+        val mappedUpstreamMessage: String?
+        val upstreamProviderErrorMessage: String?
 
-        override fun message(): String {
+        init {
+            val mappedMessage = message(messageKey)
+            upstreamIsMapped = mappedMessage.isSuccess
+            mappedUpstreamMessage = mappedMessage.getOrNull()
+            this.upstreamProviderErrorMessage 
+            	= upstreamProviderErrorMessage 
+            	?: mappedUpstreamMessage
+        }
+
+        private val fullMessage by lazy {
+
+            val seeDetailsMessage = message(
+                "error.upstream.see_details",
+                upstreamProvider,
+                upstreamErrorCode,
+                upstreamProviderErrorMessage
+            ).get()
+
             val generalMessage = message("error.upstream").get()
-            val knownUpstreamMessage = message(getDetailsMessageKey())
-            return buildString {
-                fun appendSentence(sentence: String) {
-                    if (isNotEmpty()) {
-                        if (last() != '.') append('.')
-                        append(' ')
-                    }
-                    append(sentence)
-                }
+
+            val noteUnmapped = if (upstreamIsMapped) null else message(
+                "error.upstream.note.unmapped",
+                messageKey,
+                PAYMENT_PROCESSOR_MESSAGES
+            ).get()
+
+            buildString {
                 append(generalMessage)
-                knownUpstreamMessage.onSuccess(::appendSentence)
-                upstreamProviderErrorMessage?.also(::appendSentence)
+                appendSentence(mappedUpstreamMessage)
+                appendSentence(seeDetailsMessage)
+                appendSentence(noteUnmapped)
             }
         }
-    }
 
-    protected fun message(key: String, vararg args: Any?)
-    	: Result<MissingResourceException, String> = result {
-            val message = getBundle(PAYMENT_PROCESSOR_MESSAGES).getString(key)
-            if (args.isEmpty()) message.success() else message.format(* args).success()
-        }
+        override fun message(): String = fullMessage
     }
 
     companion object {
-        const val PAYMENT_PROCESSOR_MESSAGES = "/resultk/demo/acmepayments/PaymentProcessorMessages"
+        private val punctuation = message("sentence_building.punctuation").get().toSet()
+        private val fullStop = message("sentence_building.fullstop").get().first()
+        private val oneSpace = message("sentence_building.onespace").get()
+        private val Char.isNotPunctuation: Boolean get() = this !in punctuation
+        val constants = PaymentProcessorError::class.sealedSubclasses
+        	.mapNotNull { it.objectInstance }
+        internal const val PAYMENT_PROCESSOR_MESSAGES 
+        	= "resultk/demo/acmepayments/PaymentProcessorMessages"
+        internal fun message(key: String, vararg args: Any?)
+        : Result<MissingResourceException, String> {
+            return result {
+                getBundle(PAYMENT_PROCESSOR_MESSAGES).getString(key).run {
+                    when {
+                        args.isEmpty() -> this
+                        else -> format(* args)
+                    }
+                }.success()
+            }
+        }
+
+        private fun StringBuilder.appendSentence(sentence: String?) {
+            if (sentence.isNullOrEmpty()) return
+            if (isNotEmpty()) {
+                if (last().isWhitespace()) trimEnd(Char::isWhitespace)
+                if (last().isNotPunctuation) append(fullStop)
+                append(oneSpace)
+            }
+            append(sentence.trimEnd(Char::isWhitespace))
+            if (last().isNotPunctuation) append(fullStop)
+        }
+
     }
 }
-
 ```
 
 And here is the custom error:
 
 ```kotlin
-// file: resultk/demo/acmepayments/PaymentProcessorException.kt
 package resultk.demo.acmepayments
 
+import java.util.ResourceBundle.getBundle
+
 class PaymentProcessorException internal constructor(
-    val error: PaymentProcessorError,
-    message: String = error.message(),
-) : RuntimeException(message)
+    val error: PaymentProcessorError) : RuntimeException
+(
+  getBundle(PaymentProcessorError.PAYMENT_PROCESSOR_MESSAGES)
+    .getString("paymentProcessorException.message")
+    .format(error.code, error.message())
+)
 ```
 
 And this is the English resource bundle: 
@@ -329,9 +405,18 @@ And this is the English resource bundle:
 # file: resultk/demo/acmepayments/PaymentProcessorMessages_en.properties
 error.payment_declined=Sorry, your payment has been declined. Please contact Acme Payments for more details.
 error.blacklisted_permanently=Please contact Acme Payments urgently in regards to this matter.
-error.insufficient_funds=Unable to complete this transaction: There is no sufficient funds available.
-error.upstreamn=Please try again later.
+error.insufficient_funds=Unable to complete this transaction: There is not sufficient funds available.
+error.upstream=Upstream provider has not completed the request.
+error.upstream.see_details=The following upstream errors details were reported by provider [%s]: [error_code: %s, error_message: %s]
+error.upstream.note.unmapped=This upstream error code is not mapped. Please add the following key [%s] to this resource bundle: /%s
+error.upstream.moon68inc.E_660-011=This account monthly limit has been exceeded.
+paymentProcessorException.message=Unhandled payment processor error has occurred with the following code [%s]. Details: %s
+sentence_building.fullstop=\u002E
+sentence_building.onespace=\u0020
+sentence_building.punctuation=.;:"?!,`'<>{}[]
 ```
+
+
 ---
 
 [^1]: [Stripe Error codes](https://stripe.com/docs/error-codes)
