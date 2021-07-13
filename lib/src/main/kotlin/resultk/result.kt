@@ -160,7 +160,7 @@ fun <E> Result<E, *>.errorOrEmpty(): Optional<E> {
  *
  * > **NOTE**: If the result is a [Failure], calling [get] throw an exception.
  */
-operator fun <T> Result<*, T>.component1(): Result<*, T> = this
+operator fun <E, T> Result<E, T>.component1(): Result<E, T> = this
 
 /**
  * Returns the actual error if present or `null` in the second position.
@@ -227,6 +227,22 @@ inline fun <reified E, T> result(action: () -> Result<E, T>): Result<E, T> {
             else -> throw e
         }
     }
+}
+
+inline fun <reified X, reified E, T> resultCatching(
+    caught: (e: X) -> E,
+    action: () -> Result<E, T>
+): Result<E, T> {
+    @Suppress("UnnecessaryVariable") val r: Result<E, T> = try {
+        action()
+    } catch (e: Throwable) {
+        when (e) {
+            is X -> Failure(caught(e))
+            is E -> Failure(e)
+            else -> throw e
+        }
+    }
+    return r
 }
 
 /**
@@ -364,8 +380,8 @@ inline fun <E, T> result(optional: Optional<T>, errorOfMissingResult: () -> E): 
 
 /**
  * This function produces a result from this receiver, but the caller must decide how to handle
- * any exception of type [X] being thrown from [resultFromThisCodeBlock] code block by supplying an [exceptionFromError] lambda. **Note** that
- * any exception which is not of type [X] will simply be thrown the usual way.
+ * any exception of type [X] being thrown from [process] code block by supplying an [caught]
+ * lambda. **Note** that any exception which is not of type [X] will simply be thrown the usual way.
  *
  * @param E
  *      The value type representing the expected failure.
@@ -375,22 +391,22 @@ inline fun <E, T> result(optional: Optional<T>, errorOfMissingResult: () -> E): 
  *      The value type of the receiver.
  * @param R
  *      The value type of the resulting success value.
- * @param exceptionFromError
+ * @param caught
  *      A lambda which takes the thrown exception of type [X] and produces a [Failure] from it.
- * @param resultFromThisCodeBlock
+ * @param process
  *      A code block which may either produce an [Failure] or [Success] from the receiver.
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
 inline fun <E, T, reified X : Throwable, R> T.resultCatching(
-    exceptionFromError: (X) -> E,
-    resultFromThisCodeBlock: T.() -> Result<E, R>
+    caught: (X) -> E,
+    process: T.() -> Result<E, R>
 ): Result<E, R> {
     return try {
-        resultFromThisCodeBlock()
+        process()
     } catch (e: Throwable) {
         when (e) {
-            is X -> exceptionFromError(e).failure()
+            is X -> caught(e).failure()
             else -> throw e
         }
     }
@@ -398,7 +414,7 @@ inline fun <E, T, reified X : Throwable, R> T.resultCatching(
 
 
 /**
- * This function produces a result from this receiver by running the supplied [resultFromThis] code block. **Any**
+ * This function produces a result from this receiver by running the supplied [processThis] code block. **Any**
  * exception being thrown will automatically being converted to a `Failure<Throwable>`. It is up to the caller
  * to process this `Failure<Throwable>` further (if present) via the usual operations such as [Result.mapFailure].
  *
@@ -412,9 +428,9 @@ inline fun <E, T, reified X : Throwable, R> T.resultCatching(
  *
  * @see mapFailure
  */
-inline fun <T, R> T.resultCatching(resultFromThis: T.() -> Result<Throwable, R>): Result<Throwable, R> {
+inline fun <T, R> T.resultCatching(processThis: T.() -> Result<Throwable, R>): Result<Throwable, R> {
     return try {
-        resultFromThis()
+        processThis()
     } catch (e: Throwable) {
         e.failure()
     }
@@ -433,6 +449,53 @@ inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> 
     }
 }
 
+/**
+ * A function which chain the processing of one result to another.
+ *
+ * @param
+ *      process A lambda which the the [Success] as receiver and returns the next result, whether it
+ *      is [Failure] or [Success]
+ */
+inline fun <reified E, T, R> Result<E, T>.thenResult(process: Success<T>.() -> Result<E, R>): Result<E, R> {
+    return when (this) {
+        is Failure -> this
+        is Success -> result { process(this) }
+    }
+}
+
+inline fun <E, T, reified X, R> Result<E, T>.thenResultCatching(
+    caught: (e: X) -> E,
+    process: Success<T>.() -> Result<E, R>
+): Result<E, R> {
+    return when (this) {
+        is Failure -> this
+        is Success -> try {
+            process(this)
+        } catch (e: Throwable) {
+            e as? X ?: throw e
+            caught(e).failure()
+        }
+    }
+}
+
+/**
+ * Handles the function flow where exceptional flow following a result.
+ *
+ * @param E
+ *      The failure's error type.
+ * @param T
+ *      The successful result value.
+ * @param Er
+ *      The next failure error type
+ * @return
+ *      A result value which contains the next error (if found).
+ */
+inline fun <E, T, Er> Result<E, T>.exceptOn(processFailure: Failure<E>.() -> Result<Er, T>): Result<Er, T> {
+    return when (this) {
+        is Success -> this
+        is Failure -> processFailure()
+    }
+}
 
 /**
  * Maps a result's failure value
@@ -443,17 +506,6 @@ inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
         is Success -> this
     }
 }
-
-/**
- * Transposes a results success and failure values.
- */
-fun <E, T> Result<E, T>.transpose(): Result<T, E> {
-    return when (this) {
-        is Failure -> error.success()
-        is Success -> value.failure()
-    }
-}
-
 
 /**
  * Returns a success value if this a success and [Success.value] matches the predicate.

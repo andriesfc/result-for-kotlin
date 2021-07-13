@@ -61,6 +61,7 @@ fun File.create(kind: FileKind.Known, includeParents: Boolean = false): Result<I
     success()
 }
 
+
 sealed class FileKind(val name: String) {
     override fun toString(): String = name
     sealed class Known(name: String) : FileKind(name) {

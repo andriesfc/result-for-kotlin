@@ -109,6 +109,9 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5_version")
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junit5_version")
 
+    testImplementation("commons-codec:commons-codec:1.15")
+
+
     // MockK
     val mockk_version = "1.11.0"
     testImplementation("io.mockk:mockk:$mockk_version")

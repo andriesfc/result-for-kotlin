@@ -172,27 +172,6 @@ internal class ResultTests {
         assertThat(code).isEqualTo(IOError.GeneralIOError)
     }
 
-    @ParameterizedTest
-    @CsvSource(
-        value = [
-            "bad_price,@null",
-            "@null,69.69"],
-        nullValues = ["@null"]
-    )
-    fun transpose_failure_with_success(failureCode: String?, successPrice: Double?) {
-
-        val given = failureCode?.failure()
-            ?: successPrice?.success()
-            ?: throw IllegalArgumentException("Both failureCode and successPrice cannot be null")
-
-        val (transposedValue, transposedError) = given.transpose()
-
-        if (failureCode != null) {
-            assertThat(transposedValue.get()).isEqualTo(failureCode)
-        } else if (successPrice != null) {
-            assertThat(transposedError).isEqualTo(successPrice)
-        }
-    }
 
     @ParameterizedTest
     @CsvSource(
