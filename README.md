@@ -1,27 +1,4 @@
-# 1. Idiomatic Error Handling as a first class domain citizen
-
-- [1. Idiomatic Error Handling as a first class domain citizen](#1-idiomatic-error-handling-as-a-first-class-domain-citizen)
-  - [1.1. Introducing `resultk.Result`](#11-introducing-resultkresult)
-    - [1.1.1. Simple Usage](#111-simple-usage)
-      - [1.1.1.1. Declaring an error codes for your domain:](#1111-declaring-an-error-codes-for-your-domain)
-      - [1.1.1.2. Returning a `Result` instance](#1112-returning-a-result-instance)
-      - [1.1.1.3. Using a `Result` from an call](#1113-using-a-result-from-an-call)
-        - [1.1.1.3.1. Just getting the success value](#11131-just-getting-the-success-value)
-        - [1.1.1.3.2. First checking for an error code](#11132-first-checking-for-an-error-code)
-        - [1.1.1.3.3. Using the `try-catch`](#11133-using-the-try-catch)
-    - [1.1.2. Functional Usage](#112-functional-usage)
-      - [1.1.2.1. Mapping from one error to another](#1121-mapping-from-one-error-to-another)
-      - [1.1.2.2. Mapping from one value to another](#1122-mapping-from-one-value-to-another)
-      - [1.1.2.3. Mapping result to a single value](#1123-mapping-result-to-a-single-value)
-      - [1.1.2.4. Inspecting success values and failure](#1124-inspecting-success-values-and-failure)
-      - [1.1.2.5. Conditionally handling errors and success values.](#1125-conditionally-handling-errors-and-success-values)
-  - [1.2. Usage Patterns `resultk.Result` promotes](#12-usage-patterns-resultkresult-promotes)
-    - [1.2.1. Ignore errors as long as possible to continue on the happy path.](#121-ignore-errors-as-long-as-possible-to-continue-on-the-happy-path)
-    - [1.2.2. Rather map errors at then end, or deal  as soon as possible with them.](#122-rather-map-errors-at-then-end-or-deal--as-soon-as-possible-with-them)
-    - [1.2.3. Do not pass a any `result.Result` instance directly to other functions or methods except your _own private_ ones.](#123-do-not-pass-a-any-resultresult-instance-directly-to-other-functions-or-methods-except-your-own-private-ones)
-    - [1.2.4. It is _OK_ to return a `result.Result` instance from function.](#124-it-is-ok-to-return-a-resultresult-instance-from-function)
-    - [1.2.5. It is _OK_ to wrap IO or external calls in a `result {}` block which captures external exceptions](#125-it-is-ok-to-wrap-io-or-external-calls-in-a-result--block-which-captures-external-exceptions)
-  - [1.3. Advance Modelling of error Codes.](#13-advance-modelling-of-error-codes)
+# Idiomatic Error Handling as a first class domain citizen
 
 _ResultK_ is a smallish library to bring error handling as first class concern to a domain implementation. The traditional way for any Object Orientated language is to resort to either special Enums, or constants, or what is more common nowadays, throwing exceptions.
 
@@ -41,7 +18,7 @@ Because of this, this library implements a special variant of the classic `Eithe
 2. This `Result` type _always_ treats the right side as a **success** value. 
 3. This library will always decompose the result value in the pattern of `(result,error?)`
 
-As an example of error as first class domain citizen, consider the some error codes reported by the Stripe[^1] API:
+As an example of error as first class domain citizen, consider the some error codes reported by the Stripe API:
 
 - `billing_invalid_mandate`
 - `card_declined`
@@ -54,7 +31,7 @@ fun registerCardPaymentMethod(card: Card): Result<ProcessorFailure,PaymentMethod
 }
 ```
 
-## 1.1. Introducing `resultk.Result`
+## Introducing `resultk.Result`
 
 With this out of the way, lets introduce the `Result` type:
 
@@ -67,7 +44,6 @@ sealed class Result<out E, out T> {
     val isSuccess: Boolean get() = this is Success
     val isFailure: Boolean get() = this is Failure
 
-    abstract get(): T
 }
 ```
 
@@ -92,9 +68,9 @@ Lastly, just a note on interop with the the standard `kotlin.Result`. The librar
 - `resultk.interop.toResult` to convert a `kotlin.Result` to this implementation.
 - `resultk.interop.toStandard` to convert this result implementation to the standard `kotlin.Result` type.
 
-### 1.1.1. Simple Usage
+### Simple Usage
 
-#### 1.1.1.1. Declaring an error codes for your domain:
+#### Declaring an error codes for your domain:
 
 ```kotlin
 enum class ProcessorError {
@@ -106,7 +82,7 @@ enum class ProcessorError {
 }
 ```
 
-#### 1.1.1.2. Returning a `Result` instance
+#### Returning a `Result` instance
 
 Using the above error codes, as an example:
 
@@ -124,17 +100,17 @@ fun getBalance(accountNo: AccountNo): Result<ProcessorError,Money> = result {
 }
 ```
 
-#### 1.1.1.3. Using a `Result` from an call
+#### Using a `Result` from an call
 
 At this point lets say you get the balance from the `getBalance` function. There are several ways to work with the result:
 
-##### 1.1.1.3.1. Just getting the success value
+##### Just getting the success value
 
 ```kotlin
 val balance = getBalance(account).get()
 ```
 
-##### 1.1.1.3.2. First checking for an error code
+##### First checking for an error code
 
 ```kotlin
 val (balance,err) = getBalance(account)
@@ -147,7 +123,7 @@ if (err != null) {
 }
 ```
 
-##### 1.1.1.3.3. Using the `try-catch`
+##### Using the `try-catch`
 
 ```kotlin
 val balance = getBalance(account)
@@ -159,11 +135,11 @@ try {
 }
 ```
 
-### 1.1.2. Functional Usage
+### Functional Usage
 
 The `Result` type also exposes several useful functional approaches to error handling. Here are the most common ones:
 
-#### 1.1.2.1. Mapping from one error to another
+#### Mapping from one error to another
 
 ```kotlin
 val : Result<ServiceErrorCode,Long> =
@@ -174,7 +150,7 @@ val : Result<ServiceErrorCode,Long> =
         }
 ```
 
-#### 1.1.2.2. Mapping from one value to another
+#### Mapping from one value to another
 
 Given a function which check if a file exists:
 
@@ -188,7 +164,7 @@ Now convert to file size:
 val fileSize = fileCheck.map(File::length)
 ```
 
-#### 1.1.2.3. Mapping result to a single value
+#### Mapping result to a single value
 
 ```kotlin
 // Using kotlin built in let function
@@ -197,7 +173,7 @@ val fileSizeInBytes: Long = fileSize.let { (r,e) -> if (e == null) -1 else r.get
 val fileSizeInByres: Long = fileSize.getOr { -1 }
 ```
 
-#### 1.1.2.4. Inspecting success values and failure
+#### Inspecting success values and failure
 
 The library also provide various functions to inspect both success values and failure errors:
 
@@ -211,7 +187,7 @@ val errorCode: ErrorCode? = fileSize.getErrorOrNull()
 val errorCodeOption: Optional<ErrorCode> = fileSize.getErrorOptional()
 ```
 
-#### 1.1.2.5. Conditionally handling errors and success values.
+#### Conditionally handling errors and success values.
 
 Conditionally handling comes in 2 flavors:
 
@@ -242,13 +218,13 @@ There operations also have mirror counter parts:
 | do not take | `r.takeSuccessUnless(predicate)` | `r.takeUnless(predicate)`    |
 
 
-## 1.2. Usage Patterns `resultk.Result` promotes
+## Usage Patterns `resultk.Result` promotes
 
 This library is best use in functional manner. Keeping to the functional style means that error and success processing will always be restricted, and managed by the library. Only when something truly unexpected happens will control flow  exit the happy path.
 
-> It also important to note that using functional call style unifies both, the expected output flow, and the error flow in one “happy path”.
+> It also important to note that using functional call style unifies both, the expected output flow, and the error flow in one "happy path".
 
-## 1.3. Advance Modeling of error Codes.
+## Advance Modeling of error Codes.
 
 The `resultk.Result` removes most of the burden to use exceptions as error modelling on a domain. This opens up the door for a more expressive modeling.
 
@@ -273,7 +249,10 @@ Here are some sample error messages to illustrate how helpful such error message
 ```
 Upstream provider has not completed the request. 
 This account monthly limit has been exceeded. 
-The following upstream errors details were reported by provider [moon68inc]: [error_code: E_660-011, error_message: `**Detail**` error message was not supplied by upstream provider!]
+The following upstream errors details were reported by provider 
+    [moon68inc]: [error_code: E_660-011, 
+        error_message: `**Detail**` error message was not supplied 
+        by upstream provider!]
 ```
 
 ```stacktrace
