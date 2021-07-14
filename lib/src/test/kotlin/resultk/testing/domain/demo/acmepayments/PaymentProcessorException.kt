@@ -1,4 +1,4 @@
-package resultk.demo.acmepayments
+package resultk.testing.domain.demo.acmepayments
 
 import java.util.ResourceBundle.getBundle
 

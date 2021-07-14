@@ -2,6 +2,7 @@
 package resultk
 
 import resultk.Result.Failure
+import resultk.Result.Failure.FailureUnwrapper
 import resultk.Result.Success
 import resultk.interop.ThrowingProducer
 import java.util.*
@@ -20,7 +21,7 @@ import java.util.*
  * - If the caller calls [Result.get] and the captured [Failure.error] is an actual [kotlin.Throwable], it will be
  *   thrown, (again as is the normal Object Oriented way).
  * - If the caller calls [Result.get] and the captured [Failure.error], is not something which can be thrown, this
- *   library will wrap it as [WrappedFailureAsException], and throw it.
+ *   library will wrap it as [DefaultFailureUnwrapper], and throw it.
  *
  * See the [Failure.get] function for more details on exactly how errors are handled by this `Result` implementation.
  *
@@ -82,9 +83,16 @@ sealed class Result<out E, out T> {
          * Implement this on your errors  to control which exception is raised on calling
          * [Failure.get] function.
          *
+         * @param X
+         *      The type throwable this failure wants use when caller tries to get an success value
+         *      from this error
          */
-        interface ThrowableProvider {
-            fun throwable(): Throwable
+        interface ThrowableProvider<out X : Throwable> {
+            fun throwable(): X
+        }
+
+        interface FailureUnwrapper<out E> {
+            fun unwrap(): Failure<out E>?
         }
 
         /**
@@ -96,24 +104,24 @@ sealed class Result<out E, out T> {
          * - If the actual [error] is a [kotlin.Throwable] it will simply be thrown as expected.
          * - If the [error] implements the [Failure.ThrowableProvider] interface, the `error.throwable()` function will
          * be called to determine which throwable will be thrown.
-         * - Lastly, of neither of the above applies, the error value will be wrapped a [WrappedFailureAsException]
+         * - Lastly, of neither of the above applies, the error value will be wrapped a [DefaultFailureUnwrapper]
          * instance, before being thrown.
          *
          * Regardless, it is up the caller to handle, or ignore the thrown exception as usual business.
          *
-         * @see WrappedFailureAsException
+         * @see DefaultFailureUnwrapper
          * @see Result.Failure.ThrowableProvider
          */
         override fun get(): Nothing {
             when (error) {
-                is ThrowableProvider -> {
+                is ThrowableProvider<Throwable> -> {
                     throw error.throwable()
                 }
                 is Throwable -> {
                     throw error
                 }
                 else -> {
-                    throw WrappedFailureAsException(this)
+                    throw DefaultFailureUnwrapper(this)
                 }
             }
         }
@@ -126,7 +134,7 @@ sealed class Result<out E, out T> {
     /**
      * Calling get is unsafe, as the may fail (in the case of a [Failure.get]) with an exception being thrown.
      *
-     * @see WrappedFailureAsException.wrappedFailure - in the case where the [Failure.error] is not a throwable type.
+     * @see DefaultFailureUnwrapper.wrappedFailure - in the case where the [Failure.error] is not a throwable type.
      */
     abstract fun get(): T
 
@@ -169,81 +177,30 @@ inline fun <reified E, T> result(action: () -> Result<E, T>): Result<E, T> {
     return try {
         action()
     } catch (e: Throwable) {
+        @Suppress("UNCHECKED_CAST")
         when (e) {
-            is E -> Failure(e)
-            else -> throw e
+            is E -> {
+                Failure(e)
+            }
+            is FailureUnwrapper<*> -> {
+                val unwrapped = e.unwrap() ?: throw e
+                unwrapped.error as? E ?: throw e
+                unwrapped as Failure<E>
+            }
+            else -> {
+                throw e
+            }
         }
     }
 }
 
-inline fun <reified X, reified E, T> resultCatching(
-    caught: (e: X) -> E,
-    action: () -> Result<E, T>
-): Result<E, T> {
-    @Suppress("UnnecessaryVariable") val r: Result<E, T> = try {
-        action()
-    } catch (e: Throwable) {
-        when (e) {
-            is X -> Failure(caught(e))
-            is E -> Failure(e)
-            else -> throw e
-        }
-    }
-    return r
-}
-
-/**
- * Takes computation and wraps any exception (if [E] is an [Throwable])
- * as a [Failure].
- *
- * @param producer A Java Lambda which can throw an exception.
- * @param errorClass The expected error class.
- * @throws Throwable if the caught exception is not of type [E]
- * @return A result.
- */
-fun <E, T> result(errorClass: Class<E>, producer: ThrowingProducer<Result<E, T>>): Result<E, T> {
-    return try {
-        producer.produce()
-    } catch (e: Throwable) {
-        if (errorClass.isInstance(e)) {
-            errorClass.cast(e).failure()
-        } else {
-            throw e
-        }
-    }
-}
-
-/**
- * Converts a [result] to an plain old Java [Optional]
- */
-fun <T> Result<*, T>.optional(): Optional<T> {
-    return when (this) {
-        is Failure -> Optional.empty()
-        is Success -> Optional.ofNullable(value)
-    }
-}
-
-/**
- * Converts Java's [Optional] to a [result]. Note the caller has to supply a function which
- * supplies the missing error if there is no value present on the Optional.
- *
- * @param errorOfMissingResult A function which produces a error when the [Optional.isEmpty] returns `true`
- * @param optional The [Optional] instance to convert to a proper `Result`
- *
- * @return A [Result] which has either an value, or a error.
- */
-inline fun <E, T> result(optional: Optional<T>, errorOfMissingResult: () -> E): Result<E, T> {
-    return when {
-        optional.isPresent -> optional.get().success()
-        else -> errorOfMissingResult().failure()
-    }
-}
 //</editor-fold>
 
 //<editor-fold desc="Accessing success values and failures">
 
-fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> = apply {
+fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
     (this as? Success)?.value?.also(process)
+    return this
 }
 
 fun <E, T> Result<E,T>.onFailure(processFailure:(E) -> Unit) = apply {
@@ -259,13 +216,6 @@ fun <E> Result<E, *>.errorOrNull(): E? {
     return when (this) {
         is Failure -> error
         else -> null
-    }
-}
-
-fun <E> Result<E, *>.errorOrEmpty(): Optional<E> {
-    return when (this) {
-        is Failure -> Optional.ofNullable(error)
-        else -> Optional.empty()
     }
 }
 
@@ -436,30 +386,6 @@ inline fun <E, T, reified X : Throwable, R> T.resultCatching(
     }
 }
 
-
-/**
- * This function produces a result from this receiver by running the supplied [processThis] code block. **Any**
- * exception being thrown will automatically being converted to a `Failure<Throwable>`. It is up to the caller
- * to process this `Failure<Throwable>` further (if present) via the usual operations such as [Result.mapFailure].
- *
- * @param T
- *      The type representing the receiver (e.g `this`)
- * @param R
- *      The type representing the desired [Success] type.
- * @return
- *      A result which will have captured either any [Throwable] in the via the [Failure], or the success value
- *      via the [Success] type.
- *
- * @see mapFailure
- */
-inline fun <T, R> T.resultCatching(processThis: T.() -> Result<Throwable, R>): Result<Throwable, R> {
-    return try {
-        processThis()
-    } catch (e: Throwable) {
-        e.failure()
-    }
-}
-
 /**
  * A function which chain the processing of one result to another.
  *
@@ -510,30 +436,60 @@ inline fun <E, T, Er> Result<E, T>.exceptOn(processFailure: Failure<E>.() -> Res
 }
 //</editor-fold>
 
-//<editor-fold desc="Exception Handling">
+//<editor-fold desc="Error code wrapping">
 /**
  * The purpose of this class is to bridge the functional model of the [Result] operations with the traditional
  * _try-catch_ world of Object Oriented contract which specifies that failures should be raised and the current
  * operation should be aborted.
  *
  * @constructor Creates a new wrapped failure exception which can be raised using the `throw` operation.
- * @property wrapped Reports the actual failure.
  * @param wrapped The failure to wrap.
  * @see Result.get
  * @see result
  */
 @Suppress("UNCHECKED_CAST")
-class WrappedFailureAsException(wrapped: Failure<*>) : RuntimeException("${wrapped.error}") {
-    val wrapped: Failure<Any> = wrapped as Failure<Any>
+private class DefaultFailureUnwrapper(
+    wrapped: Failure<*>
+) : RuntimeException("${wrapped.error}"), FailureUnwrapper<Any> {
+    private val _wrapped = wrapped as Failure<Any>
+    override fun unwrap(): Failure<out Any> = _wrapped
 }
 
+@Suppress("UNCHECKED_CAST")
 inline fun <reified E> Throwable.unwrapFailure(): Failure<E> {
-    @Suppress("UNCHECKED_CAST")
-    if (this is WrappedFailureAsException && wrapped.error is E) {
-        return wrapped as Failure<E>
-    } else {
-        throw this
+    return when {
+        this is FailureUnwrapper<*> && unwrap()?.error is E -> unwrap() as Failure<E>
+        else -> throw this
     }
 }
+//</editor-fold>
+
+//<editor-fold desc="Conversions">
+/**
+ * Converts a [result] to an plain old Java [Optional]
+ */
+fun <T> Result<*, T>.optional(): Optional<T> {
+    return when (this) {
+        is Failure -> Optional.empty()
+        is Success -> Optional.ofNullable(value)
+    }
+}
+
+/**
+ * Converts Java's [Optional] to a [result]. Note the caller has to supply a function which
+ * supplies the missing error if there is no value present on the Optional.
+ *
+ * @param errorOfMissingResult A function which produces a error when the [Optional.isEmpty] returns `true`
+ * @param optional The [Optional] instance to convert to a proper `Result`
+ *
+ * @return A [Result] which has either an value, or a error.
+ */
+inline fun <E, T> result(optional: Optional<T>, errorOfMissingResult: () -> E): Result<E, T> {
+    return when {
+        optional.isPresent -> optional.get().success()
+        else -> errorOfMissingResult().failure()
+    }
+}
+
 //</editor-fold>
 

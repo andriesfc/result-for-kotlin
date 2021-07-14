@@ -1,4 +1,4 @@
-package resultk.demo.filesysops
+package resultk.testing.domain.demo.filesysops
 
 import resultk.*
 import java.io.File
