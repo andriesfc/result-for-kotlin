@@ -2,8 +2,8 @@ package resultk.demo.filesysops
 
 import org.apache.commons.codec.binary.Hex.encodeHexString
 import resultk.*
-import resultk.demo.filesysops.HashingError.DigesterAlgorithmNotSupported
-import resultk.demo.filesysops.HashingError.IOError
+import resultk.demo.filesysops.HashingError.UnsuportedAlgorithm
+import resultk.demo.filesysops.HashingError.SourceContentNotReadable
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
@@ -13,16 +13,38 @@ sealed class HashingError<out X : Exception> {
 
     abstract val cause: X
 
-    data class IOError(
+    data class SourceContentNotReadable(
         val source: String,
         override val cause: IOException
     ) : HashingError<IOException>()
 
-    data class DigesterAlgorithmNotSupported(
+    data class UnsuportedAlgorithm(
         override val cause: NoSuchAlgorithmException,
         val algorithm: String
     ) : HashingError<NoSuchAlgorithmException>()
 
+}
+
+fun File.hashContentsV0(algorithm: String): Result<HashingError<Exception>, String> {
+
+    val messageDigest = try {
+        MessageDigest.getInstance(algorithm)
+    } catch (e: NoSuchAlgorithmException) {
+        return UnsuportedAlgorithm(e, algorithm).failure()
+    }
+
+    val messageHash = try {
+        forEachBlock { buffer, bytesRead ->
+            if (bytesRead > 0) {
+                messageDigest.update(buffer, 0, bytesRead)
+            }
+        }
+        encodeHexString(messageDigest.digest())
+    } catch (e: IOException) {
+        return SourceContentNotReadable(path, e).failure()
+    }
+
+    return messageHash.success()
 }
 
 fun File.hashContentsV1(algorithm: String): Result<HashingError<Exception>, String> {
@@ -37,9 +59,9 @@ fun File.hashContentsV1(algorithm: String): Result<HashingError<Exception>, Stri
                 encodeHexString(digest()).success()
             }
         } catch (e: NoSuchAlgorithmException) {
-            DigesterAlgorithmNotSupported(e, algorithm).failure()
+            UnsuportedAlgorithm(e, algorithm).failure()
         } catch (e: IOException) {
-            IOError(path, e).failure()
+            SourceContentNotReadable(path, e).failure()
         }
     }
 }
@@ -53,7 +75,7 @@ fun File.hashContentsV2(algorithm: String): Result<HashingError<Exception>, Stri
     }
 
     if (noSuchAlgorithm != null) {
-        return DigesterAlgorithmNotSupported(noSuchAlgorithm, algorithm).failure()
+        return UnsuportedAlgorithm(noSuchAlgorithm, algorithm).failure()
     }
 
     val (hash, fileReadException) = result<IOException, String> {
@@ -68,7 +90,7 @@ fun File.hashContentsV2(algorithm: String): Result<HashingError<Exception>, Stri
     }
 
     if (fileReadException != null) {
-        return IOError(path, fileReadException).failure()
+        return SourceContentNotReadable(path, fileReadException).failure()
     }
 
     return hash.get().success()
@@ -84,8 +106,8 @@ fun File.hashContentsV3(algorithm: String): Result<HashingError<Exception>, Stri
         encodeHexString(value.digest()).success()
     }.mapFailure { e ->
         when (e) {
-            is IOException -> IOError(path, e)
-            is NoSuchAlgorithmException -> DigesterAlgorithmNotSupported(e, algorithm)
+            is IOException -> SourceContentNotReadable(path, e)
+            is NoSuchAlgorithmException -> UnsuportedAlgorithm(e, algorithm)
             else -> throw e
         }
     }
@@ -96,8 +118,8 @@ fun File.hashContentsV4(algorithm: String): Result<HashingError<Exception>, Stri
     return result<NoSuchAlgorithmException, MessageDigest> {
         MessageDigest.getInstance(algorithm).success()
     }.exceptOn {
-        DigesterAlgorithmNotSupported(error, algorithm).failure()
-    }.thenResultCatching({ e: IOException -> IOError(path, e) }) {
+        UnsuportedAlgorithm(error, algorithm).failure()
+    }.thenResultCatching({ e: IOException -> SourceContentNotReadable(path, e) }) {
         forEachBlock { buffer, bytesRead -> if (bytesRead > 0) value.update(buffer, 0, bytesRead) }
         encodeHexString(value.digest()).success()
     }
@@ -105,8 +127,8 @@ fun File.hashContentsV4(algorithm: String): Result<HashingError<Exception>, Stri
 
 fun File.hashContentsV5(algorithm: String): Result<HashingError<Exception>, String> {
 
-    val unsupportedAlgorithm = fun(e: NoSuchAlgorithmException) = DigesterAlgorithmNotSupported(e, algorithm)
-    val inputFailure = fun(e: IOException) = IOError(path, e)
+    val unsupportedAlgorithm = fun(e: NoSuchAlgorithmException) = UnsuportedAlgorithm(e, algorithm)
+    val inputFailure = fun(e: IOException) = SourceContentNotReadable(path, e)
 
     return resultCatching(unsupportedAlgorithm) {
         MessageDigest.getInstance(algorithm).success()
