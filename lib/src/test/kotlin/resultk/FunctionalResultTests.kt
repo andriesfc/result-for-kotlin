@@ -1,37 +1,20 @@
 package resultk
 
-import assertk.all
-import assertk.assertThat
-import assertk.assertions.*
-import io.mockk.every
-import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
-import org.junit.jupiter.api.io.TempDir
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.CsvSource
-import resultk.assertions.doesNotExists
-import resultk.assertions.error
-import java.io.EOFException
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.net.SocketException
-import java.util.*
-import java.util.UUID.randomUUID
-import kotlin.random.Random
-import kotlin.random.nextInt
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
-import kotlin.test.fail
 
 
 @ExtendWith(MockKExtension::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class ResultTests {
+@DisplayName("Functional operations on the Result<E,T> type")
+internal class FunctionalResultTests {
 
+
+
+
+/*
     private interface TextReader {
         fun readText(): Result<IOException, String>
     }
@@ -96,7 +79,7 @@ internal class ResultTests {
     fun get_result_of_text_using_fold_if_exists() {
         val expectedText = "expectedText"
         whenReadTextReturnWith(expectedText)
-        val r: String? = textReader.readText().fold({ null }, { it })
+        val r: String? = textReader.readText().map({ null }, { it })
         assertThat(r).all {
             isNotNull()
             isEqualTo(expectedText)
@@ -125,7 +108,7 @@ internal class ResultTests {
     @Test
     fun get_result_of_text_reader_should_fail_with_exception_on_left_case() {
         whenReadTextReportIOExceptionToCaller()
-        val r = textReader.readText().fold({ it }, { it })
+        val r = textReader.readText().map({ it }, { it })
         assertThat(r).isInstanceOf(IOException::class)
     }
 
@@ -133,7 +116,7 @@ internal class ResultTests {
     @Test
     fun map_then_fold() {
         whenReadTextReturnWith("101")
-        val i = textReader.readText().map { it.toInt() }.fold({ 0 }, { it })
+        val i = textReader.readText().map { it.toInt() }.map({ 0 }, { it })
         assertThat(i).isEqualTo(101)
     }
 
@@ -141,7 +124,7 @@ internal class ResultTests {
     fun fold() {
         val expected = 101
         whenReadTextReturnWith("$expected")
-        val actual = textReader.readText().fold({ 0 }, { it.toInt() })
+        val actual = textReader.readText().map({ 0 }, { it.toInt() })
         assertThat(actual).isEqualTo(expected)
     }
 
@@ -149,7 +132,7 @@ internal class ResultTests {
     fun fold_failure() {
         whenReadTextReportIOExceptionToCaller()
         val errorIndicator = -1
-        val actual = textReader.readText().fold({ errorIndicator }, { it.toInt() })
+        val actual = textReader.readText().map({ errorIndicator }, { it.toInt() })
         assertThat(actual).isEqualTo(errorIndicator)
     }
 
@@ -162,7 +145,7 @@ internal class ResultTests {
     }
 
     @Test
-    fun map_IOException_to_enum() {
+    fun maps_IOException_to_enum() {
         whenReadTextReportIOExceptionToCaller("bang!")
         val (_, error) = textReader.readText().mapFailure { IOError.mappedBy(it) }
         assertNotNull(error)
@@ -335,7 +318,7 @@ internal class ResultTests {
             }
         }
         println(fileSize)
-        assertThat(fileSize).error().isEqualTo(IOError.FileNotFound)
+        assertThat(fileSize).isFailure().isEqualTo(IOError.FileNotFound)
     }
 
     @Test
@@ -370,33 +353,29 @@ internal class ResultTests {
         )
     }
 
-    private enum class IOError {
-        EndOfFile,
-        GeneralIOError,
-        RemoteException,
-        FileNotFound;
+    private enum class IOError(
+        private val mappedExceptionType: Class<out IOException>,
+        private val priority: Int = 0
+    ) {
+
+        EndOfFile(EOFException::class.java),
+        GeneralIOError(IOException::class.java, Int.MAX_VALUE),
+        RemoteException(SocketException::class.java),
+        FileNotFound(FileNotFoundException::class.java);
 
         companion object {
 
+            private val mapped = values().sortedBy(IOError::priority)
+
             fun of(e: IOException): IOError {
-                return when (e) {
-                    is FileNotFoundException -> FileNotFound
-                    is SocketException -> RemoteException
-                    is EOFException -> EndOfFile
-                    else -> GeneralIOError
-                }
+                return mapped.firstOrNull { it.mappedExceptionType.isInstance(e) } ?: GeneralIOError
             }
 
             fun mappedBy(e: IOException): Pair<IOException, IOError> {
-                return e to when (e) {
-                    is SocketException -> RemoteException
-                    is EOFException -> EndOfFile
-                    is FileNotFoundException -> FileNotFound
-                    else -> GeneralIOError
-                }
+                return e to of(e)
             }
         }
-    }
+    }*/
 }
 
 

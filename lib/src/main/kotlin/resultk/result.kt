@@ -1,12 +1,12 @@
-@file:JvmName("ResultOperations")
+
 package resultk
 
 import resultk.Result.Failure
 import resultk.Result.Success
 import resultk.interop.ThrowingProducer
-import resultk.interop.accepting
 import java.util.*
-import java.util.function.Consumer
+
+//<editor-fold desc="Core Data types and special values">
 
 /**
  * Result is an sealed type which represents a result of an operation: A result can either be a [Success], or an [Failure].
@@ -53,7 +53,7 @@ import java.util.function.Consumer
  * @see resultk.interop.toStandard
  *      An extension function to convert a `Result` to `kotlin.Result`
  */
-sealed class Result<out E, out T>  {
+sealed class Result<out E, out T> {
 
     /**
      * A successful/expected value.
@@ -135,40 +135,11 @@ sealed class Result<out E, out T>  {
 
 }
 
+private val SUCCESS_UNIT = Success(Unit)
 
-/**
- * Returns an error or `null` for a given Result.
- *
- * @receiver A [result]
- */
-fun <E> Result<E, *>.errorOrNull(): E? {
-    return when (this) {
-        is Failure -> error
-        else -> null
-    }
-}
+//</editor-fold>
 
-fun <E> Result<E, *>.errorOrEmpty(): Optional<E> {
-    return when (this) {
-        is Failure -> Optional.ofNullable(error)
-        else -> Optional.empty()
-    }
-}
-
-/**
- * Returns result in the first variable position - use [Result.get] to to retrieve the success value.
- *
- * > **NOTE**: If the result is a [Failure], calling [get] throw an exception.
- */
-operator fun <E, T> Result<E, T>.component1(): Result<E, T> = this
-
-/**
- * Returns the actual error if present or `null` in the second position.
- */
-operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
-
-
-val SUCCESS_UNIT = Success(Unit)
+//<editor-fold desc="Creating results & result entry points">
 
 /**
  * Wraps this value of [T] as [Success]
@@ -185,30 +156,6 @@ fun <E,T> T.success(): Result<E, T> {
  * Wraps this value of [E] as [Failure]
  */
 fun <E, T> E.failure(): Result<E, T> = Failure(this)
-
-
-/**
- * Returns an error or `null` for a given Result.
- *
- * @receiver A [result]
- */
-fun <E> Result<E, *>.getErrorOrNull(): E? {
-    return when (this) {
-        is Failure -> error
-        else -> null
-    }
-}
-
-/**
- * Lets compute a result om a given receiver from lambda.
- *
- * @receiver A value to compute a result.
- * @param compute The function to apply on given receiver.
- */
-inline fun <T, reified E, R> T.computeResult(compute: T.() -> Result<E, R>): Result<E, R> {
-    return result { compute() }
-}
-
 
 /**
  * Takes computation and wraps any exception (if [E] is an [Throwable])
@@ -267,92 +214,6 @@ fun <E, T> result(errorClass: Class<E>, producer: ThrowingProducer<Result<E, T>>
 }
 
 /**
- * Gets a value from a result, or maps an error to desired type. This is similar to [result.fold] operation,
- * except this only cater for mapping the error if it is present.
- */
-inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
-    return when (this) {
-        is Failure -> mapError(error)
-        is Success -> value
-    }
-}
-
-/**
- * A get operation which ensures that an exception is thrown if the result is a [result.Failure]. Thr caller needs
- * to supply a function to map the error value to the correct instance of [X
- *
- * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
- * @param E The error type
- * @param T The successful/expected value type.
- * @param X The exception type which needs to be thrown when this result contains an error.
- * @receiver A result container which may hold either a value, or an error.
- * @return The value of the result, or throws the exception produced by the [mapErrorToThrowable] function.
- */
-inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T where X : Throwable {
-    return getOr { throw mapErrorToThrowable(it) }
-}
-
-/**
- * Returns an success value, or in the case of an error a `null` value.
- *
- * @receiver This result.
- * @param T The result type.
- * @return The value of the result or null in the case of [Failure]
- */
-fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
-
-
-/**
- * Do something on the [Success.value] if the receiver is a [Success]
- *
- * @param process Process the success value if present.
- * @param E The error type parameter.
- * @param T The value type parameter
- * @return This receiver.
- * @receiver A [result]
- * @return [this]
- */
-fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
-    if (this is Success) process(value)
-    return this
-}
-
-/**
- * Also do something with a error if this receiver is an [Failure]
- *
- * @param E [Failure.error] value type parameter
- * @param T [Success.value] value type parameter
- * @param consume A function to which accepts a [Failure.error] value of type [E] for processing.
- * @receiver Any [Result] which may have an error value of [E]
- * @return [this]
- */
-fun <E, T> Result<E, T>.onFailure(consume: (E) -> Unit): Result<E, T> {
-    if (this is Failure) consume(error)
-    return this
-}
-
-fun <E, T> Result<E, T>.onFailure(consumer: Consumer<E>): Result<E, T> = onFailure(consumer.accepting())
-fun <E, T> Result<E, T>.onSuccess(consumer: Consumer<T>): Result<E, T> = onSuccess(consumer.accepting())
-
-/**
- * Folds this result to a single value. The caller has to supply both a [mapError], and [mapValue]
- * function to translate the given value or error.
- *
- * @param mapError Function to map an error value to the desired result.
- * @param mapValue Function to map an value to to desired result.
- * @param E The error type.
- * @param T The of expected value to fold.
- * @param R The desired resulting type of the fold operations.
- * @return The desired value of the fold operation, which is either an value mapped to it, or an error mapped to it.
- */
-inline fun <E, T, R> Result<E, T>.fold(mapError: (E) -> R, mapValue: (T) -> R): R {
-    return when (this) {
-        is Failure -> mapError(error)
-        is Success -> mapValue(value)
-    }
-}
-
-/**
  * Converts a [result] to an plain old Java [Optional]
  */
 fun <T> Result<*, T>.optional(): Optional<T> {
@@ -377,7 +238,170 @@ inline fun <E, T> result(optional: Optional<T>, errorOfMissingResult: () -> E): 
         else -> errorOfMissingResult().failure()
     }
 }
+//</editor-fold>
 
+//<editor-fold desc="Accessing success values and failures">
+
+fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> = apply {
+    (this as? Success)?.value?.also(process)
+}
+
+fun <E, T> Result<E,T>.onFailure(processFailure:(E) -> Unit) = apply {
+    (this as? Failure)?.error?.also(processFailure)
+}
+
+/**
+ * Returns an error or `null` for a given Result.
+ *
+ * @receiver A [result]
+ */
+fun <E> Result<E, *>.errorOrNull(): E? {
+    return when (this) {
+        is Failure -> error
+        else -> null
+    }
+}
+
+fun <E> Result<E, *>.errorOrEmpty(): Optional<E> {
+    return when (this) {
+        is Failure -> Optional.ofNullable(error)
+        else -> Optional.empty()
+    }
+}
+
+/**
+ * Returns result in the first variable position - use [Result.get] to to retrieve the success value.
+ *
+ * > **NOTE**: If the result is a [Failure], calling [get] throw an exception.
+ */
+operator fun <E, T> Result<E, T>.component1(): Result<E, T> = this
+
+/**
+ * Returns the actual error if present or `null` in the second position.
+ */
+operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
+
+/**
+ * Gets a value from a result, or maps an error to desired type. This is similar to [result.fold] operation,
+ * except this only cater for mapping the error if it is present.
+ */
+inline fun <E, T> Result<E, T>.valueOr(mapError: (E) -> T): T {
+    return when (this) {
+        is Failure -> mapError(error)
+        is Success -> value
+    }
+}
+
+/**
+ * A get operation which ensures that an exception is thrown if the result is a [result.Failure]. Thr caller needs
+ * to supply a function to map the error value to the correct instance of [X
+ *
+ * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
+ * @param E The error type
+ * @param T The successful/expected value type.
+ * @param X The exception type which needs to be thrown when this result contains an error.
+ * @receiver A result container which may hold either a value, or an error.
+ * @return The value of the result, or throws the exception produced by the [mapErrorToThrowable] function.
+ */
+inline fun <E, T, X> Result<E, T>.valueOrThrow(mapErrorToThrowable: (E) -> X): T where X : Throwable {
+    return valueOr { throw mapErrorToThrowable(it) }
+}
+
+/**
+ * Returns an success value, or in the case of an error a `null` value.
+ *
+ * @receiver This result.
+ * @param T The result type.
+ * @return The value of the result or null in the case of [Failure]
+ */
+fun <T> Result<*, T>.valueOrNull(): T? = valueOr { null }
+
+/**
+ * Returns a success value if this a success and [Success.value] matches the predicate.
+ */
+fun <E, T> Result<E, T>.takeSuccessIf(predicate: (T) -> Boolean): Success<T>? {
+    return when {
+        this is Success && predicate(value) -> this
+        else -> null
+    }
+}
+
+/**
+ * Returns a success value if this is success and [Success.value] does not match the predicate.
+ */
+fun <E, T> Result<E, T>.takeSuccessUnless(predicate: (T) -> Boolean): Success<T>? {
+    return when {
+        this is Success && !predicate(value) -> this
+        else -> null
+    }
+}
+
+/**
+ * Returns the error if this is an failure and the [Failure.error] matches the predicate.
+ */
+fun <E, T> Result<E, T>.takeFailureIf(predicate: (E) -> Boolean): Failure<E>? {
+    return when {
+        this is Failure && predicate(error) -> this
+        else -> null
+    }
+}
+
+/**
+ * Returns the error if this is an failure and the [Failure.error] does not match the predicate.
+ */
+fun <E, T> Result<E, T>.takeFailureUnless(predicate: (E) -> Boolean): Failure<E>? {
+    return when {
+        this is Failure && !predicate(error) -> this
+        else -> null
+    }
+}
+
+//</editor-fold>
+
+//<editor-fold desc="Mapping values and errors">
+/**
+ * Maps the the success value into a new type of [R], new result type.
+ *
+ * @param mapValue
+ *      A code block which takes the current results returns a new
+ */
+inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
+    return when (this) {
+        is Failure -> this
+        is Success -> mapValue(value).success()
+    }
+}
+
+/**
+ * Folds this result to a single value. The caller has to supply both a [mapError], and [mapValue]
+ * function to translate the given value or error.
+ *
+ * @param mapError Function to map an error value to the desired result.
+ * @param mapValue Function to map an value to to desired result.
+ * @param E The error type.
+ * @param T The of expected value to fold.
+ * @param R The desired resulting type of the fold operations.
+ * @return The desired value of the fold operation, which is either an value mapped to it, or an error mapped to it.
+ */
+inline fun <E, T, R> Result<E, T>.map(mapError: (E) -> R, mapValue: (T) -> R): R {
+    return when (this) {
+        is Failure -> mapError(error)
+        is Success -> mapValue(value)
+    }
+}
+
+/**
+ * Maps a result's failure value
+ */
+inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
+    return when (this) {
+        is Failure -> mapError(error).failure()
+        is Success -> this
+    }
+}
+//</editor-fold>
+
+//<editor-fold desc="Functional flow and controlled processing">
 /**
  * This function produces a result from this receiver, but the caller must decide how to handle
  * any exception of type [X] being thrown from [process] code block by supplying an [caught]
@@ -437,19 +461,6 @@ inline fun <T, R> T.resultCatching(processThis: T.() -> Result<Throwable, R>): R
 }
 
 /**
- * Maps the the success value into a new type of [R], new result type.
- *
- * @param mapValue
- *      A code block which takes the current results returns a new
- */
-inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
-    return when (this) {
-        is Failure -> this
-        is Success -> mapValue(value).success()
-    }
-}
-
-/**
  * A function which chain the processing of one result to another.
  *
  * @param
@@ -478,6 +489,7 @@ inline fun <E, T, reified X, R> Result<E, T>.thenResultCatching(
     }
 }
 
+
 /**
  * Handles the function flow where exceptional flow following a result.
  *
@@ -496,59 +508,9 @@ inline fun <E, T, Er> Result<E, T>.exceptOn(processFailure: Failure<E>.() -> Res
         is Failure -> processFailure()
     }
 }
+//</editor-fold>
 
-/**
- * Maps a result's failure value
- */
-inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
-    return when (this) {
-        is Failure -> mapError(error).failure()
-        is Success -> this
-    }
-}
-
-/**
- * Returns a success value if this a success and [Success.value] matches the predicate.
- */
-fun <E, T> Result<E, T>.takeSuccessIf(predicate: (T) -> Boolean): Success<T>? {
-    return when {
-        this is Success && predicate(value) -> this
-        else -> null
-    }
-}
-
-/**
- * Returns a success value if this is success and [Success.value] does not match the predicate.
- */
-fun <E, T> Result<E, T>.takeSuccessUnless(predicate: (T) -> Boolean): Success<T>? {
-    return when {
-        this is Success && !predicate(value) -> this
-        else -> null
-    }
-}
-
-
-/**
- * Returns the error if this is an failure and the [Failure.error] matches the predicate.
- */
-fun <E, T> Result<E, T>.takeFailureIf(predicate: (E) -> Boolean): Failure<E>? {
-    return when {
-        this is Failure && predicate(error) -> this
-        else -> null
-    }
-}
-
-
-/**
- * Returns the error if this is an failure and the [Failure.error] does not match the predicate.
- */
-fun <E, T> Result<E, T>.takeFailureUnless(predicate: (E) -> Boolean): Failure<E>? {
-    return when {
-        this is Failure && !predicate(error) -> this
-        else -> null
-    }
-}
-
+//<editor-fold desc="Exception Handling">
 /**
  * The purpose of this class is to bridge the functional model of the [Result] operations with the traditional
  * _try-catch_ world of Object Oriented contract which specifies that failures should be raised and the current
@@ -573,3 +535,5 @@ inline fun <reified E> Throwable.unwrapFailure(): Failure<E> {
         throw this
     }
 }
+//</editor-fold>
+

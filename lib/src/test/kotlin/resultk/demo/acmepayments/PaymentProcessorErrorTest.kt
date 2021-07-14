@@ -1,3 +1,5 @@
+@file:Suppress("SameParameterValue")
+
 package resultk.demo.acmepayments
 
 import assertk.all
@@ -10,6 +12,7 @@ import java.util.*
 import java.util.ResourceBundle.getBundle
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DisplayName("Acme Payment ProcessorError tests")
 internal class PaymentProcessorErrorTest {
 
     private val knownUpstreamProvider = "moon68inc"
@@ -51,7 +54,7 @@ internal class PaymentProcessorErrorTest {
 
 
     @Test
-    fun errorCodedAsEnumLikeAndClassLike() {
+    fun error_coded_as_enum_like_and_class_like() {
 
         val allErrorCodes = (PaymentProcessorError.constants + upstreamError).toSet()
 
@@ -69,7 +72,7 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun resourceBundleIsFullyMapped() {
+    fun resource_bundle_is_fully_mapped() {
         val expectedMappedMessageKeys =
             PaymentProcessorError.constants.map(PaymentProcessorError::messageKey).toTypedArray()
         println("Available Message Keys:")
@@ -82,10 +85,9 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun catersForUpstreamErrorsWithNoSpecialMappedCodes() {
+    fun caters_for_upstream_errors_with_no_special_mapped_codes() {
 
-        val genericUpstreamErrorMessage = getBundle(PAYMENT_PROCESSOR_MESSAGES)
-            .getString("error.upstream")
+        val genericUpstreamErrorMessage = bundledMessage("error.upstream")
 
         val unMappedUpstreamError = PaymentProcessorError.UpstreamError(
             upstreamProvider = "new_upstream_provider_701",
@@ -101,12 +103,18 @@ internal class PaymentProcessorErrorTest {
             .given { actual ->
                 assertThat(actual).all {
                     contains(genericUpstreamErrorMessage)
+                    contains(unMappedUpstreamError.upstreamErrorCode)
+                    contains(unMappedUpstreamError.upstreamProvider)
+                    when (val upstreamProviderMessage = unMappedUpstreamError.upstreamProviderErrorMessage) {
+                        null -> contains(bundledMessage("sentence_building.not_supplied_by_upstream_provider"))
+                        else -> contains(upstreamProviderMessage)
+                    }
                 }
             }
     }
 
     @Test
-    fun throwsCustomErrorIfCallerDoesHandleErrorCase() {
+    fun throws_custom_error_if_caller_does_handle_error_case() {
         val paymentCompletionId = PaymentProcessorError.PaymentDeclined.failure<PaymentProcessorError, Long>()
 
         paymentCompletionId.runCatching { get() }.onFailure { ex ->
@@ -118,7 +126,7 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun catersForKnownUpstreamErrorCodes() {
+    fun caters_for_known_upstream_error_codes() {
         val upstreamError = PaymentProcessorError.UpstreamError(knownUpstreamProvider, knownUpstreamProviderErrorCode)
         println(upstreamError.message())
         assertThat(resourceBundleKeys, PAYMENT_PROCESSOR_MESSAGES).contains(upstreamError.messageKey)
@@ -127,9 +135,19 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun allConstantErrorsAreHaveMappedMessageKeys() {
+    fun all_constant_errors_are_have_mapped_message_keys() {
         val expectedMessageKeys = PaymentProcessorError.constants.map(PaymentProcessorError::messageKey).sorted()
         assertThat(resourceBundleKeys).containsAll(* expectedMessageKeys.toTypedArray())
     }
 
+    companion object {
+        private fun bundledMessage(key: String, vararg args: Any?): String {
+            return getBundle(PAYMENT_PROCESSOR_MESSAGES).getString(key).run {
+                when {
+                    args.isEmpty() -> this
+                    else -> format(* args)
+                }
+            }
+        }
+    }
 }

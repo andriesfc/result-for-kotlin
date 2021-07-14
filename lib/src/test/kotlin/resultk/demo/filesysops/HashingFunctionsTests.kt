@@ -11,9 +11,9 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import resultk.Result
-import resultk.assertions.error
-import resultk.assertions.value
 import resultk.onSuccess
+import resultk.testing.assertions.isFailure
+import resultk.testing.assertions.isSuccess
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -22,7 +22,6 @@ import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.util.*
 import kotlin.random.Random
-
 
 /**
  * This test verifies that all he different versions of sample file hash functions behaves exactly the same manner.
@@ -64,18 +63,20 @@ internal class HashingFunctionsTests {
 
     @ParameterizedTest
     @MethodSource("hashingFunctions")
-    @DisplayName("All hash functions produce the same results.")
-    fun testHashingFunctionsProduceSameResult(func: File.(String) -> Result<HashingError<Exception>, String>) {
-        val actual = func(knownFile, hashAlgorithm).onSuccess { println("$hashAlgorithm($knownFile) = $it") }
-        assertThat(actual).value().isEqualTo(knownFileSh1Hash)
+    @DisplayName("Hash function produce the expected hash.")
+    fun testHashingFunctionsProduceSameResult(testArgs: FileHashFunctionTestArgs) {
+        val (funcName, func) = testArgs
+        val actual = knownFile.func(hashAlgorithm).onSuccess { println("${knownFile}.$funcName = $it") }
+        assertThat(actual).isSuccess().isEqualTo(knownFileSh1Hash)
     }
 
     @ParameterizedTest
     @MethodSource("hashingFunctions")
-    @DisplayName("All hash functions are able to handle read errors.")
-    fun testHashingFunctionsHandleReadErrorTheSame(func: File.(String) -> Result<HashingError<Exception>, String>) {
-        val contentHash = func(nonExistingFile, hashAlgorithm).also(::println)
-        assertThat(contentHash).error().all {
+    @DisplayName("Hash function is able to handle non existent file.")
+    fun testHashingFunctionsHandleReadErrorTheSame(testArgs: FileHashFunctionTestArgs) {
+        val (_,func) = testArgs
+        val contentHash = nonExistingFile.func(hashAlgorithm).also(::println)
+        assertThat(contentHash).isFailure().all {
             given { actual ->
                 assertThat(actual).isInstanceOf(HashingError.SourceContentNotReadable::class)
                 (actual as HashingError.SourceContentNotReadable)
@@ -88,10 +89,11 @@ internal class HashingFunctionsTests {
 
     @ParameterizedTest
     @MethodSource("hashingFunctions")
-    @DisplayName("All hash functions are able to deal with unsupported hash algorithms.")
-    fun testHashingFunctionsHandleFailsWithNonExistingHashFunction(func: File.(String) -> Result<HashingError<Exception>, String>) {
-        val actual = func(nonExistingFile, nonExistingHashingAlgorithm).also(::println)
-        assertThat(actual).error().given { error ->
+    @DisplayName("Hash function should be able report on unsupported hash algorithm.")
+    fun testHashingFunctionsHandleFailsWithNonExistingHashFunction(testArgs: FileHashFunctionTestArgs) {
+        val (_,func) = testArgs
+        val actual = nonExistingFile.func(nonExistingHashingAlgorithm).also(::println)
+        assertThat(actual).isFailure().given { error ->
             assertThat(error.cause).isInstanceOf(NoSuchAlgorithmException::class)
             assertThat(error).isInstanceOf(HashingError.UnsuportedAlgorithm::class)
             assertThat((error as HashingError.UnsuportedAlgorithm).algorithm).isEqualTo(
@@ -100,12 +102,16 @@ internal class HashingFunctionsTests {
         }
     }
 
-    fun hashingFunctions() = listOf(
+    fun hashingFunctions(): List<FileHashFunctionTestArgs> = listOf(
         File::hashContentsV0,
         File::hashContentsV1,
         File::hashContentsV2,
         File::hashContentsV3,
         File::hashContentsV4,
         File::hashContentsV5
-    )
+    ).map { function -> function.name to function }
 }
+
+private typealias FunctionName = String
+private typealias FileHashFunction = File.(String) -> Result<HashingError<Exception>, String>
+private typealias FileHashFunctionTestArgs = Pair<FunctionName, FileHashFunction>

@@ -1,7 +1,7 @@
 package resultk.demo.acmepayments
 
 import resultk.Result
-import resultk.getOrNull
+import resultk.valueOrNull
 import resultk.result
 import resultk.success
 import java.util.*
@@ -22,13 +22,13 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
     class UpstreamError(
         val upstreamProvider: String,
         val upstreamErrorCode: String,
-        upstreamProviderErrorMessage: String? = null
+        val upstreamProviderErrorMessage: String? = null
     ) : PaymentProcessorError("upstream.$upstreamProvider.$upstreamErrorCode") {
 
         private val detailedMessage = buildString {
             val generalMessage = message("error.upstream").get()
             val mappedUpstreamErrorKey = "error.upstream.$upstreamProvider.$upstreamErrorCode"
-            val mappedUpstreamMessage = message(mappedUpstreamErrorKey).getOrNull()
+            val mappedUpstreamMessage = message(mappedUpstreamErrorKey).valueOrNull()
             val upstreamDetailMessage = message(
                 "error.upstream.see_details",
                 upstreamProvider,

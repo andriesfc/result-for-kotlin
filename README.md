@@ -248,20 +248,7 @@ This library is best use in functional manner. Keeping to the functional style m
 
 > It also important to note that using functional call style unifies both, the expected output flow, and the error flow in one “happy path”.
 
-### 1.2.1. Ignore errors as long as possible to continue on the happy path.
-
-
-
-
-### 1.2.2. Rather map errors at then end, or deal  as soon as possible with them.
-
-### 1.2.3. Do not pass a any `result.Result` instance directly to other functions or methods except your _own private_ ones.
-
-### 1.2.4. It is _OK_ to return a `result.Result` instance from function. 
-
-### 1.2.5. It is _OK_ to wrap IO or external calls in a `result {}` block which captures external exceptions
-
-## 1.3. Advance Modelling of error Codes.
+## 1.3. Advance Modeling of error Codes.
 
 The `resultk.Result` removes most of the burden to use exceptions as error modelling on a domain. This opens up the door for a more expressive modeling.
 
@@ -276,9 +263,18 @@ Bellow is an example demonstrating how to:
 
 Here are some sample error messages to illustrate how helpful such error message could be with this approach:
 
-> Upstream provider has not completed the request. The following upstream errors details were reported by provider [new_upstream_provider_701]: [error_code: E_342, error_message: Unconfigured down stream requestor] This upstream error code is not mapped. Please add the following key [error.upstream.new_upstream_provider_701.E_342] to this resource bundle: /resultk/demo/acmepayments/PaymentProcessorMessages [Locale: English]
+```
+ Upstream provider has not completed the request. 
+ The following upstream errors details were reported by provider [new_upstream_provider_701]: [error_code: E_342, error_message: Unconfigured down stream requestor] 
+ This upstream error code is not mapped. 
+ Please add the following key [error.upstream.new_upstream_provider_701.E_342] to this resource bundle: /resultk/demo/acmepayments/PaymentProcessorMessages [Locale: English]
+```
 
-> Upstream provider has not completed the request. This account monthly limit has been exceeded. The following upstream errors details were reported by provider [moon68inc]: [error_code: E_660-011, error_message: `**Detail**` error message was not supplied by upstream provider!]
+```
+Upstream provider has not completed the request. 
+This account monthly limit has been exceeded. 
+The following upstream errors details were reported by provider [moon68inc]: [error_code: E_660-011, error_message: `**Detail**` error message was not supplied by upstream provider!]
+```
 
 ```stacktrace
 resultk.demo.acmepayments.PaymentProcessorException: 

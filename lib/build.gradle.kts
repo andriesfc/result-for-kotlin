@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.5.20"
+    id("org.jetbrains.kotlin.jvm") version "1.5.21"
     id("org.jetbrains.dokka") version "1.4.32"
     `java-library`
     `maven-publish`
@@ -110,7 +110,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junit5_version")
 
     testImplementation("commons-codec:commons-codec:1.15")
-
+    testImplementation("org.apache.commons:commons-text:1.9")
 
     // MockK
     val mockk_version = "1.11.0"
@@ -132,7 +132,7 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-tasks.withType<KotlinCompile> {
+    tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = javaCompileLangVersion.toString()
     kotlinOptions.apiVersion = kotlinComileLangVersion
     kotlinOptions.languageVersion = kotlinComileLangVersion
