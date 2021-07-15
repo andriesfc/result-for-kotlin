@@ -4,13 +4,13 @@ import resultk.Result
 import resultk.failure
 import resultk.success
 
-private typealias StandardResult<T> = kotlin.Result<T>
+private typealias StdResult<T> = kotlin.Result<T>
 
 /**
  * Converts a [kotlin.Result] to an equivalent [Result] type where the possible [Result.Failure.error] will be
  * a [kotlin.Throwable]. It up the caller to convert the exception to an appropriate error value/type.
  */
-fun <T> StandardResult<T>.toResult(): Result<Throwable, T> {
+fun <T> StdResult<T>.toResult(): Result<Throwable, T> {
     return fold(
         onSuccess = { r -> r.success() },
         onFailure = { e -> e.failure() }
@@ -30,15 +30,15 @@ fun <T> StandardResult<T>.toResult(): Result<Throwable, T> {
  *      T The expected success value type.
  *
  * @return
- *      A **resultk** value of [Result].
+ *      A result value
  */
-inline fun <E, T> StandardResult<T>.toResult(throwableAsError: (Throwable) -> E): Result<E, T> {
+inline fun <E, T> StdResult<T>.toResult(throwableAsError: (Throwable) -> E): Result<E, T> {
     return fold(
         onSuccess = { r -> r.success() },
         onFailure = { e -> throwableAsError(e).failure() }
     )
 }
 
-fun <E, T> Result<E, T>.toStandard(): StandardResult<T> {
+fun <E, T> Result<E, T>.toStdLibResult(): StdResult<T> {
     return runCatching { get() }
 }

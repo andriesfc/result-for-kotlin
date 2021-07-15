@@ -20,7 +20,7 @@ import java.util.*
  * - If the caller calls [Result.get] and the captured [Failure.error] is an actual [kotlin.Throwable], it will be
  *   thrown, (again as is the normal Object Oriented way).
  * - If the caller calls [Result.get] and the captured [Failure.error], is not something which can be thrown, this
- *   library will wrap it as [DefaultFailureUnwrapper], and throw it.
+ *   library will wrap it as [NonThrowableFailureUnwrappingException], and throw it.
  *
  * See the [Failure.get] function for more details on exactly how errors are handled by this `Result` implementation.
  *
@@ -39,7 +39,7 @@ import java.util.*
  * convenience operations to transform a [Result] to the standard [kotlin.Result] type (and visa versa):
  *
  * - [resultk.interop.toResult] to convert a [kotlin.Result] to this implementation.
- * - [resultk.interop.toStandard] to convert this result implementation to the standard `kotlin.Result` type.
+ * - [resultk.interop.toStdLibResult] to convert this result implementation to the standard `kotlin.Result` type.
  *
  * > **NOTE:** Most of the operations are implemented as extension functions.
  *
@@ -50,7 +50,7 @@ import java.util.*
  *      For a detailed explanation of how errors are handled.
  * @see resultk.interop.toResult
  *      An extension function to convert a `kotlin.Result` to a result.
- * @see resultk.interop.toStandard
+ * @see resultk.interop.toStdLibResult
  *      An extension function to convert a `Result` to `kotlin.Result`
  */
 sealed class Result<out E, out T> {
@@ -103,12 +103,12 @@ sealed class Result<out E, out T> {
          * - If the actual [error] is a [kotlin.Throwable] it will simply be thrown as expected.
          * - If the [error] implements the [Failure.ThrowableProvider] interface, the `error.throwable()` function will
          * be called to determine which throwable will be thrown.
-         * - Lastly, of neither of the above applies, the error value will be wrapped a [DefaultFailureUnwrapper]
+         * - Lastly, of neither of the above applies, the error value will be wrapped a [NonThrowableFailureUnwrappingException]
          * instance, before being thrown.
          *
          * Regardless, it is up the caller to handle, or ignore the thrown exception as usual business.
          *
-         * @see DefaultFailureUnwrapper
+         * @see NonThrowableFailureUnwrappingException
          * @see Result.Failure.ThrowableProvider
          */
         override fun get(): Nothing {
@@ -120,7 +120,7 @@ sealed class Result<out E, out T> {
                     throw error
                 }
                 else -> {
-                    throw DefaultFailureUnwrapper(this)
+                    throw NonThrowableFailureUnwrappingException(this)
                 }
             }
         }
@@ -133,7 +133,7 @@ sealed class Result<out E, out T> {
     /**
      * Calling get is unsafe, as the may fail (in the case of a [Failure.get]) with an exception being thrown.
      *
-     * @see DefaultFailureUnwrapper.wrappedFailure - in the case where the [Failure.error] is not a throwable type.
+     * @see NonThrowableFailureUnwrappingException.wrappedFailure - in the case where the [Failure.error] is not a throwable type.
      */
     abstract fun get(): T
 
@@ -269,7 +269,7 @@ fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
 //</editor-fold>
 
-//<editor-fold desc="Mapping values and errors">
+//<editor-fold desc="Mapping success values and failures">
 /**
  * Maps the the success value into a new type of [R], new result type.
  *
@@ -284,24 +284,6 @@ inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> 
 }
 
 /**
- * Folds this result to a single value. The caller has to supply both a [mapError], and [mapValue]
- * function to translate the given value or error.
- *
- * @param mapError Function to map an error value to the desired result.
- * @param mapValue Function to map an value to to desired result.
- * @param E The error type.
- * @param T The of expected value to fold.
- * @param R The desired resulting type of the fold operations.
- * @return The desired value of the fold operation, which is either an value mapped to it, or an error mapped to it.
- */
-inline fun <E, T, R> Result<E, T>.map(mapError: (E) -> R, mapValue: (T) -> R): R {
-    return when (this) {
-        is Failure -> mapError(error)
-        is Success -> mapValue(value)
-    }
-}
-
-/**
  * Maps a result's failure value
  */
 inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
@@ -310,6 +292,30 @@ inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
         is Success -> this
     }
 }
+
+/**
+ * Converts a `Result` to single value. The caller has to supply both the [onSuccess] and [onFailure] lambda
+ * to cater for the either of the error or success value presence.
+ *
+ * @param E
+ *      The failure error value type
+ * @param T
+ *      The success value type.
+ * @param R
+ *      The desired result type.
+ * @return
+ *  A single value of type [T]
+ */
+inline fun <E, T, R> Result<E, T>.fold(
+    onFailure: (E) -> R,
+    onSuccess: (T) -> R
+): R {
+    return when (this) {
+        is Failure -> onFailure(error)
+        is Success -> onSuccess(value)
+    }
+}
+
 //</editor-fold>
 
 //<editor-fold desc="Functional flow and controlled processing">
@@ -392,48 +398,11 @@ inline fun <reified E, reified Ex, T, R> Result<E, T>.thenResultCatching(
  * @see resultCatching
  */
 @Suppress("UNCHECKED_CAST")
-private class DefaultFailureUnwrapper(
+private class NonThrowableFailureUnwrappingException(
     wrapped: Failure<*>
 ) : RuntimeException("${wrapped.error}"), FailureUnwrapper<Any> {
     private val _wrapped = wrapped as Failure<Any>
     override fun unwrap(): Failure<out Any> = _wrapped
 }
-
-@Suppress("UNCHECKED_CAST")
-inline fun <reified E> Throwable.unwrapFailure(): Failure<E> {
-    return when {
-        this is FailureUnwrapper<*> && unwrap()?.error is E -> unwrap() as Failure<E>
-        else -> throw this
-    }
-}
-//</editor-fold>
-
-//<editor-fold desc="Conversions">
-/**
- * Converts a [resultCatching] to an plain old Java [Optional]
- */
-fun <T> Result<*, T>.optional(): Optional<T> {
-    return when (this) {
-        is Failure -> Optional.empty()
-        is Success -> Optional.ofNullable(value)
-    }
-}
-
-/**
- * Converts Java's [Optional] to a [resultCatching]. Note the caller has to supply a function which
- * supplies the missing error if there is no value present on the Optional.
- *
- * @param errorOfMissingResult A function which produces a error when the [Optional.isEmpty] returns `true`
- * @param optional The [Optional] instance to convert to a proper `Result`
- *
- * @return A [Result] which has either an value, or a error.
- */
-inline fun <E, T> result(optional: Optional<T>, errorOfMissingResult: () -> E): Result<E, T> {
-    return when {
-        optional.isPresent -> optional.get().success()
-        else -> errorOfMissingResult().failure()
-    }
-}
-
 //</editor-fold>
 
