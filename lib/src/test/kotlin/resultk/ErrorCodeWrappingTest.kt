@@ -13,7 +13,7 @@ import resultk.testing.domain.ErrorEnumWSelfUnwrapping
 internal class ErrorCodeWrappingTest {
 
     @Test
-    fun unwrapping_from_builtin_provider_should_return_error() {
+    fun `Unwrapping from builtin provider should return error`() {
         val expected = ErrorCaseEnum.ERROR_CASE_1
         val result: Result<ErrorCaseEnum, Int> = expected.failure()
         assertThat { result.get() }
@@ -24,7 +24,7 @@ internal class ErrorCodeWrappingTest {
     }
 
     @Test
-    fun unwrapping_from_custom_provider_should_return_error() {
+    fun `Unwrapping from custom provider should return error`() {
         val expected = ErrorEnumWSelfUnwrapping.ERROR_CASE_1
         val result: Result<ErrorEnumWSelfUnwrapping, Int> = expected.failure()
         assertThat { result.get() }

@@ -5,7 +5,7 @@ import assertk.assertions.*
 import io.mockk.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import resultk.testing.assertions.isSuccess
+import resultk.testing.assertions.isSuccessResult
 import resultk.testing.domain.ErrorCaseEnum
 import java.io.IOException
 import java.time.LocalDate
@@ -57,7 +57,7 @@ internal class AccessingValuesTest {
         val expectedSuccess = 12
         val (r, e) = expectedSuccess.success<IOException, Int>()
         assertThat(e).isNull()
-        assertThat(r).isSuccess().isEqualTo(expectedSuccess)
+        assertThat(r).isSuccessResult().isEqualTo(expectedSuccess)
     }
 
     @Test

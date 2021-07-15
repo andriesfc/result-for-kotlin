@@ -27,7 +27,7 @@ fun File.kind(): Result<IOException, FileKind> = found().map {
 }
 
 fun File.found(): Result<IOException, File> = result {
-    if (!this.exists()) {
+    if (!exists()) {
         throw FileNotFoundException(path)
     }
     success()

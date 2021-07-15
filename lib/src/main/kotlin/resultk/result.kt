@@ -209,7 +209,7 @@ fun <E, T> Result<E,T>.onFailure(processFailure:(E) -> Unit) = apply {
 /**
  * Returns an error or `null` for a given Result.
  *
- * @receiver A [result]
+ * @receiver A [resultCatching]
  */
 fun <E> Result<E, *>.errorOrNull(): E? {
     return when (this) {
@@ -231,7 +231,7 @@ operator fun <E, T> Result<E, T>.component1(): Result<E, T> = this
 operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
 
 /**
- * Gets a value from a result, or maps an error to desired type. This is similar to [result.fold] operation,
+ * Gets a value from a result, or maps an error to desired type. This is similar to [resultCatching.fold] operation,
  * except this only cater for mapping the error if it is present.
  */
 inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
@@ -244,7 +244,7 @@ inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
 fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
 
 /**
- * A get operation which ensures that an exception is thrown if the result is a [result.Failure]. Thr caller needs
+ * A get operation which ensures that an exception is thrown if the result is a [resultCatching.Failure]. Thr caller needs
  * to supply a function to map the error value to the correct instance of [X
  *
  * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
@@ -314,34 +314,35 @@ inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
 
 //<editor-fold desc="Functional flow and controlled processing">
 /**
- * This function produces a result from this receiver, but the caller must decide how to handle
- * any exception of type [X] being thrown from [process] code block by supplying an [caught]
- * lambda. **Note** that any exception which is not of type [X] will simply be thrown the usual way.
+ * This function produces a result, but the caller must decide how to handle
+ * any exception of type [Ex] being thrown from [process] code block by supplying an [caught]
+ *
+ * lambda. **Note** that any exception which is not of type [Ex] will simply be thrown the usual way.
  *
  * @param E
  *      The value type representing the expected failure.
- * @param X
+ * @param Ex
  *      The value type of the expecte exception te be thrown in the [resultFromThis] code block.
  * @param T
  *      The value type of the receiver.
  * @param R
  *      The value type of the resulting success value.
  * @param caught
- *      A lambda which takes the thrown exception of type [X] and produces a [Failure] from it.
+ *      A lambda which takes the thrown exception of type [Ex] and produces a [Failure] from it.
  * @param process
  *      A code block which may either produce an [Failure] or [Success] from the receiver.
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
-inline fun <E, T, reified X : Throwable, R> T.resultCatching(
-    caught: (X) -> E,
-    process: T.() -> Result<E, R>
+inline fun <reified Ex : Throwable, reified E, R> resultCatching(
+    caught: (Ex) -> E,
+    process: () -> Result<E, R>
 ): Result<E, R> {
     return try {
-        process()
+        result(process)
     } catch (e: Throwable) {
         when (e) {
-            is X -> caught(e).failure()
+            is Ex -> caught(e).failure()
             else -> throw e
         }
     }
@@ -361,40 +362,22 @@ inline fun <reified E, T, R> Result<E, T>.thenResult(process: Success<T>.() -> R
     }
 }
 
-inline fun <E, T, reified X, R> Result<E, T>.thenResultCatching(
-    caught: (e: X) -> E,
+inline fun <reified E, reified Ex, T, R> Result<E, T>.thenResultCatching(
+    caught: (e: Ex) -> E,
     process: Success<T>.() -> Result<E, R>
 ): Result<E, R> {
     return when (this) {
         is Failure -> this
         is Success -> try {
-            process(this)
+            result { process(this) }
         } catch (e: Throwable) {
-            e as? X ?: throw e
+            e as? Ex ?: throw e
             caught(e).failure()
         }
     }
 }
 
 
-/**
- * Handles the function flow where exceptional flow following a result.
- *
- * @param E
- *      The failure's error type.
- * @param T
- *      The successful result value.
- * @param Er
- *      The next failure error type
- * @return
- *      A result value which contains the next error (if found).
- */
-inline fun <E, T, Er> Result<E, T>.exceptOn(processFailure: Failure<E>.() -> Result<Er, T>): Result<Er, T> {
-    return when (this) {
-        is Success -> this
-        is Failure -> processFailure()
-    }
-}
 //</editor-fold>
 
 //<editor-fold desc="Error code wrapping">
@@ -406,7 +389,7 @@ inline fun <E, T, Er> Result<E, T>.exceptOn(processFailure: Failure<E>.() -> Res
  * @constructor Creates a new wrapped failure exception which can be raised using the `throw` operation.
  * @param wrapped The failure to wrap.
  * @see Result.get
- * @see result
+ * @see resultCatching
  */
 @Suppress("UNCHECKED_CAST")
 private class DefaultFailureUnwrapper(
@@ -427,7 +410,7 @@ inline fun <reified E> Throwable.unwrapFailure(): Failure<E> {
 
 //<editor-fold desc="Conversions">
 /**
- * Converts a [result] to an plain old Java [Optional]
+ * Converts a [resultCatching] to an plain old Java [Optional]
  */
 fun <T> Result<*, T>.optional(): Optional<T> {
     return when (this) {
@@ -437,7 +420,7 @@ fun <T> Result<*, T>.optional(): Optional<T> {
 }
 
 /**
- * Converts Java's [Optional] to a [result]. Note the caller has to supply a function which
+ * Converts Java's [Optional] to a [resultCatching]. Note the caller has to supply a function which
  * supplies the missing error if there is no value present on the Optional.
  *
  * @param errorOfMissingResult A function which produces a error when the [Optional.isEmpty] returns `true`

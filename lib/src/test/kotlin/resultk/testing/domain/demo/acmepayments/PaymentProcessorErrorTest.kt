@@ -54,7 +54,7 @@ internal class PaymentProcessorErrorTest {
 
 
     @Test
-    fun error_coded_as_enum_like_and_class_like() {
+    fun `Error coded as enum like and class like`() {
 
         val allErrorCodes = (PaymentProcessorError.constants + upstreamError).toSet()
 
@@ -72,7 +72,7 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun resource_bundle_is_fully_mapped() {
+    fun `Resource bundle is fully mapped`() {
         val expectedMappedMessageKeys =
             PaymentProcessorError.constants.map(PaymentProcessorError::messageKey).toTypedArray()
         println("Available Message Keys:")
@@ -85,7 +85,7 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun caters_for_upstream_errors_with_no_special_mapped_codes() {
+    fun `Caters for upstream errors with no special mapped codes`() {
 
         val genericUpstreamErrorMessage = bundledMessage("error.upstream")
 
@@ -114,7 +114,7 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun throws_custom_error_if_caller_does_handle_error_case() {
+    fun `Throws custom error if caller does handle error case`() {
         val paymentCompletionId = PaymentProcessorError.PaymentDeclined.failure<PaymentProcessorError, Long>()
 
         paymentCompletionId.runCatching { get() }.onFailure { ex ->
@@ -126,7 +126,7 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun caters_for_known_upstream_error_codes() {
+    fun `Caters for known upstream error codes`() {
         val upstreamError = PaymentProcessorError.UpstreamError(knownUpstreamProvider, knownUpstreamProviderErrorCode)
         println(upstreamError.message())
         assertThat(resourceBundleKeys, PAYMENT_PROCESSOR_MESSAGES).contains(upstreamError.messageKey)
@@ -135,7 +135,7 @@ internal class PaymentProcessorErrorTest {
     }
 
     @Test
-    fun all_constant_errors_are_have_mapped_message_keys() {
+    fun `All constant errors are have mapped message keys`() {
         val expectedMessageKeys = PaymentProcessorError.constants.map(PaymentProcessorError::messageKey).sorted()
         assertThat(resourceBundleKeys).containsAll(* expectedMessageKeys.toTypedArray())
     }

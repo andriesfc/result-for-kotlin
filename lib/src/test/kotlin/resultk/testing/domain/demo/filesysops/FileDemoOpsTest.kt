@@ -9,8 +9,8 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import resultk.testing.assertions.isFailure
-import resultk.testing.assertions.isSuccess
+import resultk.testing.assertions.isFailureResult
+import resultk.testing.assertions.isSuccessResult
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -26,34 +26,34 @@ internal class FileDemoOpsTest {
     private lateinit var path: File
 
     @Test
-    fun test_file_size_should_fail_on_non_existing_file() {
+    fun `Test file size should fail on non existing file`() {
         path = File(parentDir, "someFile.txt")
-        assertThat(path.size(), "file.size()").isFailure()
+        assertThat(path.size(), "file.size()").isFailureResult()
             .isInstanceOf(FileNotFoundException::class)
             .hasMessage(path.path)
     }
 
     @Test
-    fun test_file_size_should_fail_if_file_is_directory() {
+    fun `Test file size should fail if file is directory`() {
         path = File(parentDir, "someDirectory").apply { mkdir() }
         assertThat(path, "path").exists()
-        assertThat(path.size(), "path.size()").isFailure().isInstanceOf(IOException::class.java)
+        assertThat(path.size(), "path.size()").isFailureResult().isInstanceOf(IOException::class.java)
     }
 
     @Test
-    fun test_found_on_existing_file() {
+    fun `Test found on existing file`() {
         path = File(parentDir, "blob-20221d9b-d625-48f2-bad7-c6904e0d981a.txt").apply { createNewFile() }
         assertThat(path, "path").exists()
-        assertThat(path.found(), "path.found()").isSuccess().isEqualTo(path)
+        assertThat(path.found(), "path.found()").isSuccessResult().isEqualTo(path)
     }
 
     @ParameterizedTest
     @MethodSource("knownFileKinds")
-    fun test_create_file(kind: FileKind.Known) {
+    fun `Test create file`(kind: FileKind.Known) {
         path = File(parentDir, "${kind.name}-${UUID.randomUUID()}")
         println(path)
         val created = path.create(kind)
-        assertThat(created, "path.create($kind)").isSuccess().all {
+        assertThat(created, "path.create($kind)").isSuccessResult().all {
             exists()
             isEqualTo(path)
             when (kind) {
@@ -64,17 +64,17 @@ internal class FileDemoOpsTest {
     }
 
     @Test
-    fun test_create_directory_including_parents() {
+    fun `Test create directory including parents`() {
         path = File(parentDir, "/todos/2020/12/16")
         val created = path.create(FileKind.Directory, includeParents = true)
         println("created: $created")
-        assertThat(created).isSuccess().isEqualTo(path)
+        assertThat(created).isSuccessResult().isEqualTo(path)
     }
 
 
     @ParameterizedTest
     @MethodSource("knownFileKinds")
-    fun test_kind_of_file(kind: FileKind.Known) {
+    fun `Test kind of file`(kind: FileKind.Known) {
 
         path = File(parentDir, UUID.randomUUID().toString()).apply {
             when (kind) {
@@ -84,7 +84,7 @@ internal class FileDemoOpsTest {
         }
 
         assertThat(path).exists()
-        assertThat(path.kind()).isSuccess().isEqualTo(kind)
+        assertThat(path.kind()).isSuccessResult().isEqualTo(kind)
     }
 
     fun knownFileKinds() = FileKind.Known.values()

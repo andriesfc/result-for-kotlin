@@ -12,8 +12,8 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import resultk.Result
 import resultk.onSuccess
-import resultk.testing.assertions.isFailure
-import resultk.testing.assertions.isSuccess
+import resultk.testing.assertions.isFailureResult
+import resultk.testing.assertions.isSuccessResult
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -31,7 +31,7 @@ import kotlin.random.Random
  * @see File.hashContentsV2
  * @see File.hashContentsV3
  * @see File.hashContentsV4
- * @see File.hashContentsV5
+ * @see File.hashContentsV4
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Verifies that all he different versions of sample file hash functions behaves exactly the same manner")
@@ -63,20 +63,18 @@ internal class HashingFunctionsTests {
 
     @ParameterizedTest
     @MethodSource("hashingFunctions")
-    @DisplayName("Hash function produce the expected hash.")
-    fun testHashingFunctionsProduceSameResult(testArgs: FileHashFunctionTestArgs) {
+    fun `Test hashing functions produce same result`(testArgs: FileHashFunctionTestArgs) {
         val (funcName, func) = testArgs
         val actual = knownFile.func(hashAlgorithm).onSuccess { println("${knownFile}.$funcName = $it") }
-        assertThat(actual).isSuccess().isEqualTo(knownFileSh1Hash)
+        assertThat(actual).isSuccessResult().isEqualTo(knownFileSh1Hash)
     }
 
     @ParameterizedTest
     @MethodSource("hashingFunctions")
-    @DisplayName("Hash function is able to handle non existent file.")
-    fun testHashingFunctionsHandleReadErrorTheSame(testArgs: FileHashFunctionTestArgs) {
+    fun `Test hashing functions handle read error the same`(testArgs: FileHashFunctionTestArgs) {
         val (_,func) = testArgs
         val contentHash = nonExistingFile.func(hashAlgorithm).also(::println)
-        assertThat(contentHash).isFailure().all {
+        assertThat(contentHash).isFailureResult().all {
             given { actual ->
                 assertThat(actual).isInstanceOf(HashingError.SourceContentNotReadable::class)
                 (actual as HashingError.SourceContentNotReadable)
@@ -89,14 +87,13 @@ internal class HashingFunctionsTests {
 
     @ParameterizedTest
     @MethodSource("hashingFunctions")
-    @DisplayName("Hash function should be able report on unsupported hash algorithm.")
-    fun testHashingFunctionsHandleFailsWithNonExistingHashFunction(testArgs: FileHashFunctionTestArgs) {
+    fun `Test hashing functions handle fails with non existing hash function`(testArgs: FileHashFunctionTestArgs) {
         val (_,func) = testArgs
         val actual = nonExistingFile.func(nonExistingHashingAlgorithm).also(::println)
-        assertThat(actual).isFailure().given { error ->
+        assertThat(actual).isFailureResult().given { error ->
             assertThat(error.cause).isInstanceOf(NoSuchAlgorithmException::class)
-            assertThat(error).isInstanceOf(HashingError.UnsuportedAlgorithm::class)
-            assertThat((error as HashingError.UnsuportedAlgorithm).algorithm).isEqualTo(
+            assertThat(error).isInstanceOf(HashingError.UnsupportedAlgorithm::class)
+            assertThat((error as HashingError.UnsupportedAlgorithm).algorithm).isEqualTo(
                 nonExistingHashingAlgorithm
             )
         }
@@ -107,8 +104,7 @@ internal class HashingFunctionsTests {
         File::hashContentsV1,
         File::hashContentsV2,
         File::hashContentsV3,
-        File::hashContentsV4,
-        File::hashContentsV5
+        File::hashContentsV4
     ).map { function -> function.name to function }
 }
 
