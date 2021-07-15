@@ -1,16 +1,17 @@
-package resultk.testing
+package resultk
 
 import assertk.assertThat
-import assertk.assertions.isEqualTo
-import assertk.assertions.isNotNull
-import assertk.assertions.isNull
-import assertk.assertions.isTrue
+import assertk.assertions.*
 import io.mockk.*
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import resultk.*
+import resultk.testing.assertions.isSuccess
+import resultk.testing.domain.ErrorCaseEnum
 import java.io.IOException
+import java.time.LocalDate
 
-internal class `Accessing success values and failures` {
+@DisplayName("Accessing success values and failures test")
+internal class AccessingValuesTest {
 
     @Test
     fun `onSuccess should be able access success value if available`() {
@@ -44,7 +45,6 @@ internal class `Accessing success values and failures` {
         assertThat(result.errorOrNull()).isNull()
     }
 
-
     @Test
     fun `errorOrNull on result should produce an error value is te result is a failure`() {
         val expectedError = IOException()
@@ -57,7 +57,36 @@ internal class `Accessing success values and failures` {
         val expectedSuccess = 12
         val (r, e) = expectedSuccess.success<IOException, Int>()
         assertThat(e).isNull()
-        assertThat(r.isSuccess).isTrue()
-        assertThat(r.get()).isEqualTo(expectedSuccess)
+        assertThat(r).isSuccess().isEqualTo(expectedSuccess)
     }
+
+    @Test
+    fun `Caller should be able to handle possible failure when retrieving the success value with a lambda`() {
+        val today = LocalDate.now()
+        val incidentReportedDate = ErrorCaseEnum.ERROR_CASE_1.failure<ErrorCaseEnum, LocalDate>()
+        val indentReportErrorIsToday = fun(_: ErrorCaseEnum) = today
+        val reportActionDue = incidentReportedDate.getOr(indentReportErrorIsToday)
+        assertThat(reportActionDue).isEqualTo(today)
+    }
+
+    @Test
+    fun `Caller should be able to handle possible failure when retrieving the success by supplying a value`() {
+        val today = LocalDate.now()
+        val incidentReportedDate = ErrorCaseEnum.ERROR_CASE_1.failure<ErrorCaseEnum, LocalDate>()
+        val reportActionDue = incidentReportedDate.getOr(today)
+        assertThat(reportActionDue).isEqualTo(today)
+    }
+
+    @Test
+    fun `Caller should be able to throw a specific exception if the result is a failure`() {
+
+        class ReportingAbortedException : Exception()
+
+        val incidentDueDate = ErrorCaseEnum.ERROR_CASE_1.failure<ErrorCaseEnum, LocalDate>()
+
+        assertThat { incidentDueDate.getOrThrow { ReportingAbortedException() } }
+            .isFailure()
+            .isInstanceOf(ReportingAbortedException::class)
+    }
+
 }

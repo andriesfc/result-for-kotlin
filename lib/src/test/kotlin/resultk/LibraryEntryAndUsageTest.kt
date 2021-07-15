@@ -8,7 +8,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import resultk.testing.assertions.*
 import resultk.testing.domain.ErrorEnumWSelfUnwrapping
-import resultk.testing.domain.SimpleErrorEnum
+import resultk.testing.domain.ErrorCaseEnum
 import java.io.IOException
 import java.util.*
 
@@ -43,17 +43,4 @@ internal class LibraryEntryAndUsageTest {
             }
         }.isSuccess()
     }
-
-    @Test
-    fun resultCatching_with_caught_handler_should_convert_expected_exception() {
-        val expectedErrorCase = SimpleErrorEnum.ERROR_CASE_2
-        val ioExceptionAsErrorCase2 = { _: IOException -> expectedErrorCase }
-        assertThat {
-            val r: Result<SimpleErrorEnum, Int> = resultCatching(ioExceptionAsErrorCase2) {
-                throw IOException()
-            }
-            r
-        }.isSuccess().isFailure().isEqualTo(expectedErrorCase)
-    }
-
 }

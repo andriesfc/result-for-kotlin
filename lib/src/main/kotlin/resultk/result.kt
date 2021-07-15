@@ -4,7 +4,6 @@ package resultk
 import resultk.Result.Failure
 import resultk.Result.Failure.FailureUnwrapper
 import resultk.Result.Success
-import resultk.interop.ThrowingProducer
 import java.util.*
 
 //<editor-fold desc="Core Data types and special values">
@@ -235,12 +234,14 @@ operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
  * Gets a value from a result, or maps an error to desired type. This is similar to [result.fold] operation,
  * except this only cater for mapping the error if it is present.
  */
-inline fun <E, T> Result<E, T>.valueOr(mapError: (E) -> T): T {
+inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
     return when (this) {
         is Failure -> mapError(error)
         is Success -> value
     }
 }
+
+fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
 
 /**
  * A get operation which ensures that an exception is thrown if the result is a [result.Failure]. Thr caller needs
@@ -253,8 +254,8 @@ inline fun <E, T> Result<E, T>.valueOr(mapError: (E) -> T): T {
  * @receiver A result container which may hold either a value, or an error.
  * @return The value of the result, or throws the exception produced by the [mapErrorToThrowable] function.
  */
-inline fun <E, T, X> Result<E, T>.valueOrThrow(mapErrorToThrowable: (E) -> X): T where X : Throwable {
-    return valueOr { throw mapErrorToThrowable(it) }
+inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T where X : Throwable {
+    return getOr { throw mapErrorToThrowable(it) }
 }
 
 /**
@@ -264,47 +265,7 @@ inline fun <E, T, X> Result<E, T>.valueOrThrow(mapErrorToThrowable: (E) -> X): T
  * @param T The result type.
  * @return The value of the result or null in the case of [Failure]
  */
-fun <T> Result<*, T>.valueOrNull(): T? = valueOr { null }
-
-/**
- * Returns a success value if this a success and [Success.value] matches the predicate.
- */
-fun <E, T> Result<E, T>.takeSuccessIf(predicate: (T) -> Boolean): Success<T>? {
-    return when {
-        this is Success && predicate(value) -> this
-        else -> null
-    }
-}
-
-/**
- * Returns a success value if this is success and [Success.value] does not match the predicate.
- */
-fun <E, T> Result<E, T>.takeSuccessUnless(predicate: (T) -> Boolean): Success<T>? {
-    return when {
-        this is Success && !predicate(value) -> this
-        else -> null
-    }
-}
-
-/**
- * Returns the error if this is an failure and the [Failure.error] matches the predicate.
- */
-fun <E, T> Result<E, T>.takeFailureIf(predicate: (E) -> Boolean): Failure<E>? {
-    return when {
-        this is Failure && predicate(error) -> this
-        else -> null
-    }
-}
-
-/**
- * Returns the error if this is an failure and the [Failure.error] does not match the predicate.
- */
-fun <E, T> Result<E, T>.takeFailureUnless(predicate: (E) -> Boolean): Failure<E>? {
-    return when {
-        this is Failure && !predicate(error) -> this
-        else -> null
-    }
-}
+fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
 //</editor-fold>
 

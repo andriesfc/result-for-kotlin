@@ -4,7 +4,7 @@ import resultk.Result.Failure
 import resultk.Result.Failure.ThrowableProvider
 import resultk.Result.Failure.FailureUnwrapper
 
-enum class SimpleErrorEnum {
+enum class ErrorCaseEnum {
     ERROR_CASE_1,
     ERROR_CASE_2
 }

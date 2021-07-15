@@ -33,23 +33,22 @@ fun File.found(): Result<IOException, File> = result {
     success()
 }
 
-fun File.create(kind: FileKind.Known, includeParents: Boolean = false): Result<IOException, File> = result {
+fun File.create(ofKind: FileKind.Known, includeParents: Boolean = false): Result<IOException, File> = result {
 
-    kind().takeSuccessIf { it != kind }?.also { existAlreadyAsDifferentKind ->
-        throw IOException(
-            "Unable to create a $kind as it already exists a ${existAlreadyAsDifferentKind.value.name} here: $path"
+    val existAsKindAlready = kind().getOrNull()
+    if (existAsKindAlready != null) {
+        if (existAsKindAlready == kind()) {
+            return success()
+        } else throw IOException(
+            "Unable to create a $ofKind as it already exists a ${existAsKindAlready.name} here: $path"
         )
-    }
-
-    if (exists()) {
-        return success()
     }
 
     if (!parentFile.exists() && !includeParents) {
         throw IOException("Unable to create directory named $name as the parent path does not exists: $parent")
     }
 
-    when (kind) {
+    when (ofKind) {
         FileKind.Directory -> if (!mkdirs()) {
             throw IOException("Unable to create directory: $path")
         }

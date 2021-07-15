@@ -3,7 +3,7 @@ package resultk.testing.domain.demo.acmepayments
 import resultk.Result
 import resultk.result
 import resultk.success
-import resultk.valueOrNull
+import resultk.getOrNull
 import java.util.*
 import java.util.ResourceBundle.getBundle
 
@@ -28,7 +28,7 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
         private val detailedMessage = buildString {
             val generalMessage = message("error.upstream").get()
             val mappedUpstreamErrorKey = "error.upstream.$upstreamProvider.$upstreamErrorCode"
-            val mappedUpstreamMessage = message(mappedUpstreamErrorKey).valueOrNull()
+            val mappedUpstreamMessage = message(mappedUpstreamErrorKey).getOrNull()
             val upstreamDetailMessage = message(
                 "error.upstream.see_details",
                 upstreamProvider,
