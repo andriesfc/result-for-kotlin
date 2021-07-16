@@ -1,4 +1,4 @@
-package resultk.testing.domain.demo.filesysops
+package resultk.testing.demo.usageprogression
 
 import assertk.all
 import assertk.assertThat
@@ -19,7 +19,7 @@ import java.util.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Tests demo file operations")
-internal class FileDemoOpsTest {
+internal class FileOpsTest {
 
     @TempDir
     lateinit var parentDir: File

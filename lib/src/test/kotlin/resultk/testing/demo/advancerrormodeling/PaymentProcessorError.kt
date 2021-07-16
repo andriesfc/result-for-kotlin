@@ -1,9 +1,9 @@
-package resultk.testing.domain.demo.acmepayments
+package resultk.testing.demo.advancerrormodeling
 
 import resultk.Result
+import resultk.getOrNull
 import resultk.result
 import resultk.success
-import resultk.getOrNull
 import java.util.*
 import java.util.ResourceBundle.getBundle
 
@@ -61,7 +61,10 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
         private val oneSpace = message("sentence_building.onespace").get()
         private val Char.isNotPunctuation: Boolean get() = this !in punctuation
         val constants = PaymentProcessorError::class.sealedSubclasses.mapNotNull { it.objectInstance }
-        internal const val PAYMENT_PROCESSOR_MESSAGES = "resultk/testing/domain/demo/acmepayments/PaymentProcessorMessages"
+
+        internal const val PAYMENT_PROCESSOR_MESSAGES =
+            "resultk/testing/demo/advancerrormodeling/PaymentProcessorMessages"
+
         internal fun message(key: String, vararg args: Any?): Result<MissingResourceException, String> {
             return result {
                 getBundle(PAYMENT_PROCESSOR_MESSAGES).getString(key).run {

@@ -193,6 +193,18 @@ inline fun <reified E, T> result(action: () -> Result<E, T>): Result<E, T> {
     }
 }
 
+/**
+ * Handy function to start immediately produce a [Result] from the this receiver.
+ *
+ * @param E
+ *      The failure error type.
+ * @param T
+ *      The success value type
+ */
+inline fun <reified E, R, T> T.resultCatching(processThis: T.() -> Result<E, R>): Result<E, R> {
+    return result { processThis(this) }
+}
+
 //</editor-fold>
 
 //<editor-fold desc="Accessing success values and failures">
@@ -202,7 +214,7 @@ fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
     return this
 }
 
-fun <E, T> Result<E,T>.onFailure(processFailure:(E) -> Unit) = apply {
+fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit) = apply {
     (this as? Failure)?.error?.also(processFailure)
 }
 
@@ -231,7 +243,7 @@ operator fun <E, T> Result<E, T>.component1(): Result<E, T> = this
 operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
 
 /**
- * Gets a value from a result, or maps an error to desired type. This is similar to [resultCatching.fold] operation,
+ * Gets a value from a result, or maps an error to desired type. This is similar to [Result.fold] operation,
  * except this only cater for mapping the error if it is present.
  */
 inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
@@ -354,21 +366,24 @@ inline fun <reified Ex : Throwable, reified E, R> resultCatching(
     }
 }
 
-/**
- * A function which chain the processing of one result to another.
- *
- * @param
- *      process A lambda which the the [Success] as receiver and returns the next result, whether it
- *      is [Failure] or [Success]
- */
-inline fun <reified E, T, R> Result<E, T>.thenResult(process: Success<T>.() -> Result<E, R>): Result<E, R> {
-    return when (this) {
-        is Failure -> this
-        is Success -> result { process(this) }
-    }
-}
 
-inline fun <reified E, reified Ex, T, R> Result<E, T>.thenResultCatching(
+/**
+ * The preferred way of handling exceptions when chaining the result with the a following process.
+ *
+ * @param Ex
+ *      The Exception could result in an domain error.
+ * @param E
+ *      The domain error type
+ * @param T
+ *      The target object your are processing
+ * @param R
+ *      The result type this `thenResultCatching` should produce
+ * @param caught
+ *      A lambda which takes in exception of type `Ex` and produce the appropiate domain erro
+ * @param process
+ *      A lambda which recieves an success result value.
+ */
+inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultCatching(
     caught: (e: Ex) -> E,
     process: Success<T>.() -> Result<E, R>
 ): Result<E, R> {
@@ -380,6 +395,21 @@ inline fun <reified E, reified Ex, T, R> Result<E, T>.thenResultCatching(
             e as? Ex ?: throw e
             caught(e).failure()
         }
+    }
+}
+
+
+/**
+ * A function which chain the processing of one result to another.
+ *
+ * @param
+ *      process A lambda which the the [Success] as receiver and returns the next result, whether it
+ *      is [Failure] or [Success]
+ */
+inline fun <reified E, T, R> Result<E, T>.thenResult(process: Success<T>.() -> Result<E, R>): Result<E, R> {
+    return when (this) {
+        is Failure -> this
+        is Success -> result { process(this) }
     }
 }
 

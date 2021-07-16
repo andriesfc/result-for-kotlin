@@ -2,13 +2,21 @@ package resultk
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isSuccess
+import assertk.assertions.messageContains
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import resultk.testing.assertions.isFailureResult
 import resultk.testing.assertions.isSuccessResult
 import resultk.testing.domain.ErrorEnumWSelfUnwrapping
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter.BASIC_ISO_DATE
 import java.util.*
+import kotlin.random.Random
 
 @DisplayName("Creating results & result entry points tests")
 internal class LibraryEntryAndUsageTest {
@@ -34,5 +42,25 @@ internal class LibraryEntryAndUsageTest {
                 throw ErrorEnumWSelfUnwrapping.ERROR_CASE_1.throwable()
             }
         }.isSuccess().isFailureResult().isEqualTo(ErrorEnumWSelfUnwrapping.ERROR_CASE_1)
+    }
+
+    @Test
+    fun `Immediate produce a results from 'this' value`() {
+
+        val logfileDate = LocalDate.now().run {
+            val lastMonth = month - 1
+            val date = Random.nextInt(1, lastMonth.maxLength())
+            LocalDate.of(year, lastMonth, date)
+        }.format(BASIC_ISO_DATE)
+
+        val logFile = File("/var/logs/dora/298/failures.$logfileDate.log")
+        val logFileSize = logFile.resultCatching {
+            if (!exists()) throw FileNotFoundException(path)
+            length().success<IOException,Long>()
+        }
+
+        assertThat(logFileSize).isFailureResult()
+            .isInstanceOf(FileNotFoundException::class)
+            .messageContains(logFile.path)
     }
 }

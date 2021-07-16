@@ -1,4 +1,4 @@
-package resultk.testing.domain.demo.filesysops
+package resultk.testing.demo.usageprogression
 
 import assertk.all
 import assertk.assertThat

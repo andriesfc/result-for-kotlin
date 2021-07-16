@@ -1,12 +1,12 @@
 @file:Suppress("SameParameterValue")
 
-package resultk.testing.domain.demo.acmepayments
+package resultk.testing.demo.advancerrormodeling
 
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.*
 import org.junit.jupiter.api.*
-import resultk.testing.domain.demo.acmepayments.PaymentProcessorError.Companion.PAYMENT_PROCESSOR_MESSAGES
+import resultk.testing.demo.advancerrormodeling.PaymentProcessorError.Companion.PAYMENT_PROCESSOR_MESSAGES
 import resultk.failure
 import java.util.*
 import java.util.ResourceBundle.getBundle

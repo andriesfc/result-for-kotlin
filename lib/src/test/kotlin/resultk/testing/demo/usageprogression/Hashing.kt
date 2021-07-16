@@ -1,9 +1,9 @@
-package resultk.testing.domain.demo.filesysops
+package resultk.testing.demo.usageprogression
 
 import org.apache.commons.codec.binary.Hex.encodeHexString
 import resultk.*
-import resultk.testing.domain.demo.filesysops.HashingError.UnsupportedAlgorithm
-import resultk.testing.domain.demo.filesysops.HashingError.SourceContentNotReadable
+import resultk.testing.demo.usageprogression.HashingError.UnsupportedAlgorithm
+import resultk.testing.demo.usageprogression.HashingError.SourceContentNotReadable
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
