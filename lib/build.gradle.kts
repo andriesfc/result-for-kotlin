@@ -141,7 +141,7 @@ tasks.withType<Test> {
 tasks.withType<DokkaTask> {
     dokkaSourceSets {
         named("main") {
-            moduleName.set("ResultK")
+            moduleName.set("resultk")
             includes.from("module.md")
             jdkVersion.set(javaCompileLangVersion.asInt())
             sourceLink {
