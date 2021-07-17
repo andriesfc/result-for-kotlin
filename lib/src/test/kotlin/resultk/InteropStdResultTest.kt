@@ -8,7 +8,7 @@ import assertk.assertions.messageContains
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import resultk.interop.toStdLibResult
-import resultk.testing.domain.ErrorCaseEnum
+import resultk.demo.domain.ErrorCaseEnum
 
 @DisplayName("InterOp with Kotlin's own builtin Result type")
 class InteropStdResultTest {

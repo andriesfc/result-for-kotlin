@@ -1,9 +1,9 @@
-package resultk.testing.demo.usageprogression
+package resultk.demo.usageprogression
 
 import org.apache.commons.codec.binary.Hex.encodeHexString
 import resultk.*
-import resultk.testing.demo.usageprogression.HashingError.UnsupportedAlgorithm
-import resultk.testing.demo.usageprogression.HashingError.SourceContentNotReadable
+import resultk.demo.usageprogression.HashingError.UnsupportedAlgorithm
+import resultk.demo.usageprogression.HashingError.SourceContentNotReadable
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest

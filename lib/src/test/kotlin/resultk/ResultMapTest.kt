@@ -8,8 +8,8 @@ import io.mockk.verify
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import resultk.testing.assertions.isFailureResult
+import resultk.demo.domain.ErrorCaseEnum
 import resultk.testing.assertions.isSuccessResult
-import resultk.testing.domain.ErrorCaseEnum
 
 @DisplayName("Mapping success values and failures test")
 internal class ResultMapTest {

@@ -1,4 +1,4 @@
-package resultk.testing.demo.advancerrormodeling
+package resultk.demo.advancerrormodeling
 
 import resultk.Result
 import resultk.getOrNull
@@ -63,7 +63,7 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
         val constants = PaymentProcessorError::class.sealedSubclasses.mapNotNull { it.objectInstance }
 
         internal const val PAYMENT_PROCESSOR_MESSAGES =
-            "resultk/testing/demo/advancerrormodeling/PaymentProcessorMessages"
+            "resultk/demo/advancerrormodeling/PaymentProcessorMessages"
 
         internal fun message(key: String, vararg args: Any?): Result<MissingResourceException, String> {
             return result {

@@ -7,9 +7,9 @@ import assertk.assertions.isSuccess
 import assertk.assertions.messageContains
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import resultk.demo.domain.ErrorEnumWSelfUnwrapping
 import resultk.testing.assertions.isFailureResult
 import resultk.testing.assertions.isSuccessResult
-import resultk.testing.domain.ErrorEnumWSelfUnwrapping
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException

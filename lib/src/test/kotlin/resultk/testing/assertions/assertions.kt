@@ -3,6 +3,7 @@ package resultk.testing.assertions
 import assertk.Assert
 import assertk.assertions.isInstanceOf
 import resultk.Result
+import java.util.*
 
 fun <E> Assert<Result<E, *>>.isFailureResult(): Assert<E> {
     isInstanceOf(Result.Failure::class)
@@ -12,4 +13,15 @@ fun <E> Assert<Result<E, *>>.isFailureResult(): Assert<E> {
 fun <T> Assert<Result<*, T>>.isSuccessResult(): Assert<T> {
     isInstanceOf(Result.Success::class)
     return transform { actual -> (actual as Result.Success<T>).value }
+}
+
+fun Assert<ResourceBundle>.messageKeys(sorting: Comparator<String>? = null): Assert<Set<String>> {
+    return transform { bundle ->
+        bundle.keySet().let { keys ->
+            when (sorting) {
+                null -> keys.toSet()
+                else -> keys.toSortedSet(sorting)
+            }
+        }
+    }
 }

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import resultk.testing.assertions.isFailureResult
 import resultk.testing.assertions.isSuccessResult
-import resultk.testing.domain.ErrorCaseEnum
+import resultk.demo.domain.ErrorCaseEnum
 import java.io.IOException
 import java.security.MessageDigest
 import java.time.LocalDate

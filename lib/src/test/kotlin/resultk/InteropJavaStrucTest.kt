@@ -12,7 +12,7 @@ import resultk.interop.java.toOptional
 import resultk.interop.java.toResult
 import resultk.testing.assertions.isFailureResult
 import resultk.testing.assertions.isSuccessResult
-import resultk.testing.domain.ErrorCaseEnum
+import resultk.demo.domain.ErrorCaseEnum
 import java.util.*
 
 @DisplayName("Testing interop with Java's standard Optional type")

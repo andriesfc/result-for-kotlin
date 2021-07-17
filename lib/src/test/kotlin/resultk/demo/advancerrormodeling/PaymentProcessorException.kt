@@ -1,4 +1,4 @@
-package resultk.testing.demo.advancerrormodeling
+package resultk.demo.advancerrormodeling
 
 import java.util.ResourceBundle.getBundle
 

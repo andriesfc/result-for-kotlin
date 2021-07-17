@@ -1,4 +1,4 @@
-package resultk.testing.demo.usageprogression
+package resultk.demo.usageprogression
 
 import resultk.*
 import java.io.File

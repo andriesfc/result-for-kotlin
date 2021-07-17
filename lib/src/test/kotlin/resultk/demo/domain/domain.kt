@@ -1,4 +1,4 @@
-package resultk.testing.domain
+package resultk.demo.domain
 
 import resultk.Result.Failure
 import resultk.Result.Failure.ThrowableProvider

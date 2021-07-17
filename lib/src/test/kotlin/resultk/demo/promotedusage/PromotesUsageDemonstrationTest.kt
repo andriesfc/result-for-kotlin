@@ -1,4 +1,4 @@
-package resultk.testing.demo.promotedusage
+package resultk.demo.promotedusage
 
 import assertk.assertThat
 import assertk.assertions.isInstanceOf
@@ -9,8 +9,8 @@ import resultk.onFailure
 import resultk.resultCatching
 import resultk.success
 import resultk.testing.assertions.isFailureResult
-import resultk.testing.demo.promotedusage.PromotesUsageDemonstrationTest.GetBundleError.BundleNotPresent
-import resultk.testing.demo.promotedusage.PromotesUsageDemonstrationTest.GetBundleError.KeyIsMissing
+import resultk.demo.promotedusage.PromotesUsageDemonstrationTest.GetBundleError.BundleNotPresent
+import resultk.demo.promotedusage.PromotesUsageDemonstrationTest.GetBundleError.KeyIsMissing
 import resultk.thenResultCatching
 import java.util.*
 

@@ -6,8 +6,8 @@ import assertk.assertions.isFailure
 import assertk.assertions.isInstanceOf
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import resultk.testing.domain.ErrorCaseEnum
-import resultk.testing.domain.ErrorEnumWSelfUnwrapping
+import resultk.demo.domain.ErrorCaseEnum
+import resultk.demo.domain.ErrorEnumWSelfUnwrapping
 
 @DisplayName("Error code wrapping tests")
 internal class ErrorCodeWrappingTest {

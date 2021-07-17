@@ -4,7 +4,7 @@ package resultk.interop.java
 
 import resultk.Result
 import resultk.failure
-import resultk.internal.resourceMessage
+import resultk.internal.internalMessage
 import resultk.success
 import java.util.*
 
@@ -31,7 +31,7 @@ inline fun <E, T> Optional<T>.toResult(emptyFailureCase: () -> E): Result<E, T> 
  * an `Result.Failure<NoSuchElementException>` becomes the failure case.
  */
 fun <T> Optional<T>.toResult(): Result<NoSuchElementException, T> =
-    toResult { NoSuchElementException(resourceMessage("error.noSuchValueInOption", this)) }
+    toResult { NoSuchElementException(internalMessage("error.noSuchValueInOption", this)) }
 
 /**
  * Use this extension function to convert a result value to a [java.util.Optional] instance. As expected, any possible
