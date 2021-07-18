@@ -4,6 +4,7 @@ import assertk.all
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.prop
 import org.apache.commons.codec.binary.Hex.encodeHexString
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
@@ -11,15 +12,16 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import resultk.Result
+import resultk.demo.domain.HashingError
+import resultk.demo.domain.HashingError.SourceContentNotReadable
 import resultk.onSuccess
 import resultk.testing.assertions.isFailureResult
 import resultk.testing.assertions.isSuccessResult
+import resultk.testing.classpathFile
+import resultk.testing.update
 import java.io.File
 import java.io.FileNotFoundException
-import java.io.IOException
-import java.nio.file.Paths
 import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
 import java.util.*
 import kotlin.random.Random
 
@@ -30,7 +32,6 @@ import kotlin.random.Random
  * @see File.hashContentsV1
  * @see File.hashContentsV2
  * @see File.hashContentsV3
- * @see File.hashContentsV4
  * @see File.hashContentsV4
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -47,14 +48,10 @@ internal class HashingFunctionsTests {
     fun setUpAll() {
 
         hashAlgorithm = "sha1"
-
-        knownFile = javaClass.getResource("text")?.run {
-            Paths.get(toURI()).toFile()
-        } ?: throw IOException("Expected text resource not find as regular file on the classpath.")
-
-        knownFileSh1Hash = MessageDigest.getInstance("sha1").run {
-            knownFile.forEachBlock { buffer, bytesRead -> if (bytesRead > 0) update(buffer, 0, bytesRead) }
-            encodeHexString(digest())
+        knownFile = classpathFile<HashingFunctionsTests>("text")
+        knownFileSh1Hash = MessageDigest.getInstance("sha1").let { digest ->
+            digest.update(knownFile)
+            encodeHexString(digest.digest())
         }
 
         nonExistingFile = File("file-i-do-not-exists-${UUID.randomUUID()}")
@@ -72,31 +69,27 @@ internal class HashingFunctionsTests {
     @ParameterizedTest
     @MethodSource("hashingFunctions")
     fun `Test hashing functions handle read error the same`(testArgs: FileHashFunctionTestArgs) {
-        val (_,func) = testArgs
+        val (_, func) = testArgs
         val contentHash = nonExistingFile.func(hashAlgorithm).also(::println)
-        assertThat(contentHash).isFailureResult().all {
-            given { actual ->
-                assertThat(actual).isInstanceOf(HashingError.SourceContentNotReadable::class)
-                (actual as HashingError.SourceContentNotReadable)
-                transform { actual.source }.isEqualTo(nonExistingFile.path)
-                transform { actual.cause }.isInstanceOf(FileNotFoundException::class)
+        assertThat(contentHash)
+            .isFailureResult()
+            .isInstanceOf(SourceContentNotReadable::class).all {
+                prop(SourceContentNotReadable::source).isEqualTo(nonExistingFile.path)
+                prop(SourceContentNotReadable::cause).isInstanceOf(FileNotFoundException::class)
             }
-        }
     }
 
 
     @ParameterizedTest
     @MethodSource("hashingFunctions")
     fun `Test hashing functions handle fails with non existing hash function`(testArgs: FileHashFunctionTestArgs) {
-        val (_,func) = testArgs
+        val (_, func) = testArgs
         val actual = nonExistingFile.func(nonExistingHashingAlgorithm).also(::println)
-        assertThat(actual).isFailureResult().given { error ->
-            assertThat(error.cause).isInstanceOf(NoSuchAlgorithmException::class)
-            assertThat(error).isInstanceOf(HashingError.UnsupportedAlgorithm::class)
-            assertThat((error as HashingError.UnsupportedAlgorithm).algorithm).isEqualTo(
-                nonExistingHashingAlgorithm
-            )
-        }
+        assertThat(actual)
+            .isFailureResult()
+            .isInstanceOf(HashingError.UnsupportedAlgorithm::class).all {
+                prop(HashingError.UnsupportedAlgorithm::algorithm).isEqualTo(nonExistingHashingAlgorithm)
+            }
     }
 
     fun hashingFunctions(): List<FileHashFunctionTestArgs> = listOf(

@@ -38,7 +38,7 @@ internal class LibraryEntryAndUsageTest {
     @Test
     fun `Result action throwing exception which can unwrap should unwrap and not throw`() {
         assertThat {
-            result<ErrorEnumWSelfUnwrapping, Int> {
+            resultOf<ErrorEnumWSelfUnwrapping, Int> {
                 throw ErrorEnumWSelfUnwrapping.ERROR_CASE_1.throwable()
             }
         }.isSuccess().isFailureResult().isEqualTo(ErrorEnumWSelfUnwrapping.ERROR_CASE_1)

@@ -2,28 +2,13 @@ package resultk.demo.usageprogression
 
 import org.apache.commons.codec.binary.Hex.encodeHexString
 import resultk.*
-import resultk.demo.usageprogression.HashingError.UnsupportedAlgorithm
-import resultk.demo.usageprogression.HashingError.SourceContentNotReadable
+import resultk.demo.domain.HashingError
+import resultk.demo.domain.HashingError.SourceContentNotReadable
+import resultk.demo.domain.HashingError.UnsupportedAlgorithm
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-
-sealed class HashingError<out X : Exception> {
-
-    abstract val cause: X
-
-    data class SourceContentNotReadable(
-        val source: String,
-        override val cause: IOException
-    ) : HashingError<IOException>()
-
-    data class UnsupportedAlgorithm(
-        override val cause: NoSuchAlgorithmException,
-        val algorithm: String
-    ) : HashingError<NoSuchAlgorithmException>()
-
-}
 
 fun File.hashContentsV0(algorithm: String): Result<HashingError<Exception>, String> {
 
@@ -48,7 +33,7 @@ fun File.hashContentsV0(algorithm: String): Result<HashingError<Exception>, Stri
 }
 
 fun File.hashContentsV1(algorithm: String): Result<HashingError<Exception>, String> {
-    return result {
+    return resultOf {
         try {
             MessageDigest.getInstance(algorithm).run {
                 forEachBlock { buffer, bytesRead ->
@@ -68,7 +53,7 @@ fun File.hashContentsV1(algorithm: String): Result<HashingError<Exception>, Stri
 
 fun File.hashContentsV2(algorithm: String): Result<HashingError<Exception>, String> {
 
-    val (digest, noSuchAlgorithm) = result<NoSuchAlgorithmException, MessageDigest> {
+    val (digest, noSuchAlgorithm) = resultOf<NoSuchAlgorithmException, MessageDigest> {
         MessageDigest.getInstance(
             algorithm
         ).success()
@@ -78,7 +63,7 @@ fun File.hashContentsV2(algorithm: String): Result<HashingError<Exception>, Stri
         return UnsupportedAlgorithm(noSuchAlgorithm, algorithm).failure()
     }
 
-    val (hash, fileReadException) = result<IOException, String> {
+    val (hash, fileReadException) = resultOf<IOException, String> {
         digest.get().run {
             forEachBlock { buffer, bytesRead ->
                 if (bytesRead > 0) {
@@ -97,7 +82,7 @@ fun File.hashContentsV2(algorithm: String): Result<HashingError<Exception>, Stri
 }
 
 fun File.hashContentsV3(algorithm: String): Result<HashingError<Exception>, String> {
-    return result<Exception, MessageDigest> { MessageDigest.getInstance(algorithm).success() }.thenResult {
+    return resultOf<Exception, MessageDigest> { MessageDigest.getInstance(algorithm).success() }.thenResult {
         forEachBlock { buffer, bytesRead ->
             if (bytesRead > 0) {
                 value.update(buffer, 0, bytesRead)

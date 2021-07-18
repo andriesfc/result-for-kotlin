@@ -86,7 +86,7 @@ sealed class Result<out E, out T> {
          *      The type throwable this failure wants use when caller tries to get an success value
          *      from this error
          */
-        interface ThrowableProvider<out X : Throwable> {
+        fun interface ThrowableProvider<out X : Throwable> {
             fun throwable(): X
         }
 
@@ -172,7 +172,7 @@ fun <E, T> E.failure(): Result<E, T> = Failure(this)
  * @throws Throwable if the caught exception is not of type [E]
  * @return A result.
  */
-inline fun <reified E, T> result(action: () -> Result<E, T>): Result<E, T> {
+inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
     return try {
         action()
     } catch (e: Throwable) {
@@ -202,7 +202,7 @@ inline fun <reified E, T> result(action: () -> Result<E, T>): Result<E, T> {
  *      The success value type
  */
 inline fun <reified E, R, T> T.resultCatching(processThis: T.() -> Result<E, R>): Result<E, R> {
-    return result { processThis(this) }
+    return resultOf { processThis(this) }
 }
 
 //</editor-fold>
@@ -333,7 +333,7 @@ inline fun <E, T, R> Result<E, T>.fold(
 //<editor-fold desc="Functional flow and controlled processing">
 /**
  * This function produces a result, but the caller must decide how to handle
- * any exception of type [Ex] being thrown from [process] code block by supplying an [caught]
+ * any exception of type [Ex] being thrown from [construct] code block by supplying an [caught]
  *
  * lambda. **Note** that any exception which is not of type [Ex] will simply be thrown the usual way.
  *
@@ -347,17 +347,17 @@ inline fun <E, T, R> Result<E, T>.fold(
  *      The value type of the resulting success value.
  * @param caught
  *      A lambda which takes the thrown exception of type [Ex] and produces a [Failure] from it.
- * @param process
+ * @param construct
  *      A code block which may either produce an [Failure] or [Success] from the receiver.
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
 inline fun <reified Ex : Throwable, reified E, R> resultCatching(
     caught: (Ex) -> E,
-    process: () -> Result<E, R>
+    construct: () -> Result<E, R>
 ): Result<E, R> {
     return try {
-        result(process)
+        resultOf(construct)
     } catch (e: Throwable) {
         when (e) {
             is Ex -> caught(e).failure()
@@ -390,7 +390,7 @@ inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultCatching(
     return when (this) {
         is Failure -> this
         is Success -> try {
-            result { process(this) }
+            resultOf { process(this) }
         } catch (e: Throwable) {
             e as? Ex ?: throw e
             caught(e).failure()
@@ -409,7 +409,7 @@ inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultCatching(
 inline fun <reified E, T, R> Result<E, T>.thenResult(process: Success<T>.() -> Result<E, R>): Result<E, R> {
     return when (this) {
         is Failure -> this
-        is Success -> result { process(this) }
+        is Success -> resultOf { process(this) }
     }
 }
 
@@ -434,5 +434,6 @@ private class NonThrowableFailureUnwrappingException(
     private val _wrapped = wrapped as Failure<Any>
     override fun unwrap(): Failure<out Any> = _wrapped
 }
+
 //</editor-fold>
 

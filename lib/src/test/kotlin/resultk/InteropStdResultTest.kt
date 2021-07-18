@@ -16,14 +16,14 @@ class InteropStdResultTest {
     @Test
     fun `Failure result should return a standard library result which reports an exception`() {
         val expectedError = ErrorCaseEnum.ERROR_CASE_1
-        val stdLibResult = result<ErrorCaseEnum,Int> { expectedError.failure() }.toStdLibResult().also(::println)
+        val stdLibResult = resultOf<ErrorCaseEnum,Int> { expectedError.failure() }.toStdLibResult().also(::println)
         assertThat { stdLibResult.getOrThrow() }.isFailure().messageContains(expectedError.toString())
     }
 
     @Test
     fun `Success result should return standard library result with correct value and does not throw any exception`() {
         val successValue = 12
-        val stdLibResult = result<ErrorCaseEnum,Int> { successValue.success()  }.toStdLibResult().also(::println)
+        val stdLibResult = resultOf<ErrorCaseEnum,Int> { successValue.success()  }.toStdLibResult().also(::println)
         assertThat { stdLibResult.getOrThrow() }.isSuccess().isEqualTo(successValue)
     }
 }

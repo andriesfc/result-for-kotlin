@@ -9,24 +9,23 @@ I believe the standard practice of using exceptions as business/domain error han
    - Allows errors and failures which are domain specific to not only leak into another domain of the application, but in actual fact it is almost impossible to prevent.
    - The act of raising an exception is also the act of loosing control of flow (as designed). Unfortunately this is also true of the caller if the caller fails to catch the appropriate exception.
    - It also forces all domain to know of all other domains due to domain knowledge encoded un such errors.
-5. Java's unfortunate decision to have checked exceptions just compounds the problems by encouraging developers to wrap these checked exceptions into runtime exceptions which often has no direct bearing on the problem the domain it tries to solve.
+5. Java's unfortunate decision to have checked exceptions just compounds the problems by encouraging developers to wrap these checked exceptions into runtime exceptions. These wrapped exceptions has very little bearing on the domain, and hides the underlying error deep into logs and many line stack traces.
 
 ## Introducing `resulkt`
 
-This smallish library aims to bring error handling as first class domain concern to the applications written Kotlin. By first class concern I mean:
+This smallish library aims to bring error handling as first class domain concern to the applications written Kotlin by:
 
-1. A conscience effort to stop using exceptions to:
-   - Model domain/business errors 
-   - Use them as control flow mechanisms. 
-2. Provide minimal control flow mechanisms to deal with error flow.
+1. Providing minimal scaffolding to move away from using exceptions to:
+   - Model domain/business errors with
+   - Use them as control flow mechanisms.
+2. Provide functional style control flow mechanisms to deal with error both error flow and success flow.
 3. Provide the basis for building rich domain specific errors.
 4. Provide functional expressions to encourage developers to think upfront about alternate/error flows when encoding business requirements.
 5. Encourage authors to handle errors sooner rather than later.
-6. Encourage authors to handle errors 1st and not just as it happens 20 somewhat lines down within `catch` statement.
 
 > **As a side note**: Non-object-oriented languages such as C and Go inspired me to implement this library.
 
-## Show me how to use it
+## Show me how to it used
 
 Let's say you have an extension function which takes an algorithm name of message digester algorithm, and produce a hexadecimal hash of the whole stream. The function & error cases follows as such:
 
@@ -46,9 +45,9 @@ sealed class DigestError(private val messageKey: String, private vararg messageA
     }
 }
 
-// Actual error casses, only two are supported:
+// Actual error cases. Only two are supported:
 
-data class DigisterAlgorithmUnknown(val algorithm: String, val cause: NoSuchAlgorithmException)
+data class DigesterAlgorithmUnknown(val algorithm: String, val cause: NoSuchAlgorithmException)
 	: DigestError("error.digister.noSuchAlgorithm", algorithm, cause.message)
 
 data class DigesterFailedToIngestSource(val ioError: IOException)
@@ -62,7 +61,7 @@ Calling this function in very imperative manner could look like this:
 val (digest, err) = fileStream.hash("sha1")
 
 when(err) {
-   is DigisterAlgorithmUnknown -> { 
+   is DigesterAlgorithmUnknown -> { 
       println(err.message())
       err.cause.printStackTrace()
    }
@@ -87,17 +86,17 @@ Things to note about this implementation:
 
 The last point suggest that there is a better way to handle calling `get()`. 
 
-So here is an implementation exploiting the Kotlin compiler to fail when not all possible error cases are handled within the `when` statement:
+So here is an implementation exploiting the Kotlin compiler to fail when not when the author does not handle all possible error cases:
 
 ```kotlin
 fileStream.hash("sha1")
    .onFailure { err ->
       when (err) {
-         is DigisterAlgorithmUknown -> { 
+         is DigesterAlgorithmUnknown -> { 
             println(err.message())
             err.cause.printStackTrace()
          }
-        is DigesterFailedToInngestSource -> {
+        is DigesterFailedToIngestSource -> {
             println(ioError.message())
             err.ioError.printStackTrace()
          } 
@@ -108,30 +107,12 @@ fileStream.hash("sha1")
    }
 ```
 
-This is just a small introduction how rich an clean error handling can be.
+This is just a small introduction how rich and clean error handling can be.
 
-So what else is in this library?
+## How to build your own function
 
-## Library Overview
+To produce a result you use just wrap your return body in a `resultOf {}` like this:
 
-The library itself can be divided into:
+```kotlin
+```
 
-- Core data types
-- Various ways to create `Result` instances
-- Functions to access success value and errors in fluent manner
-- Various ways to map success and failure errors
-- A few functions to enable the processing of results in fluent functional manner.
-- A private error wrapper to make sure that any un handled error will always result in the very least in a plain old `kotlin.Throwable` instance. 
-- Extensions to assist in interop with Kotlin's own `kotlin.Result<T>` class.
-- Extensions to deal with `java.util.Optional` type
- 
-## In addition the following are also included
-
-- Unit tests which test which deal with: 
-  - Main library concerns
-  - Interop with Java's optional type.
-  - Interop with Kotlin type.
-  - Various fully fledged out demos which various from simple, to complex: 
-    - Demonstrate how usage of the library progress from the old to _try-catch-style_ to fully functional implementation.
-    - An example of advance error modeling which caters known and unknown errors, including how to fully control how the library handles exceptions and un handled errors.
-- 

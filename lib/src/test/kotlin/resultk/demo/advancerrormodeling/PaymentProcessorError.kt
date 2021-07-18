@@ -2,7 +2,7 @@ package resultk.demo.advancerrormodeling
 
 import resultk.Result
 import resultk.getOrNull
-import resultk.result
+import resultk.resultOf
 import resultk.success
 import java.util.*
 import java.util.ResourceBundle.getBundle
@@ -66,7 +66,7 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
             "resultk/demo/advancerrormodeling/PaymentProcessorMessages"
 
         internal fun message(key: String, vararg args: Any?): Result<MissingResourceException, String> {
-            return result {
+            return resultOf {
                 getBundle(PAYMENT_PROCESSOR_MESSAGES).getString(key).run {
                     when {
                         args.isEmpty() -> this

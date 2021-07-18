@@ -49,7 +49,7 @@ internal class InteropJavaStrucTest {
 
     @Test
     fun `A failure result should represent an empty optional`() {
-        val failureValue = result<Exception, Int> { throw IllegalStateException() }
+        val failureValue = resultOf<Exception, Int> { throw IllegalStateException() }
         val optional = failureValue.toOptional()
         assertThat(optional).matchesPredicate { it.isEmpty }
     }

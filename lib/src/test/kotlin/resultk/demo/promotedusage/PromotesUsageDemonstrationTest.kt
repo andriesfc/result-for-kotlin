@@ -3,22 +3,23 @@ package resultk.demo.promotedusage
 import assertk.assertThat
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
-import resultk.onFailure
-import resultk.resultCatching
-import resultk.success
-import resultk.testing.assertions.isFailureResult
+import org.junit.jupiter.api.*
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
+import resultk.*
 import resultk.demo.promotedusage.PromotesUsageDemonstrationTest.GetBundleError.BundleNotPresent
 import resultk.demo.promotedusage.PromotesUsageDemonstrationTest.GetBundleError.KeyIsMissing
-import resultk.thenResultCatching
+import resultk.testing.assertions.isFailureResult
+import resultk.testing.assertions.isSuccessResult
 import java.util.*
 
 
 @DisplayName("Promoted usage demonstration test")
+@TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 internal class PromotesUsageDemonstrationTest {
 
     @Test
+    @Order(1)
     fun `Upfront error handling - do not do this`() {
         val message = kotlin.runCatching { ResourceBundle.getBundle("messages").getString("message.key") }.getOrNull()
         assertThat(message).isNull()
@@ -29,26 +30,39 @@ internal class PromotesUsageDemonstrationTest {
         //  4. No way of knowing if the message bundle does not exists, or the message key!
     }
 
-    @Test
-    fun `Upfront error handling - a better way`() {
+    @ParameterizedTest
+    @CsvSource(
+        nullValues = ["@null"],
+        value = [
+            "resultk/demo/Messages,customerMessageX,KeyIsMissing",
+            "resultk/demo/Messages6421,customerMessageX,BundleNotPresent",
+            "resultk/demo/Messages,customerMessage1,@null"
+        ],
+    )
+    @Order(2)
+    fun `Upfront error handling - a better way`(bundle: String, key: String, expectedErrorKind: String?) {
 
-        val bundle = "testing_messages_bundle_645"
-        val key = "test_key"
-        val message =
-            resultCatching<MissingResourceException, GetBundleError, ResourceBundle>({ BundleNotPresent(bundle) }) {
-                ResourceBundle.getBundle(bundle).success()
-            }.thenResultCatching<MissingResourceException, GetBundleError, ResourceBundle, String>({
-                KeyIsMissing(
-                    bundle,
-                    key
-                )
-            }) {
-                value.getString(key).success()
-            }.onFailure(::println)
+        val expectedErrorClass = expectedErrorKind?.let {
+            GetBundleError::class.sealedSubclasses.first { errorClass ->
+                errorClass.simpleName == expectedErrorKind
+            }
+        }
 
-        assertThat(message)
-            .isFailureResult()
-            .isInstanceOf(BundleNotPresent::class)
+        val noSuchMessageBundleError = { _: MissingResourceException -> BundleNotPresent(bundle) }
+        val keyNotPresentInBundleError = { _: MissingResourceException -> KeyIsMissing(bundle, key) }
+        val message: Result<GetBundleError, String> =
+            resultCatching(noSuchMessageBundleError) { ResourceBundle.getBundle(bundle).success() }
+                .thenResultCatching(keyNotPresentInBundleError) { value.getString(key).success() }
+                .onFailure(::println)
+                .onSuccess(::println)
+
+        if (expectedErrorClass == null) {
+            assertThat(message)
+                .isSuccessResult()
+        } else {
+            assertThat(message)
+                .isFailureResult().isInstanceOf(expectedErrorClass)
+        }
 
         // Why?
         //  1. Only handle exceptions which are relevant to this use case, nothing else
@@ -57,7 +71,7 @@ internal class PromotesUsageDemonstrationTest {
         //  4. Error codes provide enough information to the caller to act on what is relevant.
         //  5. Error codes captures information specific to the error: Missing key + bundle VS Missing bundle (do not care about the key!).
         //  6. Keep the happy flow here -- it is up the caller to crash the party 💃!
-        //  7. Sealed class, just like enums presents finite, variable number of error conditions and types.
+        //  7. Sealed class, just like enums, presents a finite variable number of error types.
     }
 
     sealed class GetBundleError {
@@ -65,12 +79,14 @@ internal class PromotesUsageDemonstrationTest {
         abstract val bundleName: String
         abstract val message: String
 
-        data class BundleNotPresent(
+        override fun toString(): String = "[${javaClass.simpleName}]: $message"
+
+        class BundleNotPresent(
             override val bundleName: String,
-            override val message: String = "$bundleName not present"
+            override val message: String = "Bundle not present: $bundleName"
         ) : GetBundleError()
 
-        data class KeyIsMissing(
+        class KeyIsMissing(
             override val bundleName: String,
             val missingKey: String,
             override val message: String = "Key [$missingKey] not present in bundle: [$bundleName]"

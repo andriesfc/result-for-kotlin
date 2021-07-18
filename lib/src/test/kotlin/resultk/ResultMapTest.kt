@@ -16,14 +16,14 @@ internal class ResultMapTest {
 
     @Test
     fun `Mapping a success value from an failure result should return the exact same instance`() {
-        val result: Result<ErrorCaseEnum, Int> = result { ErrorCaseEnum.ERROR_CASE_1.failure() }
+        val result: Result<ErrorCaseEnum, Int> = resultOf { ErrorCaseEnum.ERROR_CASE_1.failure() }
         val mapped = result.map(Int::toString)
         assertThat(mapped).isSameAs(result)
     }
 
     @Test
     fun `Mapping a failure value from an success result should return the exact same instance`() {
-        val result: Result<ErrorCaseEnum, Int> = result { 10.success() }
+        val result: Result<ErrorCaseEnum, Int> = resultOf { 10.success() }
         val mapped = result.mapFailure(ErrorCaseEnum::name)
         assertThat(mapped).isSameAs(result)
     }
@@ -31,7 +31,7 @@ internal class ResultMapTest {
     @Test
     fun `Mapping a success value`() {
         val successValue = 13
-        val successResult = result<ErrorCaseEnum, Int> { successValue.success() }
+        val successResult = resultOf<ErrorCaseEnum, Int> { successValue.success() }
         val mapped = successResult.map { it.toString(2) }
         assertThat(mapped).isSuccessResult().isEqualTo("1101")
     }
@@ -48,7 +48,7 @@ internal class ResultMapTest {
     @Test
     fun `Fold operation on a failure result should not invoke the 'onSuccess'`() {
         val value = ErrorCaseEnum.ERROR_CASE_2
-        val failureResult = result<ErrorCaseEnum, Int> { value.failure() }
+        val failureResult = resultOf<ErrorCaseEnum, Int> { value.failure() }
         val onSuccess = spyk<(Int) -> String>({ it.toString() })
         val onFailure = spyk<(ErrorCaseEnum) -> String>({ it.name })
         val s = failureResult.fold(onFailure, onSuccess)
@@ -60,7 +60,7 @@ internal class ResultMapTest {
     @Test
     fun `Fold operation on a success result should not invoke the 'onFailure'`() {
         val value = 12
-        val result = result<ErrorCaseEnum, Int> { value.success() }
+        val result = resultOf<ErrorCaseEnum, Int> { value.success() }
         val onSuccess = spyk<(Int) -> String>({ it.toString() })
         val onFailure = spyk<(ErrorCaseEnum) -> String>({ it.name })
         val s = result.fold(onFailure, onSuccess)

@@ -5,7 +5,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 
-fun File.size(): Result<IOException, Long> = result {
+fun File.size(): Result<IOException, Long> = resultOf {
 
     if (!exists()) {
         throw FileNotFoundException(path)
@@ -26,14 +26,14 @@ fun File.kind(): Result<IOException, FileKind> = found().map {
     }
 }
 
-fun File.found(): Result<IOException, File> = result {
+fun File.found(): Result<IOException, File> = resultOf {
     if (!exists()) {
         throw FileNotFoundException(path)
     }
     success()
 }
 
-fun File.create(ofKind: FileKind.Known, includeParents: Boolean = false): Result<IOException, File> = result {
+fun File.create(ofKind: FileKind.Known, includeParents: Boolean = false): Result<IOException, File> = resultOf {
 
     val existAsKindAlready = kind().getOrNull()
     if (existAsKindAlready != null) {

@@ -2,10 +2,7 @@ package resultk
 
 import assertk.all
 import assertk.assertThat
-import assertk.assertions.isEqualTo
-import assertk.assertions.isFailure
-import assertk.assertions.isInstanceOf
-import assertk.assertions.prop
+import assertk.assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import resultk.testing.assertions.isSuccessResult
@@ -22,7 +19,7 @@ internal class CoreDataStructureTest {
     @Test
     fun `Calling get on failure always result on an exception`() {
         val failure = Result.Failure(1)
-        assertThat(failure::get).isFailure()
+        assertThat(failure::get).isFailure().transform {  }
     }
 
     @Test
@@ -40,8 +37,8 @@ internal class CoreDataStructureTest {
     fun `Failure result should identify correctly`() {
         val failure: Result<Int, String> = Result.Failure(10)
         assertThat(failure, "failure").all {
-            prop("isFailure", Result<Int, String>::isFailure).isEqualTo(true)
-            prop("isSuccess", Result<Int, String>::isSuccess).isEqualTo(false)
+            prop(Result<Int, String>::isFailure).isEqualTo(true)
+            prop(Result<Int, String>::isSuccess).isEqualTo(false)
         }
     }
 
@@ -50,8 +47,8 @@ internal class CoreDataStructureTest {
         val value = "ok"
         val success: Result<Int, String> = Result.Success(value)
         assertThat(success, "success").all {
-            prop("isFailure", Result<Int, String>::isFailure).isEqualTo(false)
-            prop("isSuccess", Result<Int, String>::isSuccess).isEqualTo(true)
+            prop(Result<Int, String>::isFailure).isEqualTo(false)
+            prop(Result<Int, String>::isSuccess).isEqualTo(true)
         }
     }
 
@@ -62,8 +59,8 @@ internal class CoreDataStructureTest {
             println("Hello from test!")
         }
 
-        val result: Result<Exception, Unit> = result { Result.Success(sayHello()) }
+        val result: Result<Exception, Unit> = resultOf { Result.Success(sayHello()) }
 
-        assertThat(result).isSuccessResult().isEqualTo(Unit)
+        assertThat(result).isSuccessResult().isSameAs(Unit)
     }
 }

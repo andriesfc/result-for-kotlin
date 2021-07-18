@@ -66,7 +66,7 @@ internal class FunctionFlowControlTest {
     fun `Use 'thenResult()' result to construct a single happy path`() {
 
         fun String.computedSha1(): Result<Exception, String> {
-            return result<Exception, MessageDigest> {
+            return resultOf<Exception, MessageDigest> {
                 MessageDigest.getInstance("sha1").success()
             }.thenResult {
                 value.update(this@computedSha1.toByteArray(Charsets.US_ASCII))

@@ -1,8 +1,10 @@
 package resultk.demo.domain
 
 import resultk.Result.Failure
-import resultk.Result.Failure.ThrowableProvider
 import resultk.Result.Failure.FailureUnwrapper
+import resultk.Result.Failure.ThrowableProvider
+import java.io.IOException
+import java.security.NoSuchAlgorithmException
 
 enum class ErrorCaseEnum {
     ERROR_CASE_1,
@@ -28,3 +30,21 @@ enum class ErrorEnumWSelfUnwrapping : ThrowableProvider<Exception> {
     }
 }
 
+
+sealed class HashingError<out X : Exception> : ThrowableProvider<X> {
+
+    abstract val cause: X
+
+    override fun throwable(): X = cause
+
+    data class SourceContentNotReadable(
+        val source: Any,
+        override val cause: IOException
+    ) : HashingError<IOException>()
+
+    data class UnsupportedAlgorithm(
+        override val cause: NoSuchAlgorithmException,
+        val algorithm: String
+    ) : HashingError<NoSuchAlgorithmException>()
+
+}
