@@ -27,7 +27,7 @@ internal class CoreDataStructureTest {
         val error = 1
         val failure = Result.Failure(error)
         assertThat(failure::get).isFailure()
-            .isInstanceOf(Result.Failure.FailureUnwrapper::class)
+            .isInstanceOf(Result.Failure.FailureUnwrappingCapable::class)
             .transform("wrapped().error") { provider -> provider.unwrap()?.error }
             .isEqualTo(error)
 

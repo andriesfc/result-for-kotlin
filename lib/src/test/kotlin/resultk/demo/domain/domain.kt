@@ -1,7 +1,7 @@
 package resultk.demo.domain
 
 import resultk.Result.Failure
-import resultk.Result.Failure.FailureUnwrapper
+import resultk.Result.Failure.FailureUnwrappingCapable
 import resultk.Result.Failure.ThrowableProvider
 import java.io.IOException
 import java.security.NoSuchAlgorithmException
@@ -21,11 +21,11 @@ enum class ErrorEnumWSelfUnwrapping : ThrowableProvider<Exception> {
 
     override fun throwable(): Exception = SimpleErrorException(_wrapped)
 
-    sealed interface CustomFailureUnwrapper : FailureUnwrapper<ErrorEnumWSelfUnwrapping>
+    sealed interface CustomFailureUnwrappingCapable : FailureUnwrappingCapable<ErrorEnumWSelfUnwrapping>
 
     private class SimpleErrorException(
         private val _wrapped: Failure<ErrorEnumWSelfUnwrapping>
-    ) : Exception(_wrapped.error.name), CustomFailureUnwrapper {
+    ) : Exception(_wrapped.error.name), CustomFailureUnwrappingCapable {
         override fun unwrap(): Failure<out ErrorEnumWSelfUnwrapping> = _wrapped
     }
 }

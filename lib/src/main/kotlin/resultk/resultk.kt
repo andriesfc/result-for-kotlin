@@ -2,7 +2,7 @@
 package resultk
 
 import resultk.Result.Failure
-import resultk.Result.Failure.FailureUnwrapper
+import resultk.Result.Failure.FailureUnwrappingCapable
 import resultk.Result.Success
 import java.util.*
 
@@ -90,7 +90,7 @@ sealed class Result<out E, out T> {
             fun throwable(): X
         }
 
-        interface FailureUnwrapper<out E> {
+        interface FailureUnwrappingCapable<out E> {
             fun unwrap(): Failure<out E>?
         }
 
@@ -176,20 +176,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
     return try {
         action()
     } catch (e: Throwable) {
-        @Suppress("UNCHECKED_CAST")
-        when (e) {
-            is E -> {
-                Failure(e)
-            }
-            is FailureUnwrapper<*> -> {
-                val unwrapped = e.unwrap() ?: throw e
-                unwrapped.error as? E ?: throw e
-                unwrapped as Failure<E>
-            }
-            else -> {
-                throw e
-            }
-        }
+        e.unwrapOrNull() ?: throw e
     }
 }
 
@@ -429,11 +416,19 @@ inline fun <reified E, T, R> Result<E, T>.thenResult(process: Success<T>.() -> R
  */
 @Suppress("UNCHECKED_CAST")
 private class NonThrowableFailureUnwrappingException(
-    wrapped: Failure<*>
-) : RuntimeException("${wrapped.error}"), FailureUnwrapper<Any> {
+    wrapped: Failure<*>,
+) : RuntimeException("${wrapped.error}"), FailureUnwrappingCapable<Any> {
     private val _wrapped = wrapped as Failure<Any>
     override fun unwrap(): Failure<out Any> = _wrapped
 }
 
+@Suppress("UNCHECKED_CAST")
+inline fun <reified E> Throwable.unwrapOrNull(): Failure<E>? {
+    return when (this) {
+        is E -> Failure(this)
+        !is FailureUnwrappingCapable<*> -> null
+        else -> unwrap()?.takeIf { it.error is E }?.let { it as Failure<E> }
+    }
+}
 //</editor-fold>
 

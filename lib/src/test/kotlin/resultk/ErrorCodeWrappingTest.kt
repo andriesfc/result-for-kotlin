@@ -18,7 +18,7 @@ internal class ErrorCodeWrappingTest {
         val result: Result<ErrorCaseEnum, Int> = expected.failure()
         assertThat { result.get() }
             .isFailure()
-            .isInstanceOf(Result.Failure.FailureUnwrapper::class)
+            .isInstanceOf(Result.Failure.FailureUnwrappingCapable::class)
             .transform { it.unwrap()?.error }
             .isEqualTo(expected)
     }
@@ -29,7 +29,7 @@ internal class ErrorCodeWrappingTest {
         val result: Result<ErrorEnumWSelfUnwrapping, Int> = expected.failure()
         assertThat { result.get() }
             .isFailure()
-            .isInstanceOf(ErrorEnumWSelfUnwrapping.CustomFailureUnwrapper::class)
+            .isInstanceOf(ErrorEnumWSelfUnwrapping.CustomFailureUnwrappingCapable::class)
             .transform { it.unwrap()?.error }
             .isEqualTo(expected)
     }
