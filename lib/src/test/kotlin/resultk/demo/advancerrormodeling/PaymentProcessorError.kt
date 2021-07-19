@@ -1,13 +1,10 @@
 package resultk.demo.advancerrormodeling
 
-import resultk.Result
-import resultk.getOrNull
-import resultk.resultOf
-import resultk.success
+import resultk.*
 import java.util.*
 import java.util.ResourceBundle.getBundle
 
-sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableProvider<PaymentProcessorException> {
+sealed class PaymentProcessorError(val code: String) : ThrowableProvider<PaymentProcessorException> {
 
     internal val messageKey = "error.$code"
 
@@ -56,7 +53,7 @@ sealed class PaymentProcessorError(val code: String) : Result.Failure.ThrowableP
 
     companion object {
         private val notSuppliedByUpstreamProvider = message("sentence_building.not_supplied_by_upstream_provider").get()
-        private val punctuation = message("sentence_building.punctuation").get().toSet()
+        private val punctuation = message("sentence_building.punctuation").get()
         private val fullStop = message("sentence_building.fullstop").get().first()
         private val oneSpace = message("sentence_building.onespace").get()
         private val Char.isNotPunctuation: Boolean get() = this !in punctuation

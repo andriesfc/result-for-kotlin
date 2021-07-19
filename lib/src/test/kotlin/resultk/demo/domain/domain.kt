@@ -1,8 +1,8 @@
 package resultk.demo.domain
 
+import resultk.FailureUnwrappingCapable
 import resultk.Result.Failure
-import resultk.Result.Failure.FailureUnwrappingCapable
-import resultk.Result.Failure.ThrowableProvider
+import resultk.ThrowableProvider
 import java.io.IOException
 import java.security.NoSuchAlgorithmException
 

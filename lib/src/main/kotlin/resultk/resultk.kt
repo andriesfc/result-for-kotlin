@@ -2,7 +2,6 @@
 package resultk
 
 import resultk.Result.Failure
-import resultk.Result.Failure.FailureUnwrappingCapable
 import resultk.Result.Success
 import java.util.*
 
@@ -76,35 +75,6 @@ sealed class Result<out E, out T> {
      * @property error The error returned as an result.
      */
     data class Failure<E>(val error: E) : Result<E, Nothing>() {
-
-
-        /**
-         * Implement this on your errors  to control which exception is raised on calling
-         * [Failure.get] function.
-         *
-         * @param X
-         *      The type throwable this failure wants use when caller tries to get an success value
-         *      from this error
-         */
-        fun interface ThrowableProvider<out X : Throwable> {
-            fun throwable(): X
-        }
-
-        /**
-         * Implement this if interface on any exception provided by the [ThrowableProvider.failure] call
-         * if you want your own exception to be able to unwrap a [Failure].
-         *
-         * By default the library (if not provided with one), will use an internal implementation.
-         *
-         * @see DefaultFailureUnwrappingException
-         *      The internal exception used by the library itself if non other is provided.
-         * @see unwrapOrNull
-         *      A function which attempts to unwrap a specific `Failure` based on desired error value type.
-         * @see resultOf
-         */
-        interface FailureUnwrappingCapable<out E> {
-            fun unwrap(): Failure<out E>?
-        }
 
         /**
          * Failures does not have an result value, only an [error]. Calling get on a failure
@@ -415,6 +385,36 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() ->
 
 
 //</editor-fold>
+
+
+/**
+ * Implement this on your errors  to control which exception is raised on calling
+ * [Failure.get] function.
+ *
+ * @param X
+ *      The type throwable this failure wants use when caller tries to get an success value
+ *      from this error
+ */
+fun interface ThrowableProvider<out X : Throwable> {
+    fun throwable(): X
+}
+
+/**
+ * Implement this if interface on any exception provided by the [ThrowableProvider.failure] call
+ * if you want your own exception to be able to unwrap a [Failure].
+ *
+ * By default the library (if not provided with one), will use an internal implementation.
+ *
+ * @see DefaultFailureUnwrappingException
+ *      The internal exception used by the library itself if non other is provided.
+ * @see unwrapOrNull
+ *      A function which attempts to unwrap a specific `Failure` based on desired error value type.
+ * @see resultOf
+ */
+interface FailureUnwrappingCapable<out E> {
+    fun unwrap(): Failure<out E>?
+}
+
 
 //<editor-fold desc="Error code wrapping">
 /**
