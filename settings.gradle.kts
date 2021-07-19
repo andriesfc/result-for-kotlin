@@ -1,3 +1,4 @@
 
 rootProject.name = "result-for-kotlin"
-include("lib")
+include(":lib")
+include(":demos:mediaconversion")
