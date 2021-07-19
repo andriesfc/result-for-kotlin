@@ -20,7 +20,7 @@ import java.util.*
  * - If the caller calls [Result.get] and the captured [Failure.error] is an actual [kotlin.Throwable], it will be
  *   thrown, (again as is the normal Object Oriented way).
  * - If the caller calls [Result.get] and the captured [Failure.error], is not something which can be thrown, this
- *   library will wrap it as [NonThrowableFailureUnwrappingException], and throw it.
+ *   library will wrap it as [DefaultFailureUnwrappingException], and throw it.
  *
  * See the [Failure.get] function for more details on exactly how errors are handled by this `Result` implementation.
  *
@@ -90,6 +90,18 @@ sealed class Result<out E, out T> {
             fun throwable(): X
         }
 
+        /**
+         * Implement this if interface on any exception provided by the [ThrowableProvider.failure] call
+         * if you want your own exception to be able to unwrap a [Failure].
+         *
+         * By default the library (if not provided with one), will use an internal implementation.
+         *
+         * @see DefaultFailureUnwrappingException
+         *      The internal exception used by the library itself if non other is provided.
+         * @see unwrapOrNull
+         *      A function which attempts to unwrap a specific `Failure` based on desired error value type.
+         * @see resultOf
+         */
         interface FailureUnwrappingCapable<out E> {
             fun unwrap(): Failure<out E>?
         }
@@ -103,12 +115,12 @@ sealed class Result<out E, out T> {
          * - If the actual [error] is a [kotlin.Throwable] it will simply be thrown as expected.
          * - If the [error] implements the [Failure.ThrowableProvider] interface, the `error.throwable()` function will
          * be called to determine which throwable will be thrown.
-         * - Lastly, of neither of the above applies, the error value will be wrapped a [NonThrowableFailureUnwrappingException]
+         * - Lastly, of neither of the above applies, the error value will be wrapped a [DefaultFailureUnwrappingException]
          * instance, before being thrown.
          *
          * Regardless, it is up the caller to handle, or ignore the thrown exception as usual business.
          *
-         * @see NonThrowableFailureUnwrappingException
+         * @see DefaultFailureUnwrappingException
          * @see Result.Failure.ThrowableProvider
          */
         override fun get(): Nothing {
@@ -120,7 +132,7 @@ sealed class Result<out E, out T> {
                     throw error
                 }
                 else -> {
-                    throw NonThrowableFailureUnwrappingException(this)
+                    throw DefaultFailureUnwrappingException(this)
                 }
             }
         }
@@ -133,7 +145,8 @@ sealed class Result<out E, out T> {
     /**
      * Calling get is unsafe, as the may fail (in the case of a [Failure.get]) with an exception being thrown.
      *
-     * @see NonThrowableFailureUnwrappingException.wrappedFailure - in the case where the [Failure.error] is not a throwable type.
+     * @see Failure.FailureUnwrappingCapable.unwrap
+     *      In the case where the [Failure.error] is not a throwable type.
      */
     abstract fun get(): T
 
@@ -188,7 +201,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
  * @param T
  *      The success value type
  */
-inline fun <reified E, R, T> T.resultCatching(processThis: T.() -> Result<E, R>): Result<E, R> {
+inline fun <reified E, R, T> T.resultOfCatching(processThis: T.() -> Result<E, R>): Result<E, R> {
     return resultOf { processThis(this) }
 }
 
@@ -208,7 +221,7 @@ fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit) = apply {
 /**
  * Returns an error or `null` for a given Result.
  *
- * @receiver A [resultCatching]
+ * @receiver A [resultOfCatching]
  */
 fun <E> Result<E, *>.errorOrNull(): E? {
     return when (this) {
@@ -243,7 +256,7 @@ inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
 fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
 
 /**
- * A get operation which ensures that an exception is thrown if the result is a [resultCatching.Failure]. Thr caller needs
+ * A get operation which ensures that an exception is thrown if the result is a [resultOfCatching.Failure]. Thr caller needs
  * to supply a function to map the error value to the correct instance of [X
  *
  * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
@@ -339,7 +352,7 @@ inline fun <E, T, R> Result<E, T>.fold(
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
-inline fun <reified Ex : Throwable, reified E, R> resultCatching(
+inline fun <reified Ex : Throwable, reified E, R> resultOfCatching(
     caught: (Ex) -> E,
     construct: () -> Result<E, R>
 ): Result<E, R> {
@@ -364,13 +377,13 @@ inline fun <reified Ex : Throwable, reified E, R> resultCatching(
  * @param T
  *      The target object your are processing
  * @param R
- *      The result type this `thenResultCatching` should produce
+ *      The result type this `thenResultOfCatching` should produce
  * @param caught
- *      A lambda which takes in exception of type `Ex` and produce the appropiate domain erro
+ *      A lambda which takes in exception of type `Ex` and produce the appropriate domain erro
  * @param process
- *      A lambda which recieves an success result value.
+ *      A lambda which receives a success result value.
  */
-inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultCatching(
+inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultOfCatching(
     caught: (e: Ex) -> E,
     process: Success<T>.() -> Result<E, R>
 ): Result<E, R> {
@@ -393,7 +406,7 @@ inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultCatching(
  *      process A lambda which the the [Success] as receiver and returns the next result, whether it
  *      is [Failure] or [Success]
  */
-inline fun <reified E, T, R> Result<E, T>.thenResult(process: Success<T>.() -> Result<E, R>): Result<E, R> {
+inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() -> Result<E, R>): Result<E, R> {
     return when (this) {
         is Failure -> this
         is Success -> resultOf { process(this) }
@@ -412,10 +425,10 @@ inline fun <reified E, T, R> Result<E, T>.thenResult(process: Success<T>.() -> R
  * @constructor Creates a new wrapped failure exception which can be raised using the `throw` operation.
  * @param wrapped The failure to wrap.
  * @see Result.get
- * @see resultCatching
+ * @see resultOfCatching
  */
 @Suppress("UNCHECKED_CAST")
-private class NonThrowableFailureUnwrappingException(
+private class DefaultFailureUnwrappingException(
     wrapped: Failure<*>,
 ) : RuntimeException("${wrapped.error}"), FailureUnwrappingCapable<Any> {
     private val _wrapped = wrapped as Failure<Any>

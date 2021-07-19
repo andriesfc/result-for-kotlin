@@ -82,7 +82,7 @@ fun File.hashContentsV2(algorithm: String): Result<HashingError<Exception>, Stri
 }
 
 fun File.hashContentsV3(algorithm: String): Result<HashingError<Exception>, String> {
-    return resultOf<Exception, MessageDigest> { MessageDigest.getInstance(algorithm).success() }.thenResult {
+    return resultOf<Exception, MessageDigest> { MessageDigest.getInstance(algorithm).success() }.thenResultOf {
         forEachBlock { buffer, bytesRead ->
             if (bytesRead > 0) {
                 value.update(buffer, 0, bytesRead)
@@ -104,9 +104,9 @@ fun File.hashContentsV4(algorithm: String): Result<HashingError<Exception>, Stri
     val unsupportedAlgorithm = fun(e: NoSuchAlgorithmException) = UnsupportedAlgorithm(e, algorithm)
     val inputFailure = fun(e: IOException) = SourceContentNotReadable(path, e)
 
-    return resultCatching(unsupportedAlgorithm) {
+    return resultOfCatching(unsupportedAlgorithm) {
         MessageDigest.getInstance(algorithm).success()
-    }.thenResultCatching(inputFailure) {
+    }.thenResultOfCatching(inputFailure) {
         forEachBlock { buffer, bytesRead -> if (bytesRead > 0) value.update(buffer, 0, bytesRead) }
         encodeHexString(value.digest()).success()
     }

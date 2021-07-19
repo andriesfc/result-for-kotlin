@@ -21,7 +21,11 @@ internal class PromotesUsageDemonstrationTest {
     @Test
     @Order(1)
     fun `Upfront error handling - do not do this`() {
-        val message = kotlin.runCatching { ResourceBundle.getBundle("messages").getString("message.key") }.getOrNull()
+        val message = kotlin.runCatching {
+            // oops,
+            if (System.currentTimeMillis() > 0) throw OutOfMemoryError()
+            ResourceBundle.getBundle("messages").getString("message.key")
+        }.getOrElse { it.printStackTrace(); null }
         assertThat(message).isNull()
         // Why:
         //  1. Could catch something you cannot and should not handle.
@@ -51,8 +55,8 @@ internal class PromotesUsageDemonstrationTest {
         val noSuchMessageBundleError = { _: MissingResourceException -> BundleNotPresent(bundle) }
         val keyNotPresentInBundleError = { _: MissingResourceException -> KeyIsMissing(bundle, key) }
         val message: Result<GetBundleError, String> =
-            resultCatching(noSuchMessageBundleError) { ResourceBundle.getBundle(bundle).success() }
-                .thenResultCatching(keyNotPresentInBundleError) { value.getString(key).success() }
+            resultOfCatching(noSuchMessageBundleError) { ResourceBundle.getBundle(bundle).success() }
+                .thenResultOfCatching(keyNotPresentInBundleError) { value.getString(key).success() }
                 .onFailure(::println)
                 .onSuccess(::println)
 
