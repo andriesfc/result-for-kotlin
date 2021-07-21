@@ -132,7 +132,7 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-    tasks.withType<KotlinCompile> {
+tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = javaCompileLangVersion.toString()
     kotlinOptions.apiVersion = kotlinComileLangVersion
     kotlinOptions.languageVersion = kotlinComileLangVersion
