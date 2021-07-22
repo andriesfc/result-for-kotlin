@@ -9,3 +9,5 @@ build
 **/java_pid*.hprof
 
 .private/*
+
+**/.DS_Store

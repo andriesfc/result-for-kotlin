@@ -66,6 +66,9 @@ dependencies {
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 
+    // PDF support
+    implementation("org.apache.pdfbox:pdfbox:2.0.22")
+
 }
 
 tasks.withType<Test> {
