@@ -4,14 +4,13 @@ import assertk.Assert
 import assertk.assertThat
 import assertk.assertions.*
 import com.acme.mediatranscoding.api.TranscodingError
-import com.acme.mediatranscoding.support.I8n
 import com.acme.mediatranscoding.support.I8n.MESSAGES_BUNDLE
 import com.acme.mediatranscoding.support.humanizedName
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import resultk.*
+import resultk.Result
 import java.util.*
 import java.util.ResourceBundle.getBundle
 import kotlin.reflect.full.isSubtypeOf
@@ -21,7 +20,6 @@ import kotlin.reflect.typeOf
 @OptIn(ExperimentalStdlibApi::class)
 internal class TranscodingErrorTest {
 
-    //<editor-fold desc="Private fields">
     private val testTranscoder = "TestTranscoder"
     private val testMedia = "TestMedia"
     private val testInitErrorReported = "TestTranscoderInitializingError"
@@ -29,9 +27,7 @@ internal class TranscodingErrorTest {
         registerAvailableTranscoderErrors().also { registeredErrors ->
             assertThat(registeredErrors).isNotMissingActualImplementations()
         }
-    //</editor-fold>
 
-    //<editor-fold desc="Preparation">
     @BeforeAll
     fun prepareTests() {
         ResourceBundle.clearCache()
@@ -41,25 +37,30 @@ internal class TranscodingErrorTest {
     private fun registerAvailableTranscoderErrors(): List<TranscodingError> = listOf(
         TranscodingError.InvalidMediaFormat,
         TranscodingError.NothingToDo,
-        TranscodingError.UnexpectedFailure(
-            testTranscoder,
-            Exception("Not expected"),
-            "aDeveloperDebugNote"
-        ),
+        TranscodingError.UnexpectedFailure(testTranscoder, Exception("Not expected")),
         TranscodingError.InitFailed(testTranscoder, Exception(testInitErrorReported)),
         TranscodingError.MediaNotAvailable(testMedia, Exception("Test media not available")),
         TranscodingError.IllegalState(testTranscoder, "busy", "invoke()"),
         TranscodingError.UnsupportedTranscoding(testTranscoder, "pdf", "text/plain"),
     )
 
-    //</editor-fold>
 
-    //<editor-fold desc="Unit Tests">
     @ParameterizedTest
     @SourcedByTestableTranscodingErrors
-    fun `All transcoding errors which has a 'cause' property should be propagated down the chain`(
-        error: TranscodingError
-    ) = assertThat(error).causeIsPropagatedIfRequested()
+    fun `All transcoding errors which has 'cause' property should be propagted down the chain`(error: TranscodingError) {
+
+        val errorType = error.javaClass::kotlin.get()
+
+        val causeProperty = errorType.memberProperties.firstOrNull { p ->
+            (p.name == "cause")
+                    && p.returnType.isSubtypeOf(typeOf<Exception>())
+        } ?: return
+
+        val cause = causeProperty.get(error)
+        val actual = error.throwing().cause
+
+        assertThat(actual).isEqualTo(cause)
+    }
 
     @ParameterizedTest
     @SourcedByTestableTranscodingErrors
@@ -91,70 +92,37 @@ internal class TranscodingErrorTest {
         assertThat {
             TranscodingError.UnexpectedFailure(
                 "testConverter",
-                Exception("UnexpectedErrorHere!"),
-                "Not expected"
+                Exception("UnexpectedErrorHere!")
             )
         }.isSuccess().message().contains("UnexpectedErrorHere!")
     }
 
     @ParameterizedTest
     @SourcedByTestableTranscodingErrors
-    fun `Developer error message should be usable if it is set transcoding error`(transcodingError: TranscodingError) {
-
-        val developerErrorCode = transcodingError.developerErrorCode ?: return
-        val developerErrorTemplate = I8n.message(developerErrorCode)
-
+    fun `Developer error message should be exists if set`(e: TranscodingError) {
+        val developerMessage = e.developerMessage() ?: return
         assertThat(
-            developerErrorTemplate,
-            "Developer error message resource [%s] must exists transcoding error's [%s]".format(
-                developerErrorCode,
-                transcodingError.name
+            developerMessage,
+            "Message resource key [%s] to exists for transcoding error: [%s] ".format(
+                e.developerErrorCode,
+                e.javaClass.name.replace('$', '.')
             )
-        ).isInstanceOf(Result.Success::class).prop("result") {
-            it.result as String?
-        }.given { messageTemplate ->
-            println("$developerErrorCode -> $messageTemplate")
-            assertThat(
-                messageTemplate,
-                "Expected developer template $developerErrorTemplate to not be null or empty."
-            ).isNotNull().isNotEmpty()
-        }
-
-        assertThat {
-            transcodingError.developerMessage()?.get()
-        }.isSuccess().isNotNull().isNotEmpty()
-
+        ).isInstanceOf(Result.Success::class)
+            .transform("result.success.value", Result.Success<*>::value)
+            .isNotNull()
+            .isInstanceOf(String::class)
+            .isNotNull()
+            .isNotEmpty()
     }
-    //</editor-fold>
 
-    //<editor-fold desc="Test Drivers">
     @Suppress("unused")
     fun availableErrorsRegistrations() = availableTranscodingErrors
 
     @MethodSource("availableErrorsRegistrations")
     annotation class SourcedByTestableTranscodingErrors
-    //</editor-fold>
-
-    //<editor-fold desc="Assertions">
 
     private fun Assert<TranscodingError>.message() =
         transform("ConversionError.message", TranscodingError::message)
-
-    private fun Assert<TranscodingError>.causeIsPropagatedIfRequested() {
-
-        given { actual: TranscodingError ->
-            val actualErrorType = actual.javaClass.kotlin
-
-            val causeProperty = actualErrorType.memberProperties.firstOrNull { property ->
-                property.name == "cause"
-                        && property.returnType.isSubtypeOf(typeOf<Throwable>())
-            } ?: return
-
-            println("Cause propagation requested: ${actual.name}")
-            val cause = causeProperty.get(actual) as Throwable?
-            assertThat { actual.throwing() }.isSuccess().prop(Exception::cause).isEqualTo(cause)
-        }
-    }
 
     /**
      * This assertion ensures that all parameterized test annotated by the
@@ -187,6 +155,5 @@ internal class TranscodingErrorTest {
             assertThat(unregisteredErrorTypes).isEmpty()
         }
     }
-    //</editor-fold>
 
 }

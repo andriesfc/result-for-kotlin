@@ -1,6 +1,8 @@
 @file:Suppress("LocalVariableName", "SpellCheckingInspection")
 
+import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.net.URL
 
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.5.21"
@@ -10,7 +12,7 @@ plugins {
 
 
 val javaCompileLangVersion = JavaLanguageVersion.of("11")
-val koltinLangVersion = "1.5"
+val kotlinComileLangVersion = "1.5"
 val isRelease by extra { !"$version".endsWith("-snapshot", ignoreCase = true) }
 
 javaToolchains {
@@ -24,7 +26,6 @@ repositories {
 }
 
 dependencies {
-
     // Align versions of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
 
@@ -57,7 +58,7 @@ dependencies {
     implementation("org.springframework:spring-expression:5.3.9")
 
     // MockK
-    val mockk_version = "1.12.0"
+    val mockk_version = "1.11.0"
     testImplementation("io.mockk:mockk:$mockk_version")
 
     // AssertK
@@ -79,8 +80,8 @@ tasks.withType<Test> {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = javaCompileLangVersion.toString()
-        apiVersion = koltinLangVersion
-        languageVersion = koltinLangVersion
+        apiVersion = kotlinComileLangVersion
+        languageVersion = kotlinComileLangVersion
         freeCompilerArgs = listOf("-Xopt-in=kotlin.RequiresOptIn")
     }
 }

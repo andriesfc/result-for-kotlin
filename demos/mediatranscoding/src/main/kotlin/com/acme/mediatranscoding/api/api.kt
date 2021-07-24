@@ -1,10 +1,11 @@
 package com.acme.mediatranscoding.api
 
 import com.acme.mediatranscoding.support.I8n
-import com.acme.mediatranscoding.support.humanizedName
 import org.slf4j.LoggerFactory
-import resultk.ThrowableProvider
+import resultk.Result
 import resultk.getOrNull
+import java.io.InputStream
+import java.io.OutputStream
 
 //region Transcoding API
 
@@ -16,9 +17,7 @@ class TranscodingException(
 sealed class TranscodingError(
     val errorCode: String,
     val developerErrorCode: String? = null
-) : ThrowableProvider<TranscodingException> {
-
-    val name: String get() = "${javaClass.humanizedName}[$errorCode]"
+) : resultk.ThrowableProvider<TranscodingException> {
 
     object InvalidMediaFormat :
         TranscodingError("error.transcoding.invalid_input_format")
@@ -26,11 +25,7 @@ sealed class TranscodingError(
     object NothingToDo :
         TranscodingError("error.transcoding.nothing_to_do")
 
-    class UnexpectedFailure<T>(
-        val transcoder: T,
-        val cause: Exception,
-        val developerDebugNote: String
-    ) :
+    class UnexpectedFailure<T>(val transcoder: T, val cause: Exception) :
         TranscodingError(
             errorCode = "error.transcoding.unexpected_failure",
             developerErrorCode = "error.transcoding.unexpected_failure.developer"
@@ -78,7 +73,7 @@ sealed class TranscodingError(
     protected open fun developerMessageModel(): Any = this
     private fun throwableMessage(): String = developerMessage()?.getOrNull() ?: message()
     fun developerMessage() = developerErrorCode?.let { I8n.eval(it, developerMessageModel()) }
-    override fun throwing(): TranscodingException = throwing(throwableMessage())
+    override fun throwing(): TranscodingException  = throwing(throwableMessage())
     protected open fun throwing(message: String): TranscodingException {
         return TranscodingException(message)
     }
@@ -87,5 +82,34 @@ sealed class TranscodingError(
         private val log = LoggerFactory.getLogger(TranscodingError::class.java)
     }
 }
+
+
+interface Transcoder {
+
+    enum class State {
+        READY /* Ready to transcode */,
+        BUSY /* Busy transcoding now */,
+        DISPOSED /* Transcoder has been disposed! */,
+    }
+
+    val providerId: String
+    val mediaIn: String
+    val mediaOut: String
+
+    fun state(): State
+
+    fun dispose()
+
+    operator fun invoke(
+        sourceId: String,
+        source: InputStream,
+        destinationId: String,
+        destination: OutputStream,
+    ): Result<TranscodingError, Long>
+}
+
+//endregion
+
+//region Supporting & Base classes
 
 //endregion
