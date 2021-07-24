@@ -1,4 +1,4 @@
-package com.acme.mediaconversion.support.stringtemplating
+package com.acme.mediatranscoding.support.stringtemplating
 
 import org.springframework.expression.ParserContext
 import org.springframework.expression.spel.SpelParseException
