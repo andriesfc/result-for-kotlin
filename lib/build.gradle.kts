@@ -104,6 +104,9 @@ dependencies {
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
+    /// Uses reflection in unit tests
+    testImplementation(kotlin("reflect"))
+
     // JUnit5
     val junit5_version = "5.7.2"
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5_version")

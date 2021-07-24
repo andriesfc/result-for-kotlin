@@ -29,6 +29,9 @@ dependencies {
     // Align versions of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
 
+    // Still using reflection
+    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
+
     // Use the Kotlin JDK 8 standard library.
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
@@ -54,7 +57,6 @@ dependencies {
     // https://mvnrepository.com/artifact/org.springframework/spring-expression
     implementation("org.springframework:spring-expression:5.3.9")
 
-
     // MockK
     val mockk_version = "1.11.0"
     testImplementation("io.mockk:mockk:$mockk_version")
@@ -76,8 +78,11 @@ tasks.withType<Test> {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = javaCompileLangVersion.toString()
-    kotlinOptions.apiVersion = kotlinComileLangVersion
-    kotlinOptions.languageVersion = kotlinComileLangVersion
+    kotlinOptions {
+        jvmTarget = javaCompileLangVersion.toString()
+        apiVersion = kotlinComileLangVersion
+        languageVersion = kotlinComileLangVersion
+        freeCompilerArgs = listOf("-Xopt-in=kotlin.RequiresOptIn")
+    }
 }
 

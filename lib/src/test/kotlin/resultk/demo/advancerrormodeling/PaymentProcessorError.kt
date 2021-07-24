@@ -13,7 +13,7 @@ sealed class PaymentProcessorError(val code: String) : ThrowableProvider<Payment
     object InsufficientFunds : PaymentProcessorError("insufficient_funds")
 
     open fun message(): String = message(messageKey).get()
-    override fun throwable() = PaymentProcessorException(this)
+    override fun throwing(): PaymentProcessorException = PaymentProcessorException(this)
     override fun toString(): String = code
 
     class UpstreamError(

@@ -5,6 +5,7 @@ import assertk.assertThat
 import assertk.assertions.*
 import com.acme.mediatranscoding.api.TranscodingError
 import com.acme.mediatranscoding.support.I8n.MESSAGES_BUNDLE
+import com.acme.mediatranscoding.support.humanizedName
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -12,7 +13,11 @@ import org.junit.jupiter.params.provider.MethodSource
 import resultk.Result
 import java.util.*
 import java.util.ResourceBundle.getBundle
+import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.typeOf
 
+@OptIn(ExperimentalStdlibApi::class)
 internal class TranscodingErrorTest {
 
     private val testTranscoder = "TestTranscoder"
@@ -20,40 +25,8 @@ internal class TranscodingErrorTest {
     private val testInitErrorReported = "TestTranscoderInitializingError"
     private val availableTranscodingErrors =
         registerAvailableTranscoderErrors().also { registeredErrors ->
-            assertThat(registeredErrors).allIsRegisteredForTesting()
+            assertThat(registeredErrors).isNotMissingActualImplementations()
         }
-
-    /**
-     * This assertion asserts that the list of testing errors supplied contains
-     * covers all sub classes of the possible error types. This  is important to
-     * ensure that all transcoding errors types are available for testing.
-     */
-    private fun Assert<List<TranscodingError>>.allIsRegisteredForTesting() {
-        given { registrations ->
-
-            val humanizedName = fun Class<*>.() = name.replace('$', '.')
-
-            val allPossibleTranscodingErrorTypes =
-                TranscodingError::class.sealedSubclasses.map { it.javaObjectType }
-
-            val unregisteredErrorTypes = allPossibleTranscodingErrorTypes.filter { expected ->
-                registrations.count { registration -> expected.isInstance(registration) } == 0
-            }.map(humanizedName)
-
-            if (unregisteredErrorTypes.isNotEmpty()) System.err.apply {
-                println()
-                println("*********************************************************************************************************")
-                println("* Please add the following test transcoding errors via the registerAvailableTranscoderErrors() function *")
-                println("*********************************************************************************************************")
-                println()
-                unregisteredErrorTypes.forEachIndexed { index, name ->
-                    println("  ${index + 1}. $name")
-                }
-            }
-
-            assertThat(unregisteredErrorTypes).isEmpty()
-        }
-    }
 
     @BeforeAll
     fun prepareTests() {
@@ -71,15 +44,33 @@ internal class TranscodingErrorTest {
         TranscodingError.UnsupportedTranscoding(testTranscoder, "pdf", "text/plain"),
     )
 
+
     @ParameterizedTest
-    @TestRegisteredErrorCodeSource
-    fun conversionErrorIsMappedToResource(e: TranscodingError) {
+    @SourcedByTestableTranscodingErrors
+    fun `All transcoding errors which has 'cause' property should be propagted down the chain`(error: TranscodingError) {
+
+        val errorType = error.javaClass::kotlin.get()
+
+        val causeProperty = errorType.memberProperties.firstOrNull { p ->
+            (p.name == "cause")
+                    && p.returnType.isSubtypeOf(typeOf<Exception>())
+        } ?: return
+
+        val cause = causeProperty.get(error)
+        val actual = error.throwing().cause
+
+        assertThat(actual).isEqualTo(cause)
+    }
+
+    @ParameterizedTest
+    @SourcedByTestableTranscodingErrors
+    fun `Transcoding errorCode should be present in the message bundle`(e: TranscodingError) {
         assertThat { getBundle(MESSAGES_BUNDLE).getString(e.errorCode) }.isSuccess()
     }
 
     @ParameterizedTest
-    @TestRegisteredErrorCodeSource
-    fun conversionErrorHasProperMessage(e: TranscodingError) {
+    @SourcedByTestableTranscodingErrors
+    fun `Conversion Error Has Proper Message`(e: TranscodingError) {
         println(e.errorCode + "=" + e.message())
         assertThat(e).also {
             it.prop("message", TranscodingError::message).isNotEmpty()
@@ -87,7 +78,7 @@ internal class TranscodingErrorTest {
     }
 
     @Test
-    fun converterInitializingErrorShouldMentionTheConverterAndFailure() {
+    fun `Converter Initializing Error Should Mention The Converter And Failure`() {
         assertThat(
             TranscodingError.InitFailed(
                 testTranscoder,
@@ -107,7 +98,7 @@ internal class TranscodingErrorTest {
     }
 
     @ParameterizedTest
-    @TestRegisteredErrorCodeSource
+    @SourcedByTestableTranscodingErrors
     fun `Developer error message should be exists if set`(e: TranscodingError) {
         val developerMessage = e.developerMessage() ?: return
         assertThat(
@@ -128,9 +119,41 @@ internal class TranscodingErrorTest {
     fun availableErrorsRegistrations() = availableTranscodingErrors
 
     @MethodSource("availableErrorsRegistrations")
-    annotation class TestRegisteredErrorCodeSource
+    annotation class SourcedByTestableTranscodingErrors
 
     private fun Assert<TranscodingError>.message() =
         transform("ConversionError.message", TranscodingError::message)
+
+    /**
+     * This assertion ensures that all parameterized test annotated by the
+     * [SourcedByTestableTranscodingErrors] receives all possible transcoding errors (NOTE:
+     * it is up to the developer to keep the actual error instances by
+     * updating the list returned via the [registerAvailableTranscoderErrors]
+     * function up to date).
+     */
+    private fun Assert<List<TranscodingError>>.isNotMissingActualImplementations() {
+        given { registrations ->
+
+            val allPossibleTranscodingErrorTypes =
+                TranscodingError::class.sealedSubclasses.map { it.javaObjectType }
+
+            val unregisteredErrorTypes = allPossibleTranscodingErrorTypes.filter { expected ->
+                registrations.count { registration -> expected.isInstance(registration) } == 0
+            }.map(Class<*>::humanizedName)
+
+            if (unregisteredErrorTypes.isNotEmpty()) System.err.apply {
+                println()
+                println("*********************************************************************************************************")
+                println("* Please add the following test transcoding errors via the registerAvailableTranscoderErrors() function *")
+                println("*********************************************************************************************************")
+                println()
+                unregisteredErrorTypes.forEachIndexed { index, typeName ->
+                    println("  ${index + 1}. $typeName")
+                }
+            }
+
+            assertThat(unregisteredErrorTypes).isEmpty()
+        }
+    }
 
 }

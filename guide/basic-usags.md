@@ -40,6 +40,18 @@ The product team is insist that we should provide meaningful error messages to u
 
 ### A Solution POC
 
+#### Scope
+
+1. Demonstrate rich domain modeling of error.
+2. Demonstrate how errors have a local specific error code message.
+3. Demonstrate how some errors may also provide error messages targeting developers in locale specific manner.
+4. Demonstrate how error codes can be thrown via the POC api exception.
+5. Demonstrate how to extend error model within the POC
+6. Demonstrate the **only** the following use case:
+   - Converting Plain text only to PDF document
+
+#### Approach
+
 We introduce the notion of `ConversionError`. Each conversion failure will be identified by an error code. This will allow us to not only to quickly identify such errors in stack traces, error messages etc, but more importantly fulfills two very important requirements:
 
 1. It provides locale specific error messages which are client facing.
@@ -47,14 +59,14 @@ We introduce the notion of `ConversionError`. Each conversion failure will be id
 
 It uses a `ConversionError` sealed class to represents specific failures:
 
-| Error Code                                        | Error Type          | Purpose                                                                       |
-| ------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------- |
-| `error.media_conversion.invalid_input_format`     | `InvalidInputMedia` | Indicates the media is not suited for conversion.                             |
-| `error.media_conversion.conversion.nothing_to_do` | `NothingToDo`       | Indicates the media is empty, so there is nothing to do.                      |
-| `error.media_conversion.unexpected_failure`       | `UnexpectedFailure` | Something unrelated to the encoder happened, which could not be handled.      |
-| `error.media_conversion.encoder_init_failed`      | `EncoderInitError`  | The media converter could not be properly initialized.                        |
-| `error.media_conversion.encoding_failed`          | `EncodingFailed`    | Encoder reported the encoding of the media failed.                            |
-| `error.media_conversion.media_not_available`      | `MediaNotAvailable` | The media to encode could not be found, for example the file does not exists. |
+| Error Code                                   | Error Type          | Purpose                                                                       |
+| -------------------------------------------- | ------------------- | ----------------------------------------------------------------------------- |
+| `error.transcoding.invalid_input_format`     | `InvalidInputMedia` | Indicates the media is not suited for conversion.                             |
+| `error.transcoding.conversion.nothing_to_do` | `NothingToDo`       | Indicates the media is empty, so there is nothing to do.                      |
+| `error.transcoding.unexpected_failure`       | `UnexpectedFailure` | Something unrelated to the encoder happened, which could not be handled.      |
+| `error.transcoding.encoder_init_failed`      | `EncoderInitError`  | The media converter could not be properly initialized.                        |
+| `error.transcoding.encoding_failed`          | `EncodingFailed`    | Encoder reported the encoding of the media failed.                            |
+| `error.transcoding.media_not_available`      | `MediaNotAvailable` | The media to encode could not be found, for example the file does not exists. |
 
 These errors are as sealed classes, instead of just static error codes and/or `enums`. This implementation offers several advantages:
 
@@ -70,8 +82,7 @@ Developer messages should contain more information, so we will supply each error
 An example of such debug message would be:
 
 ```properties
-error.media_conversion.unexpected_failure.developer=\
+error.transcoding.unexpected_failure.developer=\
     Media converter {converter} failed caused by a {cause.class}. \
     See this message: {cause.message}
 ```
-

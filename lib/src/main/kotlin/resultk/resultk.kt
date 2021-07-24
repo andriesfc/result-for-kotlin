@@ -96,7 +96,7 @@ sealed class Result<out E, out T> {
         override fun get(): Nothing {
             when (error) {
                 is ThrowableProvider<Throwable> -> {
-                    throw error.throwable()
+                    throw error.throwing()
                 }
                 is Throwable -> {
                     throw error
@@ -396,7 +396,7 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() ->
  *      from this error
  */
 fun interface ThrowableProvider<out X : Throwable> {
-    fun throwable(): X
+    fun throwing(): X
 }
 
 /**
