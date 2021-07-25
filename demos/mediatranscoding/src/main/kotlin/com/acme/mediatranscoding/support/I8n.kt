@@ -20,6 +20,6 @@ object I8n {
     const val MESSAGES_BUNDLE = "Messages"
 
     fun eval(key: String, model: Any): Result<RuntimeException, String> {
-        return message(key).thenResultOf { value.eval(model) }
+        return message(key).thenResultOf { result.eval(model) }
     }
 }

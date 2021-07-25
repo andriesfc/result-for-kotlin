@@ -1,8 +1,6 @@
 @file:Suppress("LocalVariableName", "SpellCheckingInspection")
 
-import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import java.net.URL
 
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.5.21"
@@ -26,6 +24,7 @@ repositories {
 }
 
 dependencies {
+
     // Align versions of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
 
