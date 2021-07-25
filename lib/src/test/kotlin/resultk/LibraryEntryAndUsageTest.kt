@@ -54,7 +54,7 @@ internal class LibraryEntryAndUsageTest {
         }.format(BASIC_ISO_DATE)
 
         val logFile = File("/var/logs/dora/298/failures.$logfileDate.log")
-        val logFileSize = logFile.resultOfCatching {
+        val logFileSize = logFile.resultWithHandlingOf {
             if (!exists()) throw FileNotFoundException(path)
             length().success<IOException,Long>()
         }

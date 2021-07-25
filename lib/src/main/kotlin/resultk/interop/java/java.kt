@@ -39,7 +39,7 @@ fun <T> Optional<T>.toResult(): Result<NoSuchElementException, T> =
  */
 fun <T> Result<*, T>.toOptional(): Optional<T> {
     return when (this) {
-        is Result.Success -> Optional.ofNullable(value)
+        is Result.Success -> Optional.ofNullable(result)
         else -> Optional.empty()
     }
 }

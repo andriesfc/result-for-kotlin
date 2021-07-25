@@ -1,6 +1,7 @@
 package com.acme.mediatranscoding.api
 
 import com.acme.mediatranscoding.support.I8n
+import com.acme.mediatranscoding.support.humanizedName
 import org.slf4j.LoggerFactory
 import resultk.Result
 import resultk.getOrNull
@@ -19,13 +20,15 @@ sealed class TranscodingError(
     val developerErrorCode: String? = null
 ) : resultk.ThrowableProvider<TranscodingException> {
 
+    val name: String get() = "${javaClass.humanizedName}[$errorCode]"
+
     object InvalidMediaFormat :
         TranscodingError("error.transcoding.invalid_input_format")
 
     object NothingToDo :
         TranscodingError("error.transcoding.nothing_to_do")
 
-    class UnexpectedFailure<T>(val transcoder: T, val cause: Exception) :
+    class UnexpectedFailure<T>(val transcoder: T, val cause: Exception, val developerDebugNote: String) :
         TranscodingError(
             errorCode = "error.transcoding.unexpected_failure",
             developerErrorCode = "error.transcoding.unexpected_failure.developer"

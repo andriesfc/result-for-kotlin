@@ -6,9 +6,15 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.5.21"
     id("org.jetbrains.dokka") version "1.4.32"
     `java-library`
+    `maven-publish`
+    signing
 }
 
+repositories {
+    mavenCentral()
+}
 
+val artifactName = "resultk-commons"
 val javaCompileLangVersion = JavaLanguageVersion.of("11")
 val kotlinComileLangVersion = "1.5"
 val isRelease by extra { !"$version".endsWith("-snapshot", ignoreCase = true) }
@@ -19,17 +25,9 @@ javaToolchains {
     }
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-
     // Align versions of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
-
-    // Still using reflection
-    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
 
     // Use the Kotlin JDK 8 standard library.
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
@@ -37,13 +35,8 @@ dependencies {
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
-    implementation(project(":lib"))
-
-    // Logging
-    val logback_version = "1.2.3"
-    implementation("ch.qos.logback:logback-core:$logback_version")
-    runtimeOnly("ch.qos.logback:logback-classic:$logback_version")
-    implementation("org.slf4j:slf4j-api:1.7.30")
+    /// Uses reflection in unit tests
+    testImplementation(kotlin("reflect"))
 
     // JUnit5
     val junit5_version = "5.7.2"
@@ -53,12 +46,12 @@ dependencies {
     testImplementation("commons-codec:commons-codec:1.15")
     testImplementation("org.apache.commons:commons-text:1.9")
 
-    // https://mvnrepository.com/artifact/org.springframework/spring-expression
-    implementation("org.springframework:spring-expression:5.3.9")
-
     // MockK
     val mockk_version = "1.11.0"
     testImplementation("io.mockk:mockk:$mockk_version")
+
+    // Mockito (for Java based testing)
+    testImplementation("org.mockito:mockito-core:3.11.0")
 
     // AssertK
     val assertk_version = "0.24"
@@ -67,9 +60,6 @@ dependencies {
     // Use the Kotlin JUnit integration.
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 
-    // PDF support
-    implementation("org.apache.pdfbox:pdfbox:2.0.22")
-
 }
 
 tasks.withType<Test> {
@@ -77,11 +67,9 @@ tasks.withType<Test> {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = javaCompileLangVersion.toString()
-        apiVersion = kotlinComileLangVersion
-        languageVersion = kotlinComileLangVersion
-        freeCompilerArgs = listOf("-Xopt-in=kotlin.RequiresOptIn")
-    }
+    kotlinOptions.jvmTarget = javaCompileLangVersion.toString()
+    kotlinOptions.apiVersion = kotlinComileLangVersion
+    kotlinOptions.languageVersion = kotlinComileLangVersion
 }
+
 

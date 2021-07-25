@@ -3,15 +3,17 @@ package com.acme.mediatranscoding.transcoders.poc
 import com.acme.mediatranscoding.api.Transcoder
 import com.acme.mediatranscoding.api.TranscodingError
 import com.acme.mediatranscoding.api.TranscodingError.NothingToDo
+import com.acme.mediatranscoding.api.TranscodingError.UnexpectedFailure
 import com.acme.mediatranscoding.support.Counter
 import com.acme.mediatranscoding.support.I8n
 import com.acme.mediatranscoding.support.humanizedName
 import com.acme.mediatranscoding.support.iokit.byteCountingInputStream
-import resultk.Result
-import resultk.failure
-import resultk.success
+import resultk.*
+import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.charset.Charset
 
 
 //region Pdf & Page modeling
@@ -55,7 +57,8 @@ enum class ParagraphFlow {
 class PdfTranscoder(
     private val pageSize: PageSize = PageSize.A4,
     private val pageOrientation: Orientation = Orientation.PORTRAIT,
-    private val paragraphFlow: ParagraphFlow = ParagraphFlow.ENABLED
+    private val paragraphFlow: ParagraphFlow = ParagraphFlow.ENABLED,
+    private val charset: Charset = Charsets.UTF_8
 ) : Transcoder {
 
     private var state = Transcoder.State.READY
@@ -76,31 +79,69 @@ class PdfTranscoder(
         destinationId: String,
         destination: OutputStream
     ): Result<TranscodingError, Long> {
-
         val unhandledException = { ex: Exception ->
-            TranscodingError.UnexpectedFailure(this, ex)
+            UnexpectedFailure(
+                transcoder = this,
+                cause = ex,
+                developerDebugNote = I8n.message("").get()
+            )
         }
-        return resultk.resultOfCatching(unhandledException) {
+        return resultWithHandlingOf(unhandledException) {
             val bytesCounter = Counter()
-            source.byteCountingInputStream { bytesCounter += it.toLong() }
+            val textTokens = tokenizeText(
+                sourceId,
+                source.byteCountingInputStream {
+                    bytesCounter += it.toLong()
+                }.bufferedReader(charset)
+            )
+
             when (val processed = bytesCounter.get()) {
                 0L -> NothingToDo.failure()
                 else -> processed.success()
             }
         }
     }
+
+    private fun tokenizeText(
+        sourceId: String,
+        source: BufferedReader
+    ): Sequence<Result<TranscodingError, SimpleTextParsing.TextNode>> {
+
+        val errorReadingSourceMedia = { ex: IOException ->
+            UnexpectedFailure(
+                transcoder = this,
+                cause = ex,
+                developerDebugNote = I8n.message(
+                    "com.acme.mediatranscoding.debugNote.sourceMediaNotReadable",
+                    sourceId
+                ).get()
+            )
+        }
+
+        TODO()
+    }
 }
+
+
 //endregion
 
 //region Plain Text Document Parsing
 
 internal object SimpleTextParsing {
+
     sealed class TextNode {
         data class Heading(val text: String) : TextNode()
         data class Paragraph(val text: String) : TextNode()
         object ParagraphBreak : TextNode()
         object EmptyLine : TextNode()
     }
+
+    fun safeLineSequence(source: BufferedReader): Sequence<Result<IOException, String>> {
+        return generateSequence {
+            resultOf<IOException,String> { source.readLine().success() }
+        }
+    }
+
 }
 
 

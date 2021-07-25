@@ -23,7 +23,7 @@ import java.util.*
  *
  * See the [Failure.get] function for more details on exactly how errors are handled by this `Result` implementation.
  *
- * Further more, this library provides a rich set of functions to transform/process _either_ the [Result.Success.value],
+ * Further more, this library provides a rich set of functions to transform/process _either_ the [Result.Success.result],
  * or in the case of a [Result.Failure] the underlying [Result.Failure.error] value. These operations can be roughly
  * be group as follows:
  *
@@ -57,16 +57,16 @@ sealed class Result<out E, out T> {
     /**
      * A successful/expected value.
      *
-     * @property value The value returned.
+     * @property result The value returned.
      */
-    data class Success<T>(val value: T) : Result<Nothing, T>() {
+    data class Success<T>(val result: T) : Result<Nothing, T>() {
 
         /**
-         * Returns this [value]
+         * Returns this [result]
          */
-        override fun get(): T = value
+        override fun get(): T = result
 
-        override fun toString(): String = "${Success::class.simpleName}($value)"
+        override fun toString(): String = "${Success::class.simpleName}($result)"
     }
 
     /**
@@ -171,7 +171,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
  * @param T
  *      The success value type
  */
-inline fun <reified E, R, T> T.resultOfCatching(processThis: T.() -> Result<E, R>): Result<E, R> {
+inline fun <reified E, R, T> T.resultWithHandlingOf(processThis: T.() -> Result<E, R>): Result<E, R> {
     return resultOf { processThis(this) }
 }
 
@@ -180,7 +180,7 @@ inline fun <reified E, R, T> T.resultOfCatching(processThis: T.() -> Result<E, R
 //<editor-fold desc="Accessing success values and failures">
 
 fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
-    (this as? Success)?.value?.also(process)
+    (this as? Success)?.result?.also(process)
     return this
 }
 
@@ -191,7 +191,7 @@ fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit) = apply {
 /**
  * Returns an error or `null` for a given Result.
  *
- * @receiver A [resultOfCatching]
+ * @receiver A [resultWithHandlingOf]
  */
 fun <E> Result<E, *>.errorOrNull(): E? {
     return when (this) {
@@ -219,14 +219,14 @@ operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
 inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
     return when (this) {
         is Failure -> mapError(error)
-        is Success -> value
+        is Success -> result
     }
 }
 
 fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
 
 /**
- * A get operation which ensures that an exception is thrown if the result is a [resultOfCatching.Failure]. Thr caller needs
+ * A get operation which ensures that an exception is thrown if the result is a [resultWithHandlingOf.Failure]. Thr caller needs
  * to supply a function to map the error value to the correct instance of [X
  *
  * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
@@ -261,7 +261,7 @@ fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     return when (this) {
         is Failure -> this
-        is Success -> mapValue(value).success()
+        is Success -> mapValue(result).success()
     }
 }
 
@@ -294,7 +294,7 @@ inline fun <E, T, R> Result<E, T>.fold(
 ): R {
     return when (this) {
         is Failure -> onFailure(error)
-        is Success -> onSuccess(value)
+        is Success -> onSuccess(result)
     }
 }
 
@@ -322,7 +322,7 @@ inline fun <E, T, R> Result<E, T>.fold(
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
-inline fun <reified Ex : Throwable, reified E, R> resultOfCatching(
+inline fun <reified Ex : Throwable, reified E, R> resultWithHandlingOf(
     caught: (Ex) -> E,
     construct: () -> Result<E, R>
 ): Result<E, R> {
@@ -353,7 +353,7 @@ inline fun <reified Ex : Throwable, reified E, R> resultOfCatching(
  * @param process
  *      A lambda which receives a success result value.
  */
-inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultOfCatching(
+inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultOfHandling(
     caught: (e: Ex) -> E,
     process: Success<T>.() -> Result<E, R>
 ): Result<E, R> {
@@ -425,7 +425,7 @@ interface FailureUnwrappingCapable<out E> {
  * @constructor Creates a new wrapped failure exception which can be raised using the `throw` operation.
  * @param wrapped The failure to wrap.
  * @see Result.get
- * @see resultOfCatching
+ * @see resultWithHandlingOf
  */
 @Suppress("UNCHECKED_CAST")
 private class DefaultFailureUnwrappingException(

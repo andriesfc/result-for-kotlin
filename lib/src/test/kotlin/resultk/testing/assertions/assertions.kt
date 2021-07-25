@@ -12,7 +12,7 @@ fun <E> Assert<Result<E, *>>.isFailureResult(): Assert<E> {
 
 fun <T> Assert<Result<*, T>>.isSuccessResult(): Assert<T> {
     isInstanceOf(Result.Success::class)
-    return transform { actual -> (actual as Result.Success<T>).value }
+    return transform { actual -> (actual as Result.Success<T>).result }
 }
 
 fun Assert<ResourceBundle>.messageKeys(sorting: Comparator<String>? = null): Assert<Set<String>> {
