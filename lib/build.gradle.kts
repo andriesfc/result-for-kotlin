@@ -104,6 +104,9 @@ dependencies {
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
+    /// Uses reflection in unit tests
+    testImplementation(kotlin("reflect"))
+
     // JUnit5
     val junit5_version = "5.7.2"
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5_version")
@@ -113,7 +116,7 @@ dependencies {
     testImplementation("org.apache.commons:commons-text:1.9")
 
     // MockK
-    val mockk_version = "1.11.0"
+    val mockk_version = "1.12.0"
     testImplementation("io.mockk:mockk:$mockk_version")
 
     // Mockito (for Java based testing)
@@ -132,7 +135,7 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-    tasks.withType<KotlinCompile> {
+tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = javaCompileLangVersion.toString()
     kotlinOptions.apiVersion = kotlinComileLangVersion
     kotlinOptions.languageVersion = kotlinComileLangVersion

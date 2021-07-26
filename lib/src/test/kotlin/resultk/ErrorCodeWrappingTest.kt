@@ -19,7 +19,7 @@ internal class ErrorCodeWrappingTest {
         assertThat { result.get() }
             .isFailure()
             .isInstanceOf(FailureUnwrappingCapable::class)
-            .transform { it.unwrap()?.error }
+            .transform { it.unwrapFailure()?.error }
             .isEqualTo(expected)
     }
 
@@ -30,7 +30,7 @@ internal class ErrorCodeWrappingTest {
         assertThat { result.get() }
             .isFailure()
             .isInstanceOf(ErrorEnumWSelfUnwrapping.CustomFailureUnwrappingCapable::class)
-            .transform { it.unwrap()?.error }
+            .transform { it.unwrapFailure()?.error }
             .isEqualTo(expected)
     }
 

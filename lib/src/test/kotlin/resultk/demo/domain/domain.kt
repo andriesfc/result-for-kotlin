@@ -19,14 +19,14 @@ enum class ErrorEnumWSelfUnwrapping : ThrowableProvider<Exception> {
 
     private val _wrapped by lazy { Failure(this) }
 
-    override fun throwable(): Exception = SimpleErrorException(_wrapped)
+    override fun throwing(): Exception = SimpleErrorException(_wrapped)
 
     sealed interface CustomFailureUnwrappingCapable : FailureUnwrappingCapable<ErrorEnumWSelfUnwrapping>
 
     private class SimpleErrorException(
         private val _wrapped: Failure<ErrorEnumWSelfUnwrapping>
     ) : Exception(_wrapped.error.name), CustomFailureUnwrappingCapable {
-        override fun unwrap(): Failure<out ErrorEnumWSelfUnwrapping> = _wrapped
+        override fun unwrapFailure(): Failure<out ErrorEnumWSelfUnwrapping> = _wrapped
     }
 }
 
@@ -35,7 +35,7 @@ sealed class HashingError<out X : Exception> : ThrowableProvider<X> {
 
     abstract val cause: X
 
-    override fun throwable(): X = cause
+    override fun throwing(): X = cause
 
     data class SourceContentNotReadable(
         val source: Any,

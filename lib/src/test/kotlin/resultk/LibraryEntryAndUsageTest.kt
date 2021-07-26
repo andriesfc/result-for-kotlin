@@ -39,7 +39,7 @@ internal class LibraryEntryAndUsageTest {
     fun `Result action throwing exception which can unwrap should unwrap and not throw`() {
         assertThat {
             resultOf<ErrorEnumWSelfUnwrapping, Int> {
-                throw ErrorEnumWSelfUnwrapping.ERROR_CASE_1.throwable()
+                throw ErrorEnumWSelfUnwrapping.ERROR_CASE_1.throwing()
             }
         }.isSuccess().isFailureResult().isEqualTo(ErrorEnumWSelfUnwrapping.ERROR_CASE_1)
     }
@@ -54,7 +54,7 @@ internal class LibraryEntryAndUsageTest {
         }.format(BASIC_ISO_DATE)
 
         val logFile = File("/var/logs/dora/298/failures.$logfileDate.log")
-        val logFileSize = logFile.resultOfCatching {
+        val logFileSize = logFile.resultWithHandlingOf {
             if (!exists()) throw FileNotFoundException(path)
             length().success<IOException,Long>()
         }

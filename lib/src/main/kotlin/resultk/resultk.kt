@@ -1,4 +1,3 @@
-
 package resultk
 
 import resultk.Result.Failure
@@ -23,7 +22,7 @@ import java.util.*
  *
  * See the [Failure.get] function for more details on exactly how errors are handled by this `Result` implementation.
  *
- * Further more, this library provides a rich set of functions to transform/process _either_ the [Result.Success.value],
+ * Further more, this library provides a rich set of functions to transform/process _either_ the [Result.Success.result],
  * or in the case of a [Result.Failure] the underlying [Result.Failure.error] value. These operations can be roughly
  * be group as follows:
  *
@@ -57,16 +56,16 @@ sealed class Result<out E, out T> {
     /**
      * A successful/expected value.
      *
-     * @property value The value returned.
+     * @property result The value returned.
      */
-    data class Success<T>(val value: T) : Result<Nothing, T>() {
+    data class Success<T>(val result: T) : Result<Nothing, T>() {
 
         /**
-         * Returns this [value]
+         * Returns this [result]
          */
-        override fun get(): T = value
+        override fun get(): T = result
 
-        override fun toString(): String = "${Success::class.simpleName}($value)"
+        override fun toString(): String = "${Success::class.simpleName}($result)"
     }
 
     /**
@@ -96,7 +95,7 @@ sealed class Result<out E, out T> {
         override fun get(): Nothing {
             when (error) {
                 is ThrowableProvider<Throwable> -> {
-                    throw error.throwable()
+                    throw error.throwing()
                 }
                 is Throwable -> {
                     throw error
@@ -134,7 +133,7 @@ private val SUCCESS_UNIT = Success(Unit)
 /**
  * Wraps this value of [T] as [Success]
  */
-fun <E,T> T.success(): Result<E, T> {
+fun <E, T> T.success(): Result<E, T> {
     @Suppress("UNCHECKED_CAST")
     return when (this) {
         Unit -> SUCCESS_UNIT as Success<T>
@@ -171,7 +170,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
  * @param T
  *      The success value type
  */
-inline fun <reified E, R, T> T.resultOfCatching(processThis: T.() -> Result<E, R>): Result<E, R> {
+inline fun <reified E, R, T> T.resultWithHandlingOf(processThis: T.() -> Result<E, R>): Result<E, R> {
     return resultOf { processThis(this) }
 }
 
@@ -180,7 +179,7 @@ inline fun <reified E, R, T> T.resultOfCatching(processThis: T.() -> Result<E, R
 //<editor-fold desc="Accessing success values and failures">
 
 fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
-    (this as? Success)?.value?.also(process)
+    (this as? Success)?.result?.also(process)
     return this
 }
 
@@ -191,7 +190,7 @@ fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit) = apply {
 /**
  * Returns an error or `null` for a given Result.
  *
- * @receiver A [resultOfCatching]
+ * @receiver A [resultWithHandlingOf]
  */
 fun <E> Result<E, *>.errorOrNull(): E? {
     return when (this) {
@@ -219,14 +218,14 @@ operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
 inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
     return when (this) {
         is Failure -> mapError(error)
-        is Success -> value
+        is Success -> result
     }
 }
 
 fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
 
 /**
- * A get operation which ensures that an exception is thrown if the result is a [resultOfCatching.Failure]. Thr caller needs
+ * A get operation which ensures that an exception is thrown if the result is a [resultWithHandlingOf.Failure]. Thr caller needs
  * to supply a function to map the error value to the correct instance of [X
  *
  * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
@@ -261,7 +260,7 @@ fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> {
     return when (this) {
         is Failure -> this
-        is Success -> mapValue(value).success()
+        is Success -> mapValue(result).success()
     }
 }
 
@@ -294,13 +293,14 @@ inline fun <E, T, R> Result<E, T>.fold(
 ): R {
     return when (this) {
         is Failure -> onFailure(error)
-        is Success -> onSuccess(value)
+        is Success -> onSuccess(result)
     }
 }
 
 //</editor-fold>
 
 //<editor-fold desc="Functional flow and controlled processing">
+
 /**
  * This function produces a result, but the caller must decide how to handle
  * any exception of type [Ex] being thrown from [construct] code block by supplying an [caught]
@@ -322,7 +322,7 @@ inline fun <E, T, R> Result<E, T>.fold(
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
-inline fun <reified Ex : Throwable, reified E, R> resultOfCatching(
+inline fun <reified Ex : Throwable, reified E, R> resultWithHandlingOf(
     caught: (Ex) -> E,
     construct: () -> Result<E, R>
 ): Result<E, R> {
@@ -336,6 +336,21 @@ inline fun <reified Ex : Throwable, reified E, R> resultOfCatching(
     }
 }
 
+/**
+ * This raised anything as error code via an exception.
+ *
+ * @receiver E
+ *      The thing you want to raise as failure
+ * @return Nothing
+ */
+inline fun <reified E> E.raise(): Nothing {
+    when (this) {
+        is Throwable -> throw this
+        is ThrowableProvider<Throwable> -> throw throwing()
+        is Failure<*> -> throw DefaultFailureUnwrappingException(this)
+        else -> throw DefaultFailureUnwrappingException(Failure(this))
+    }
+}
 
 /**
  * The preferred way of handling exceptions when chaining the result with the a following process.
@@ -353,7 +368,7 @@ inline fun <reified Ex : Throwable, reified E, R> resultOfCatching(
  * @param process
  *      A lambda which receives a success result value.
  */
-inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultOfCatching(
+inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultOfHandling(
     caught: (e: Ex) -> E,
     process: Success<T>.() -> Result<E, R>
 ): Result<E, R> {
@@ -387,6 +402,8 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() ->
 //</editor-fold>
 
 
+//<editor-fold desc="Error code wrapping & Unwrapping">
+
 /**
  * Implement this on your errors  to control which exception is raised on calling
  * [Failure.get] function.
@@ -396,10 +413,10 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() ->
  *      from this error
  */
 fun interface ThrowableProvider<out X : Throwable> {
-    fun throwable(): X
+    fun throwing(): X
 }
-
-/**
+/*
+*//**
  * Implement this if interface on any exception provided by the [ThrowableProvider.failure] call
  * if you want your own exception to be able to unwrap a [Failure].
  *
@@ -412,11 +429,9 @@ fun interface ThrowableProvider<out X : Throwable> {
  * @see resultOf
  */
 interface FailureUnwrappingCapable<out E> {
-    fun unwrap(): Failure<out E>?
+    fun unwrapFailure(): Failure<out E>?
 }
 
-
-//<editor-fold desc="Error code wrapping">
 /**
  * The purpose of this class is to bridge the functional model of the [Result] operations with the traditional
  * _try-catch_ world of Object Oriented contract which specifies that failures should be raised and the current
@@ -425,14 +440,14 @@ interface FailureUnwrappingCapable<out E> {
  * @constructor Creates a new wrapped failure exception which can be raised using the `throw` operation.
  * @param wrapped The failure to wrap.
  * @see Result.get
- * @see resultOfCatching
+ * @see resultWithHandlingOf
  */
 @Suppress("UNCHECKED_CAST")
-private class DefaultFailureUnwrappingException(
+class DefaultFailureUnwrappingException(
     wrapped: Failure<*>,
 ) : RuntimeException("${wrapped.error}"), FailureUnwrappingCapable<Any> {
     private val _wrapped = wrapped as Failure<Any>
-    override fun unwrap(): Failure<out Any> = _wrapped
+    override fun unwrapFailure(): Failure<out Any> = _wrapped
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -440,8 +455,9 @@ inline fun <reified E> Throwable.unwrapOrNull(): Failure<E>? {
     return when (this) {
         is E -> Failure(this)
         !is FailureUnwrappingCapable<*> -> null
-        else -> unwrap()?.takeIf { it.error is E }?.let { it as Failure<E> }
+        else -> unwrapFailure()?.takeIf { it.error is E }?.let { it as Failure<E> }
     }
 }
+
 //</editor-fold>
 

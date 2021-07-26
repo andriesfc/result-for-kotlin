@@ -109,10 +109,3 @@ fileStream.hash("sha1")
 
 This is just a small introduction how rich and clean error handling can be.
 
-## How to build your own function
-
-To produce a result you use just wrap your return body in a `resultOf {}` like this:
-
-```kotlin
-```
-
