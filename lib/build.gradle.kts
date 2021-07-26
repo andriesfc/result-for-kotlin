@@ -116,7 +116,7 @@ dependencies {
     testImplementation("org.apache.commons:commons-text:1.9")
 
     // MockK
-    val mockk_version = "1.11.0"
+    val mockk_version = "1.12.0"
     testImplementation("io.mockk:mockk:$mockk_version")
 
     // Mockito (for Java based testing)

@@ -1,4 +1,3 @@
-
 package resultk
 
 import resultk.Result.Failure
@@ -134,7 +133,7 @@ private val SUCCESS_UNIT = Success(Unit)
 /**
  * Wraps this value of [T] as [Success]
  */
-fun <E,T> T.success(): Result<E, T> {
+fun <E, T> T.success(): Result<E, T> {
     @Suppress("UNCHECKED_CAST")
     return when (this) {
         Unit -> SUCCESS_UNIT as Success<T>
@@ -301,6 +300,7 @@ inline fun <E, T, R> Result<E, T>.fold(
 //</editor-fold>
 
 //<editor-fold desc="Functional flow and controlled processing">
+
 /**
  * This function produces a result, but the caller must decide how to handle
  * any exception of type [Ex] being thrown from [construct] code block by supplying an [caught]
@@ -336,6 +336,21 @@ inline fun <reified Ex : Throwable, reified E, R> resultWithHandlingOf(
     }
 }
 
+/**
+ * This raised anything as error code via an exception.
+ *
+ * @receiver E
+ *      The thing you want to raise as failure
+ * @return Nothing
+ */
+inline fun <reified E> E.raise(): Nothing {
+    when (this) {
+        is Throwable -> throw this
+        is ThrowableProvider<Throwable> -> throw throwing()
+        is Failure<*> -> throw DefaultFailureUnwrappingException(this)
+        else -> throw DefaultFailureUnwrappingException(Failure(this))
+    }
+}
 
 /**
  * The preferred way of handling exceptions when chaining the result with the a following process.
@@ -387,6 +402,8 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() ->
 //</editor-fold>
 
 
+//<editor-fold desc="Error code wrapping & Unwrapping">
+
 /**
  * Implement this on your errors  to control which exception is raised on calling
  * [Failure.get] function.
@@ -398,8 +415,8 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() ->
 fun interface ThrowableProvider<out X : Throwable> {
     fun throwing(): X
 }
-
-/**
+/*
+*//**
  * Implement this if interface on any exception provided by the [ThrowableProvider.failure] call
  * if you want your own exception to be able to unwrap a [Failure].
  *
@@ -412,11 +429,9 @@ fun interface ThrowableProvider<out X : Throwable> {
  * @see resultOf
  */
 interface FailureUnwrappingCapable<out E> {
-    fun unwrap(): Failure<out E>?
+    fun unwrapFailure(): Failure<out E>?
 }
 
-
-//<editor-fold desc="Error code wrapping">
 /**
  * The purpose of this class is to bridge the functional model of the [Result] operations with the traditional
  * _try-catch_ world of Object Oriented contract which specifies that failures should be raised and the current
@@ -428,11 +443,11 @@ interface FailureUnwrappingCapable<out E> {
  * @see resultWithHandlingOf
  */
 @Suppress("UNCHECKED_CAST")
-private class DefaultFailureUnwrappingException(
+class DefaultFailureUnwrappingException(
     wrapped: Failure<*>,
 ) : RuntimeException("${wrapped.error}"), FailureUnwrappingCapable<Any> {
     private val _wrapped = wrapped as Failure<Any>
-    override fun unwrap(): Failure<out Any> = _wrapped
+    override fun unwrapFailure(): Failure<out Any> = _wrapped
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -440,8 +455,9 @@ inline fun <reified E> Throwable.unwrapOrNull(): Failure<E>? {
     return when (this) {
         is E -> Failure(this)
         !is FailureUnwrappingCapable<*> -> null
-        else -> unwrap()?.takeIf { it.error is E }?.let { it as Failure<E> }
+        else -> unwrapFailure()?.takeIf { it.error is E }?.let { it as Failure<E> }
     }
 }
+
 //</editor-fold>
 

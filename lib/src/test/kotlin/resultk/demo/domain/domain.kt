@@ -26,7 +26,7 @@ enum class ErrorEnumWSelfUnwrapping : ThrowableProvider<Exception> {
     private class SimpleErrorException(
         private val _wrapped: Failure<ErrorEnumWSelfUnwrapping>
     ) : Exception(_wrapped.error.name), CustomFailureUnwrappingCapable {
-        override fun unwrap(): Failure<out ErrorEnumWSelfUnwrapping> = _wrapped
+        override fun unwrapFailure(): Failure<out ErrorEnumWSelfUnwrapping> = _wrapped
     }
 }
 
