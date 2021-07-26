@@ -10,7 +10,7 @@ plugins {
 
 
 val javaCompileLangVersion = JavaLanguageVersion.of("11")
-val kotlinComileLangVersion = "1.5"
+val koltinLangVersion = "1.5"
 val isRelease by extra { !"$version".endsWith("-snapshot", ignoreCase = true) }
 
 javaToolchains {
@@ -57,7 +57,7 @@ dependencies {
     implementation("org.springframework:spring-expression:5.3.9")
 
     // MockK
-    val mockk_version = "1.11.0"
+    val mockk_version = "1.12.0"
     testImplementation("io.mockk:mockk:$mockk_version")
 
     // AssertK
@@ -79,8 +79,8 @@ tasks.withType<Test> {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = javaCompileLangVersion.toString()
-        apiVersion = kotlinComileLangVersion
-        languageVersion = kotlinComileLangVersion
+        apiVersion = koltinLangVersion
+        languageVersion = koltinLangVersion
         freeCompilerArgs = listOf("-Xopt-in=kotlin.RequiresOptIn")
     }
 }
