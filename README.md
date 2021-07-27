@@ -1,29 +1,72 @@
 # Error Handling in Kotlin as a first class domain concern
 
-I believe the standard practice of using exceptions as business/domain error handing is detrimental to the enterprise for the following reasons:
+Why is error handling an issue in JVM land? I mean, is it actually an issue? This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
 
-1. Creating exceptions are expensive, as at is involves unrolling the call stack. For example sometimes embedded C++ systems would due to severe device constraints disable to compiler from generating code to unroll the stack.
-2. Throwing an exception also means the code throwing the exception looses all flow control. Nothing wrong with this, as this is actually the intended use of exceptions.
-3. Catching these exceptions is more often than not far removed from the offending code/cause which can mean considerable effort to understand and sometimes locate the real cause.
-4. The whole decision to model exceptions as error codes  has some serious consequences: 
-   - Allows errors and failures which are domain specific to not only leak into another domain of the application, but in actual fact it is almost impossible to prevent.
-   - The act of raising an exception is also the act of loosing control of flow (as designed). Unfortunately this is also true of the caller if the caller fails to catch the appropriate exception.
-   - It also forces all domain to know of all other domains due to domain knowledge encoded un such errors.
-5. Java's unfortunate decision to have checked exceptions just compounds the problems by encouraging developers to wrap these checked exceptions into runtime exceptions. These wrapped exceptions has very little bearing on the domain, and hides the underlying error deep into logs and many line stack traces.
+So what is wrong with the way we handle domain errors and/or exceptions in JVM land?
 
-## Introducing `resulkt`
+I believe the reasons why error handling is not first class domain concern, especially in JMV land, are it is core a misunderstanding of the differences between exceptions as featured in the language, vs domain errors. 
 
-This smallish library aims to bring error handling as first class domain concern to the applications written Kotlin by:
+To summarize:
 
-1. Providing minimal scaffolding to move away from using exceptions to:
-   - Model domain/business errors with
-   - Use them as control flow mechanisms.
-2. Provide functional style control flow mechanisms to deal with error both error flow and success flow.
-3. Provide the basis for building rich domain specific errors.
-4. Provide functional expressions to encourage developers to think upfront about alternate/error flows when encoding business requirements.
-5. Encourage authors to handle errors sooner rather than later.
+| Exceptions                                                   | Domain Error/Codes                                 |
+| ------------------------------------------------------------ | -------------------------------------------------- |
+| Indicates that an app could not handle a system error.       | Indicates the caller should handle the error.      |
+| Raising an exception exits the happy path.                   | Returning a domain error/code has no side effect.  |
+| Catching an exception can be very expensive.                 | An error code is just another variable.            |
+| Exceptions are designed to be caught as an application failure. | Domain errors are designed to advise control flow. |
+| Exceptions models the runtime/host failure domain.           | Domain errors models the business domain.          |
 
-> **As a side note**: Non-object-oriented languages such as C and Go inspired me to implement this library.
+As a consequence consider that:
+
+1. Creating an exceptions may not be that expensive, but catching it is expensive. Usually this involves unrolling the call stack.
+2. Throwing an exception also means that the code throwing the exception looses all flow control. Nothing wrong with this, as this is the actually intended use of exceptions.
+3. Catching exceptions leads to subtle errors which can sometime be hard to pin down due to the following reasons:
+   - More often than not, such caught exceptions are far removed from the offending code/cause. Consequently, a developer has to spend much effort to track and understand the error handing code which  some times live deep in the bowls of may nested levels deep if `try-catch` statements.
+   - Sometimes an application would catch an exception which should never be handled under a `try-catch-all` statement, for example an `OutOfMemoryException`. If a developer forgets to log the error, the actual cause can sometimes just disappear leading to many man-hours hunting for something which should have been easy to fix: For example, give the process more memory, or finding the data structure leaking the memory.
+4. The very act of raising an exception also has some serious untended consequences insofar as the domain driven design/modelling:
+   - Causes the boundaries of one domain to flow into with another,
+   - It is almost impossible to design for this, as each exception thrown is like bullet punching holes in any well crafted domain boundary.
+   - Each time such a "domain exception" is thrown (thus the lost control of flow in the domain throwing it), will almost certainly result in all other domains models to be invalidated.
+   - Ultimately this would mean that each domain has to have deep knowledge of almost all errors on every other domain in the application.
+5. Lastly, Java's unfortunate decision to have checked exceptions just compounds the problems by encouraging developers to wrap these checked exceptions into runtime exceptions. Most the time these wrapped exceptions has very little bearing on the domain and exists only because of the compiler forcing the developer to do so. On a practical level this has the consequence of hiding the underlying errors deep into logs and many-line stack traces deep.
+
+> ❗️ Exceptions are not undesirable, as long as they are used as intended.
+
+## Criteria for Domain Error modelling as a first class concern
+
+1. Exceptions should model application failures, not domain errors.
+2. Domain errors should model your business domain, not your application runtime/infrastructure.
+3. The handling of Domain Errors should not be to fare removed from the code which produces such a domain error:
+  
+   - Remember error codes are control flow advice.
+   - Ask yourself: If handling of such error code is to far removed, are you still acting appropriate on the advice?
+4. When it comes to exceptions which are not your own:
+
+   - Decide upfront how you are going handle them.
+   - Be very careful when using a `try-catch-all` exception handler, if you need one, it is best to always throw what you cannot handle.
+   - Only handle exceptions which are appropriate to your domain you're implementing.
+   - Have only 3 kind of exception handlers:
+      1. To log and throw.
+      2. To map a domain appropriate thrown exception to a domain specific error code.
+      3. To not have one is sometimes a better choice 😈.
+5. Make sure domain errors produces messages  which makes sense to the consumer of your domain.
+6. Make sure domain errors also produces messages which are enriched for developers and devops personal.
+8. Make sure such messages can be produced in locale specific manner. 
+9. IMPORTANT ⚠️: Make sure that you can actually raise a domain error as an exception. This will be clear indicator that your implementation is not complete!
+9. Implement a test harness for each of domain error type which asserts at the very least: 
+   - That localized message are produced for each the type of audioance.
+   - That any exceptions you choose to propagate as a cause will not get lost when your domain error is thrown/consumes.
+
+
+
+## Introducing `Resultk`
+
+This smallish project aims to bring these concerns to together into a single library in Kotlin. I choose Kotlin (and not Java) for the following reasons: 
+
+- It has the notion of a sealed types (in Scala this called 'case' types). Using a sealed type means the developer can rely on the compiler to pick up on things such unhandled error codes.
+- Kotlin nullable types are useful, and unlike Java not source of errors to be picked up at runtime.
+- The Kotlin compiler offers reified types. This means the library can distinguish between the one error type vs another type, even when using generics.
+- Kotlin offers extensions (which are just static functions under the hood), which means the library is able to model domain error handling around even types from 3rd party libraries.
 
 ## Show me how to it used
 
@@ -31,7 +74,7 @@ Let's say you have an extension function which takes an algorithm name of messag
 
 ```kotlin
 // The hash function
-fun InputStream.hash(algorithm: String): Result[DigesterError,String] {
+fun InputStream.hash(algorithm: String): Result<DigesterError,String> {
    // elided for brevity
 }
 
@@ -82,7 +125,7 @@ Things to note about this implementation:
 2. ✔ GOOD - When the `err` value is null, it is safe to call the `get()` on the result.
 3. ✔ GOOD - Error handle takes precedence over result handling.
 4. ✔ GOOD - Error messages are for humans as they are build from a locale specific resource file.
-5. 💀 BAD - Calling `get()` and failing to handle all values of `err` will result in an exception to be thrown. This obviously not good and could lead to unexpected death of the application.
+5. 💀 BAD - Calling `get()` and failing to handle all values of `err` will result in an exception to be thrown. This obviously not good and could lead to the unexpected death of the application.
 
 The last point suggest that there is a better way to handle calling `get()`. 
 
