@@ -343,12 +343,12 @@ inline fun <reified Ex : Throwable, reified E, R> resultWithHandlingOf(
  *      The thing you want to raise as failure
  * @return Nothing
  */
-inline fun <reified E> E.raise(): Nothing {
-    when (this) {
-        is Throwable -> throw this
-        is ThrowableProvider<Throwable> -> throw throwing()
-        is Failure<*> -> throw DefaultFailureUnwrappingException(this)
-        else -> throw DefaultFailureUnwrappingException(Failure(this))
+inline fun <reified E> raise(e: E): Nothing {
+    when (e) {
+        is Throwable -> throw e
+        is ThrowableProvider<Throwable> -> throw e.throwing()
+        is Failure<*> -> throw DefaultFailureUnwrappingException(e)
+        else -> throw DefaultFailureUnwrappingException(Failure(e))
     }
 }
 
@@ -424,7 +424,7 @@ fun interface ThrowableProvider<out X : Throwable> {
  *
  * @see DefaultFailureUnwrappingException
  *      The internal exception used by the library itself if non other is provided.
- * @see unwrapOrNull
+ * @see unwrapFailureOrNull
  *      A function which attempts to unwrap a specific `Failure` based on desired error value type.
  * @see resultOf
  */
@@ -457,6 +457,18 @@ inline fun <reified E> Throwable.unwrapOrNull(): Failure<E>? {
         !is FailureUnwrappingCapable<*> -> null
         else -> unwrapFailure()?.takeIf { it.error is E }?.let { it as Failure<E> }
     }
+}
+
+inline fun <reified E> Throwable.unwrapErrorOrNull(): E? {
+
+    if (this is E) {
+        return this
+    }
+
+    val failure = (this as? FailureUnwrappingCapable<*>)?.unwrapFailure() ?: return null
+    val error = failure.error ?: return null
+    return error as? E
+
 }
 
 //</editor-fold>
