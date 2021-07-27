@@ -14,20 +14,20 @@ To summarize:
 | Raising an exception exits the happy path.                   | Returning a domain error/code has no side effect.  |
 | Catching an exception can be very expensive.                 | An error code is just another variable.            |
 | Exceptions are designed to be caught as an application failure. | Domain errors are designed to advise control flow. |
-| Exceptions models the runtime/host failure domain.           | Domain errors models the business domain.          |
+| Exceptions models the runtime/host/application failure domain. | Domain errors models the business domain.          |
 
-As a consequence consider that:
+As a consequence consider the following:
 
 1. Creating an exceptions may not be that expensive, but catching it is expensive. Usually this involves unrolling the call stack.
-2. Throwing an exception also means that the code throwing the exception looses all flow control. Nothing wrong with this, as this is the actually intended use of exceptions.
-3. Catching exceptions leads to subtle errors which can sometime be hard to pin down due to the following reasons:
-   - More often than not, such caught exceptions are far removed from the offending code/cause. Consequently, a developer has to spend much effort to track and understand the error handing code which  some times live deep in the bowls of may nested levels deep if `try-catch` statements.
+2. Throwing an exception also means that the code throwing the exception looses all flow control. Nothing wrong with this if this the intention.
+3. Catching all exceptions leads to subtle errors which can sometime be hard to pin down due to the following reasons:
+   - More often than not, such caught exceptions are far removed from the offending code/cause. Consequently, a developer has to spend much effort to track and understand the error handing code which  some times live deep in the bowls of a many nested levels deep of `try-catch` statements.
    - Sometimes an application would catch an exception which should never be handled under a `try-catch-all` statement, for example an `OutOfMemoryException`. If a developer forgets to log the error, the actual cause can sometimes just disappear leading to many man-hours hunting for something which should have been easy to fix: For example, give the process more memory, or finding the data structure leaking the memory.
 4. The very act of raising an exception also has some serious untended consequences insofar as the domain driven design/modelling:
    - Causes the boundaries of one domain to flow into with another,
-   - It is almost impossible to design for this, as each exception thrown is like bullet punching holes in any well crafted domain boundary.
    - Each time such a "domain exception" is thrown (thus the lost control of flow in the domain throwing it), will almost certainly result in all other domains models to be invalidated.
    - Ultimately this would mean that each domain has to have deep knowledge of almost all errors on every other domain in the application.
+   - Clearly it is almost impossible to design for this, as each exception thrown is like bullet punching holes in any well crafted domain boundary.
 5. Lastly, Java's unfortunate decision to have checked exceptions just compounds the problems by encouraging developers to wrap these checked exceptions into runtime exceptions. Most the time these wrapped exceptions has very little bearing on the domain and exists only because of the compiler forcing the developer to do so. On a practical level this has the consequence of hiding the underlying errors deep into logs and many-line stack traces deep.
 
 > ❗️ Exceptions are not undesirable, as long as they are used as intended.
@@ -36,7 +36,7 @@ As a consequence consider that:
 
 1. Exceptions should model application failures, not domain errors.
 2. Domain errors should model your business domain, not your application runtime/infrastructure.
-3. The handling of Domain Errors should not be to fare removed from the code which produces such a domain error:
+3. The handling of Domain Errors should not be to far removed from the code which produces such a domain error:
   
    - Remember error codes are control flow advice.
    - Ask yourself: If handling of such error code is to far removed, are you still acting appropriate on the advice?
