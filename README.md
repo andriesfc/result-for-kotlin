@@ -181,12 +181,11 @@ if (hashErr != null) when(hashErr) {
         println(ioError.message())
         err.ioError.printStackTrace()
     } 
-    // Kotlin compiler will not compile iof the when is not
+    // Kotlin compiler will not compile if the when is not
     // exhaustive
+} else {
+   println(hash.get())
 }
-
-println(hash.get())
-
 ```
 
 ## Building & installation
