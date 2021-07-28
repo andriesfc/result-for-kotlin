@@ -4,7 +4,9 @@
   - [Criteria for Domain Error modelling as a first class concern](#criteria-for-domain-error-modelling-as-a-first-class-concern)
   - [Introducing `Resultk`](#introducing-resultk)
   - [Core implementation details `ResultK` supporting domain driven error handling](#core-implementation-details-resultk-supporting-domain-driven-error-handling)
-  - [Show me how to it used](#show-me-how-to-it-used)
+  - [Show me how to use this library](#show-me-how-to-use-this-library)
+    - [Dealing with API call which returns a `Result<E,T>`](#dealing-with-api-call-which-returns-a-resultet)
+    - [Writing an API function which produces a `Result<E,T>`](#writing-an-api-function-which-produces-a-resultet)
   - [Building & installation](#building--installation)
 
 Why is error handling an issue in JVM land? I mean, is it actually an issue? This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
@@ -61,9 +63,6 @@ As a consequence consider the following:
 9. Implement a test harness for each of domain error type which asserts at the very least:
    - That localized message are produced for each the type of audience.
    - That any exceptions you choose to propagate as a cause will not get lost when your domain error is thrown/consumes.
-10. Always create a test harness which asserts at the very least the following:
-    1. All domain errors have mapped localized messages for the target audience.
-    2. All domain errors which opt to capture exceptional causes should always propagate via the cause clause of the exception.
 
 ## Introducing `Resultk`
 
@@ -85,7 +84,9 @@ This smallish project aims to bring these concerns to together into a single lib
   - Unwrapping & wrapping of error codes from exceptions.
   - `try-catch-all` scenarios.
 
-## Show me how to it used
+## Show me how to use this library
+
+### Dealing with API call which returns a `Result<E,T>`
 
 Let's say you have an extension function which takes an algorithm name of message digester algorithm, and produce a hexadecimal hash of the whole stream. The function & error cases follows as such:
 
@@ -187,6 +188,28 @@ if (hashErr != null) when(hashErr) {
    println(hash.get())
 }
 ```
+
+### Writing an API function which produces a `Result<E,T>`
+
+Here is a possible implementation of a `File.hash()` function:
+
+```kotlin
+fun File.hash(algorithm: String): Result<HashingError<Exception>, String> {
+
+   // Decide up front how to handle exceptions -- keep it simple
+    val unsupportedAlgorithm = fun(e: NoSuchAlgorithmException) = UnsupportedAlgorithm(e, algorithm)
+    val inputFailure = fun(e: IOException) = SourceContentNotReadable(path, e)
+
+   // Use the library to deal only with exceptions I care about:
+    return resultWithHandlingOf(unsupportedAlgorithm) {
+        MessageDigest.getInstance(algorithm).success()
+    }.thenResultOfHandling(inputFailure) {
+        forEachBlock { buffer, bytesRead -> result.update(buffer, 0, bytesRead) }
+        encodeHexString(result.digest()).success()
+    }
+}
+```
+
 
 ## Building & installation
 
