@@ -21,7 +21,7 @@ To summarize:
 | Raising an exception exits the happy path.                      | Returning a domain error/code has no side effect.  |
 | Catching an exception can be very expensive.                    | An error code is just another variable.            |
 | Exceptions are designed to be caught as an application failure. | Domain errors are designed to advise control flow. |
-| Exceptions models the runtime/host/application failure domain.  | Domain errors models the business domain.          |
+| Exceptions models the runtime/host/application failure domain.  | Domain errors models the business domain failures. |
 
 As a consequence consider the following:
 
@@ -37,18 +37,16 @@ As a consequence consider the following:
    - Clearly it is almost impossible to design for this, as each exception thrown is like bullet punching holes in any well crafted domain boundary.
 5. Lastly, Java's unfortunate decision to have checked exceptions just compounds the problems by encouraging developers to wrap these checked exceptions into runtime exceptions. Most the time these wrapped exceptions has very little bearing on the domain and exists only because of the compiler forcing the developer to do so. On a practical level this has the consequence of hiding the underlying errors deep into logs and many-line stack traces deep.
 
-> ❗️ Exceptions are not undesirable, as long as they are used as intended.
+> Note: ❗️ Exceptions are not undesirable, as long as they are used as intended.
 
 ## Criteria for Domain Error modelling as a first class concern
 
 1. Exceptions should model application failures, not domain errors.
-2. Domain errors should model your business domain, not your application runtime/infrastructure.
-3. The handling of Domain Errors should not be to far removed from the code which produces such a domain error:
-  
+2. Domain errors should model your business domain, not your application runtime/infrastructure failures.
+3. The handling of Domain Errors should not be too far removed from the code which produces such a domain error:
    - Remember error codes are control flow advice.
-   - Ask yourself: If handling of such error code is to far removed, are you still acting appropriate on the advice?
+   - Ask yourself: If handling of such error code is so far removed, am I still acting appropriate on the advice?
 4. When it comes to exceptions which are not your own:
-
    - Decide upfront how you are going handle them.
    - Be very careful when using a `try-catch-all` exception handler, if you need one, it is best to always throw what you cannot handle.
    - Only handle exceptions which are appropriate to your domain you're implementing.
@@ -56,14 +54,16 @@ As a consequence consider the following:
       1. To log and throw.
       2. To map a domain appropriate thrown exception to a domain specific error code.
       3. To not have one is sometimes a better choice 😈.
-5. Make sure domain errors produces messages  which makes sense to the consumer of your domain.
-6. Make sure domain errors also produces messages which are enriched for developers and devops personal.
-8. Make sure such messages can be produced in locale specific manner. 
-9. IMPORTANT ⚠️: Make sure that you can actually raise a domain error as an exception. This will be clear indicator that your implementation is not complete!
-9. Implement a test harness for each of domain error type which asserts at the very least: 
-   - That localized message are produced for each the type of audioance.
+5. Make sure domain errors produces messages which makes sense to the consumer of your domain.
+6. Make sure domain errors also produces messages which are enriched for developers and devops personnel.
+7. Make sure such messages can be produced in locale specific manner.
+8. IMPORTANT ⚠️: Make sure that you can actually raise a domain error as an exception. This will be clear indicator that your implementation is not complete!
+9. Implement a test harness for each of domain error type which asserts at the very least:
+   - That localized message are produced for each the type of audience.
    - That any exceptions you choose to propagate as a cause will not get lost when your domain error is thrown/consumes.
-
+10. Always create a test harness which asserts at the very least the following:
+    1. All domain errors have mapped localized messages for the target audience.
+    2. All domain errors which opt to capture exceptional causes should always propagate via the cause clause of the exception.
 
 ## Introducing `Resultk`
 
