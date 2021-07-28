@@ -55,7 +55,7 @@ fun MavenPom.withPublisherDetails() {
 fun MavenPublication.withLibraryDetails() {
     groupId = "${project.group}"
     artifactId = artifactName
-    description = "Idomstic result handling in Kotlin"
+    description = "First class support for domain errors in Kotlin"
     version = "${project.version}"
     pom.withPublisherDetails()
 }

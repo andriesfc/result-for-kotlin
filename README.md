@@ -1,27 +1,33 @@
 # Error Handling in Kotlin as a first class domain concern
 
+- [Error Handling in Kotlin as a first class domain concern](#error-handling-in-kotlin-as-a-first-class-domain-concern)
+  - [Criteria for Domain Error modelling as a first class concern](#criteria-for-domain-error-modelling-as-a-first-class-concern)
+  - [Introducing `Resultk`](#introducing-resultk)
+  - [Show me how to it used](#show-me-how-to-it-used)
+  - [Building & installation](#building--installation)
+
 Why is error handling an issue in JVM land? I mean, is it actually an issue? This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
 
 So what is wrong with the way we handle domain errors and/or exceptions in JVM land?
 
-I believe the reasons why error handling is not first class domain concern, especially in JMV land, are it is core a misunderstanding of the differences between exceptions as featured in the language, vs domain errors. 
+I believe the reasons why error handling is not first class domain concern, especially in JMV land, are it is core a misunderstanding of the differences between exceptions as featured in the language, vs domain errors.
 
 To summarize:
 
-| Exceptions                                                   | Domain Error/Codes                                 |
-| ------------------------------------------------------------ | -------------------------------------------------- |
-| Indicates that an app could not handle a system error.       | Indicates the caller should handle the error.      |
-| Raising an exception exits the happy path.                   | Returning a domain error/code has no side effect.  |
-| Catching an exception can be very expensive.                 | An error code is just another variable.            |
+| Exceptions                                                      | Domain Error/Codes                                 |
+| --------------------------------------------------------------- | -------------------------------------------------- |
+| Indicates that an app could not handle a system error.          | Indicates the caller should handle the error.      |
+| Raising an exception exits the happy path.                      | Returning a domain error/code has no side effect.  |
+| Catching an exception can be very expensive.                    | An error code is just another variable.            |
 | Exceptions are designed to be caught as an application failure. | Domain errors are designed to advise control flow. |
-| Exceptions models the runtime/host/application failure domain. | Domain errors models the business domain.          |
+| Exceptions models the runtime/host/application failure domain.  | Domain errors models the business domain.          |
 
 As a consequence consider the following:
 
 1. Creating an exceptions may not be that expensive, but catching it is expensive. Usually this involves unrolling the call stack.
 2. Throwing an exception also means that the code throwing the exception looses all flow control. Nothing wrong with this if this the intention.
 3. Catching all exceptions leads to subtle errors which can sometime be hard to pin down due to the following reasons:
-   - More often than not, such caught exceptions are far removed from the offending code/cause. Consequently, a developer has to spend much effort to track and understand the error handing code which  some times live deep in the bowls of a many nested levels deep of `try-catch` statements.
+   - More often than not, such caught exceptions are far removed from the offending code/cause. Consequently, a developer has to spend much effort to track and understand the error handing code which is some times located deep in the bowls of a many nested levels of `try-catch` statements.
    - Sometimes an application would catch an exception which should never be handled under a `try-catch-all` statement, for example an `OutOfMemoryException`. If a developer forgets to log the error, the actual cause can sometimes just disappear leading to many man-hours hunting for something which should have been easy to fix: For example, give the process more memory, or finding the data structure leaking the memory.
 4. The very act of raising an exception also has some serious untended consequences insofar as the domain driven design/modelling:
    - Causes the boundaries of one domain to flow into with another,
@@ -56,7 +62,6 @@ As a consequence consider the following:
 9. Implement a test harness for each of domain error type which asserts at the very least: 
    - That localized message are produced for each the type of audioance.
    - That any exceptions you choose to propagate as a cause will not get lost when your domain error is thrown/consumes.
-
 
 
 ## Introducing `Resultk`
@@ -119,7 +124,7 @@ when(err) {
 
 ```
 
-Things to note about this implementation: 
+Things to note about this implementation:
 
 1. ✔ GOOD - Line #1 splits into two values:  The first a possible result, and 2nd error value which may be `null`.
 2. ✔ GOOD - When the `err` value is null, it is safe to call the `get()` on the result.
@@ -150,5 +155,21 @@ fileStream.hash("sha1")
    }
 ```
 
-This is just a small introduction how rich and clean error handling can be.
+## Building & installation
 
+1. Clone the project on your local drive.
+2. Open up command line terminal in the project folder.
+3. Run the following shell commands:
+
+   ```shell
+   ./gradlew build
+   ./gradlew publishToMavenLocal
+   ```
+
+4. Include the following artifacts on your build:
+
+   - group: `io.github.andriesfc.kotlin`
+   - artifact Id: `resultk`
+   - version: 1.0.0-SNAPSHOT
+
+5. Remember to include your local maven repo as well!
