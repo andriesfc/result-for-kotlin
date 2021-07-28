@@ -9,13 +9,25 @@
     - [Writing an API function which produces a `Result<E,T>`](#writing-an-api-function-which-produces-a-resultet)
   - [Building & installation](#building--installation)
 
-Why is error handling an issue in JVM land? I mean, is it actually an issue? This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
+-------
+
+
+
+Why is error handling an issue in JVM land? I mean, is it actually an issue? This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided to codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
 
 So what is wrong with the way we handle domain errors and/or exceptions in JVM land?
 
-I believe the reasons why error handling is not first class domain concern, especially in JMV land, are it is core a misunderstanding of the differences between exceptions as featured in the language, vs domain errors.
+Behold the usual suspects:
 
-To summarize:
+1. `try-catch-all` eating up exceptions.
+2. Nested `try-cath` statements.
+3. Only dealing with an exception when the cause is not in visual proximity of the cause -- brittle and complex mental difficult to maintain under presure.
+4. Meaningless error messages for users, but sometimes not for developers.
+5. Meaningless error messages in logs.
+
+I believe the reasons for these kind of issues, (especially in JMV land), stem from a core misunderstanding of the differences between exceptions as featured in the language, vs domain errors.
+
+To summarize these differences:
 
 | Exceptions                                                      | Domain Error/Codes                                 |
 | --------------------------------------------------------------- | -------------------------------------------------- |
@@ -182,7 +194,7 @@ if (hashErr != null) when(hashErr) {
         println(ioError.message())
         err.ioError.printStackTrace()
     } 
-    // Kotlin compiler will not compile if the when is not
+    // Kotlin compiler will not compile if the "when" statement is not
     // exhaustive
 } else {
    println(hash.get())
