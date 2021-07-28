@@ -61,7 +61,7 @@ Here is a list of what I believe addresses domain error handling as first class 
 
 1. Exceptions should model application failures, not domain errors.
 2. Domain errors should model your business domain, not your application runtime/infrastructure failures.
-3. The handling of Domain Errors should not be in visual proximity of the logic which produces such a domain error:
+3. The handling of Domain Errors should be in visual proximity of the logic which produces such a domain error:
    - Remember error codes are control flow advice.
    - Ask yourself: If handling of such error code is so far removed, am I still acting appropriate on the advice?
 4. Where possible _always_ deal with domain error flow before keeping on with the happy path.
