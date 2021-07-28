@@ -3,6 +3,7 @@
 - [Error Handling in Kotlin as a first class domain concern](#error-handling-in-kotlin-as-a-first-class-domain-concern)
   - [Criteria for Domain Error modelling as a first class concern](#criteria-for-domain-error-modelling-as-a-first-class-concern)
   - [Introducing `Resultk`](#introducing-resultk)
+  - [Core implementation details `ResultK` supporting domain driven error handling](#core-implementation-details-resultk-supporting-domain-driven-error-handling)
   - [Show me how to it used](#show-me-how-to-it-used)
   - [Building & installation](#building--installation)
 
@@ -66,12 +67,23 @@ As a consequence consider the following:
 
 ## Introducing `Resultk`
 
-This smallish project aims to bring these concerns to together into a single library in Kotlin. I choose Kotlin (and not Java) for the following reasons: 
+This smallish project aims to bring these concerns to together into a single library in Kotlin. I choose Kotlin (and not Java) for the following reasons:
 
 - It has the notion of a sealed types (in Scala this called 'case' types). Using a sealed type means the developer can rely on the compiler to pick up on things such unhandled error codes.
 - Kotlin nullable types are useful, and unlike Java not source of errors to be picked up at runtime.
 - The Kotlin compiler offers reified types. This means the library can distinguish between the one error type vs another type, even when using generics.
 - Kotlin offers extensions (which are just static functions under the hood), which means the library is able to model domain error handling around even types from 3rd party libraries.
+- Kotlin, unlike Java, does not force you to handle exceptions. This remove the temptation of wrapping every checked exception into a runtime exception.
+
+## Core implementation details `ResultK` supporting domain driven error handling
+
+- Use of single generic wrapper which only purpose is to catch ensure that domain errors handled if the caller does not verify the result of an call is error free.
+- Implements and promotes functional style of API to unify domain error handling as well as exception handling into unified happy flow control path.
+- Based on the classic Either monad, but specializing for error handling (hence the declaration of the core data type `Result<E,T>`).
+- Exposes also an imperative style which can be used safely.
+- Provides template functions which deals with:
+  - Unwrapping & wrapping of error codes from exceptions.
+  - `try-catch-all` scenarios.
 
 ## Show me how to it used
 
