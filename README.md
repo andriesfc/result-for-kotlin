@@ -1,7 +1,7 @@
 # Error Handling in Kotlin as a first class domain concern
 
 - [Error Handling in Kotlin as a first class domain concern](#error-handling-in-kotlin-as-a-first-class-domain-concern)
-  - [Criteria for Domain Error modelling as a first class concern](#criteria-for-domain-error-modelling-as-a-first-class-concern)
+  - [Guidelines for proper domain error handling as a first class concern](#guidelines-for-proper-domain-error-handling-as-a-first-class-concern)
   - [Introducing `Resultk`](#introducing-resultk)
   - [Core implementation details `ResultK` supporting domain driven error handling](#core-implementation-details-resultk-supporting-domain-driven-error-handling)
   - [Show me how to use this library](#show-me-how-to-use-this-library)
@@ -13,7 +13,9 @@
 
 
 
-Why is error handling an issue in JVM land? I mean, is it actually an issue? This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided to codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
+Why is error handling an issue in JVM land? I mean, is it actually an issue? 
+
+This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided to codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
 
 So what is wrong with the way we handle domain errors and/or exceptions in JVM land?
 
@@ -21,8 +23,8 @@ Behold the usual suspects:
 
 1. `try-catch-all` eating up exceptions.
 2. Nested `try-cath` statements.
-3. Only dealing with an exception when the cause is not in visual proximity of the cause -- brittle and complex mental difficult to maintain under presure.
-4. Meaningless error messages for users, but sometimes not for developers.
+3. Only dealing with an exception when the cause is not in visual proximity of the cause -- brittle and complex mental model which  difficult to maintain under the best of times.
+4. Meaningless error messages for users.
 5. Meaningless error messages in logs.
 
 I believe the reasons for these kind of issues, (especially in JMV land), stem from a core misunderstanding of the differences between exceptions as featured in the language, vs domain errors.
@@ -53,14 +55,18 @@ As a consequence consider the following:
 
 > Note: ❗️ Exceptions are not undesirable, as long as they are used as intended.
 
-## Criteria for Domain Error modelling as a first class concern
+## Guidelines for proper domain error handling as a first class concern
+
+Here is a list of what I believe addresses domain error handling as first class concern:
 
 1. Exceptions should model application failures, not domain errors.
 2. Domain errors should model your business domain, not your application runtime/infrastructure failures.
-3. The handling of Domain Errors should not be too far removed from the code which produces such a domain error:
+3. The handling of Domain Errors should not be in visual proximity of the logic which produces such a domain error:
    - Remember error codes are control flow advice.
    - Ask yourself: If handling of such error code is so far removed, am I still acting appropriate on the advice?
-4. When it comes to exceptions which are not your own:
+4. Where possible _always_ deal with domain error flow before keeping on with the happy path.
+5. Be very cautious about  sharing exception handling cross use cases or even classes.
+6. When it comes to exceptions which are not your own:
    - Decide upfront how you are going handle them.
    - Be very careful when using a `try-catch-all` exception handler, if you need one, it is best to always throw what you cannot handle.
    - Only handle exceptions which are appropriate to your domain you're implementing.
@@ -68,13 +74,13 @@ As a consequence consider the following:
       1. To log and throw.
       2. To map a domain appropriate thrown exception to a domain specific error code.
       3. To not have one is sometimes a better choice 😈.
-5. Make sure domain errors produces messages which makes sense to the consumer of your domain.
-6. Make sure domain errors also produces messages which are enriched for developers and devops personnel.
-7. Make sure such messages can be produced in locale specific manner.
-8. IMPORTANT ⚠️: Make sure that you can actually raise a domain error as an exception. This will be clear indicator that your implementation is not complete!
-9. Implement a test harness for each of domain error type which asserts at the very least:
-   - That localized message are produced for each the type of audience.
-   - That any exceptions you choose to propagate as a cause will not get lost when your domain error is thrown/consumes.
+7. Make sure domain errors produces messages which makes sense to the consumer of your domain.
+8. Make sure domain errors also produces messages which are enriched for developers and devops personnel.
+9. Make sure such messages can be produced in locale specific manner.
+10. IMPORTANT ⚠️: Make sure that you can actually raise a domain error as an exception. This will be clear indicator that your implementation is not complete!
+11. Implement a test harness for each of domain error type which asserts at the very least:
+    - That localized message are produced for each the type of audience.
+    - That any exceptions you choose to propagate as a cause will not get lost when your domain error is thrown/consumes.
 
 ## Introducing `Resultk`
 
