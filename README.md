@@ -167,6 +167,28 @@ fileStream.hash("sha1")
    }
 ```
 
+If you prefer a more imperative style:
+
+```kotlin
+val (hash,hashErr) = fileStream.hash("sha1")
+
+if (hashErr != null) when(hashErr) {
+    is DigesterAlgorithmUnknown -> {
+        println(err.message())
+        err.cause.printStackTrace()
+    }
+    is DigesterFailedToIngestSource -> {
+        println(ioError.message())
+        err.ioError.printStackTrace()
+    } 
+    // Kotlin compiler will not compile iof the when is not
+    // exhaustive
+}
+
+println(hash.get())
+
+```
+
 ## Building & installation
 
 1. Clone the project on your local drive.
@@ -182,6 +204,6 @@ fileStream.hash("sha1")
 
    - group: `io.github.andriesfc.kotlin`
    - artifact Id: `resultk`
-   - version: 1.0.0-SNAPSHOT
+   - version: `1.0.0-SNAPSHOT`
 
 5. Remember to include your local maven repo as well!
