@@ -11,8 +11,6 @@
 
 -------
 
-
-
 Why is error handling an issue in JVM land? I mean, is it actually an issue? 
 
 This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided to codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
@@ -22,12 +20,12 @@ So what is wrong with the way we handle domain errors and/or exceptions in JVM l
 Behold the usual suspects:
 
 1. `try-catch-all` eating up exceptions.
-2. Nested `try-cath` statements.
+2. Nested `try-catch` statements.
 3. Only dealing with an exception when the cause is not in visual proximity of the cause -- brittle and complex mental model which  difficult to maintain under the best of times.
 4. Meaningless error messages for users.
 5. Meaningless error messages in logs.
 
-I believe the reasons for these kind of issues, (especially in JMV land), stem from a core misunderstanding of the differences between exceptions as featured in the language, vs domain errors.
+I believe the reasons for these issues, (especially in JMV land), stem from a core misunderstanding of the differences between exceptions as featured in the language, vs domain errors.
 
 To summarize these differences:
 
@@ -44,14 +42,14 @@ As a consequence consider the following:
 1. Creating an exceptions may not be that expensive, but catching it is expensive. Usually this involves unrolling the call stack.
 2. Throwing an exception also means that the code throwing the exception looses all flow control. Nothing wrong with this if this the intention.
 3. Catching all exceptions leads to subtle errors which can sometime be hard to pin down due to the following reasons:
-   - More often than not, such caught exceptions are far removed from the offending code/cause. Consequently, a developer has to spend much effort to track and understand the error handing code which is some times located deep in the bowls of a many nested levels of `try-catch` statements.
+   - More often than not, such caught exceptions are far removed from the offending code/cause. Consequently, a developer has to spend much effort to track and understand the error handing code which is sometimes located deep in the bowls of a many nested levels of `try-catch` statements.
    - Sometimes an application would catch an exception which should never be handled under a `try-catch-all` statement, for example an `OutOfMemoryException`. If a developer forgets to log the error, the actual cause can sometimes just disappear leading to many man-hours hunting for something which should have been easy to fix: For example, give the process more memory, or finding the data structure leaking the memory.
 4. The very act of raising an exception also has some serious untended consequences insofar as the domain driven design/modelling:
    - Causes the boundaries of one domain to flow into with another,
    - Each time such a "domain exception" is thrown (thus the lost control of flow in the domain throwing it), will almost certainly result in all other domains models to be invalidated.
    - Ultimately this would mean that each domain has to have deep knowledge of almost all errors on every other domain in the application.
    - Clearly it is almost impossible to design for this, as each exception thrown is like bullet punching holes in any well crafted domain boundary.
-5. Lastly, Java's unfortunate decision to have checked exceptions just compounds the problems by encouraging developers to wrap these checked exceptions into runtime exceptions. Most the time these wrapped exceptions has very little bearing on the domain and exists only because of the compiler forcing the developer to do so. On a practical level this has the consequence of hiding the underlying errors deep into logs and many-line stack traces deep.
+5. Lastly, Java's unfortunate decision to have checked exceptions just compounds these problems by encouraging developers to wrap checked exceptions into runtime exceptions. Most the time these wrapped exceptions has very little bearing on the domain and exists only because of the compiler forcing the developer to do so. On a practical level this has the consequence of hiding the underlying errors deep into logs and many-line stack traces.
 
 > Note: ❗️ Exceptions are not undesirable, as long as they are used as intended.
 
@@ -94,7 +92,7 @@ This smallish project aims to bring these concerns to together into a single lib
 
 ## Core implementation details `ResultK` supporting domain driven error handling
 
-- Use of single generic wrapper which only purpose is to catch ensure that domain errors handled if the caller does not verify the result of an call is error free.
+- Use of single generic wrapper which only purpose is to catch ensure that domain errors handled if the caller does not verify the result of a call is error free.
 - Implements and promotes functional style of API to unify domain error handling as well as exception handling into unified happy flow control path.
 - Based on the classic Either monad, but specializing for error handling (hence the declaration of the core data type `Result<E,T>`).
 - Exposes also an imperative style which can be used safely.
@@ -127,10 +125,10 @@ sealed class DigestError(private val messageKey: String, private vararg messageA
 // Actual error cases. Only two are supported:
 
 data class DigesterAlgorithmUnknown(val algorithm: String, val cause: NoSuchAlgorithmException)
-	: DigestError("error.digister.noSuchAlgorithm", algorithm, cause.message)
+	: DigestError("error.digester.noSuchAlgorithm", algorithm, cause.message)
 
 data class DigesterFailedToIngestSource(val ioError: IOException)
-   : DigestError("error.digister.failedToIngestSource", ioError.message)
+   : DigestError("error.digester.failedToIngestSource", ioError.message)
 
 ```
 
@@ -213,21 +211,20 @@ Here is a possible implementation of a `File.hash()` function:
 
 ```kotlin
 fun File.hash(algorithm: String): Result<HashingError<Exception>, String> {
-
+    
    // Decide up front how to handle exceptions -- keep it simple
     val unsupportedAlgorithm = fun(e: NoSuchAlgorithmException) = UnsupportedAlgorithm(e, algorithm)
     val inputFailure = fun(e: IOException) = SourceContentNotReadable(path, e)
 
    // Use the library to deal only with exceptions I care about:
-    return resultWithHandlingOf(unsupportedAlgorithm) {
+    return resultWithHandling(unsupportedAlgorithm) {
         MessageDigest.getInstance(algorithm).success()
-    }.thenResultOfHandling(inputFailure) {
+    }.thenResultWithHandlin(inputFailure) {
         forEachBlock { buffer, bytesRead -> result.update(buffer, 0, bytesRead) }
         encodeHexString(result.digest()).success()
     }
 }
 ```
-
 
 ## Building & installation
 
@@ -239,11 +236,11 @@ fun File.hash(algorithm: String): Result<HashingError<Exception>, String> {
    ./gradlew build
    ./gradlew publishToMavenLocal
    ```
-
+   
 4. Include the following artifacts on your build:
 
-   - group: `io.github.andriesfc.kotlin`
-   - artifact Id: `resultk`
-   - version: `1.0.0-SNAPSHOT`
+   - Group: `io.github.andriesfc.kotlin`
+   - Artifact ID: `resultk`
+   - Version: `1.0.0-SNAPSHOT`
 
 5. Remember to include your local maven repo as well!

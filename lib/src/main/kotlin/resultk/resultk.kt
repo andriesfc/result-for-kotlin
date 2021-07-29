@@ -164,7 +164,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
  * @param T
  *      The success value type
  */
-inline fun <reified E, R, T> T.resultWithHandlingOf(processThis: T.() -> Result<E, R>): Result<E, R> {
+inline fun <reified E, R, T> T.resultWithHandling(processThis: T.() -> Result<E, R>): Result<E, R> {
     return resultOf { processThis(this) }
 }
 
@@ -184,7 +184,7 @@ fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit) = apply {
 /**
  * Returns an error or `null` for a given Result.
  *
- * @receiver A [resultWithHandlingOf]
+ * @receiver A [resultWithHandling]
  */
 fun <E> Result<E, *>.errorOrNull(): E? {
     return when (this) {
@@ -219,7 +219,7 @@ inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
 fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
 
 /**
- * A get operation which ensures that an exception is thrown if the result is a [resultWithHandlingOf]. Thr caller needs
+ * A get operation which ensures that an exception is thrown if the result is a [resultWithHandling]. Thr caller needs
  * to supply a function to map the error value to the correct instance of [X
  *
  * @param mapErrorToThrowable A function which converts an error instance into an exception to type [X]
@@ -314,7 +314,7 @@ inline fun <E, T, R> Result<E, T>.fold(
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
-inline fun <reified Ex : Throwable, reified E, R> resultWithHandlingOf(
+inline fun <reified Ex : Throwable, reified E, R> resultWithHandling(
     caught: (Ex) -> E,
     construct: () -> Result<E, R>
 ): Result<E, R> {
@@ -361,7 +361,7 @@ inline fun <reified E> raise(e: E): Nothing {
  * @param process
  *      A lambda which receives a success result value.
  */
-inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultOfHandling(
+inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultWithHandling(
     caught: (e: Ex) -> E,
     process: Success<T>.() -> Result<E, R>
 ): Result<E, R> {
@@ -432,7 +432,7 @@ interface FailureUnwrappingCapable<out E> {
  * @constructor Creates a new wrapped failure exception which can be raised using the `throw` operation.
  * @param wrapped The failure to wrap.
  * @see Result.get
- * @see resultWithHandlingOf
+ * @see resultWithHandling
  */
 @Suppress("UNCHECKED_CAST")
 class DefaultFailureUnwrappingException(
