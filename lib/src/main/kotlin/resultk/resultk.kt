@@ -2,36 +2,33 @@ package resultk
 
 import resultk.Result.Failure
 import resultk.Result.Success
-import java.util.*
 
 //<editor-fold desc="Core Data types and special values">
 
 /**
- * Result is an sealed type which represents a result of an operation: A result can either be a [Success], or an [Failure].
- * This type is specifically designed to provide precise functional control over errors, include the standard Kotlin
- * [Throwable] class.
+ * Result is a sealed type which represents a result of an operation: A result can either be a [Success], or an [Failure].
+ * This type is specifically designed to provide precise functional control over errors.
  *
  * Treating exceptions in the same way as normal (non throwable) error codes is realized by applying the following logic:
  *
  * - If the caller specifies an exception as error via the `Result<E,*>` the exception is captured as per normal
  *   contract, otherwise it is thrown.
  * - If the caller calls [Result.get] and the captured [Failure.error] is an actual [kotlin.Throwable], it will be
- *   thrown, (again as is the normal Object Oriented way).
+ *   thrown, (again as is the normal Object-Oriented way).
  * - If the caller calls [Result.get] and the captured [Failure.error], is not something which can be thrown, this
  *   library will wrap it as [DefaultFailureUnwrappingException], and throw it.
  *
  * See the [Failure.get] function for more details on exactly how errors are handled by this `Result` implementation.
  *
- * Further more, this library provides a rich set of functions to transform/process _either_ the [Result.Success.result],
+ * Furthermore, this library provides a rich set of functions to transform/process _either_ the [Result.Success.result],
  * or in the case of a [Result.Failure] the underlying [Result.Failure.error] value. These operations can be roughly
- * be group as follows:
+ * be grouped as follows:
  *
  * - Operations to map from one type of [E], or [T] to another via the family of  _mapping_ operators.
  * - Operations to retrieve the expected success value ([T]) via a family of get operations
  * - Operations to retrieve the possible error value ([E]) via a family of get operations.
- * - Operations to take/not take an error or value based on a supplied predicate.
  * - Processing operations to transform either the success value, or the error value to another type.
- * - Terminal operations which will only be triggered in either the presence of an error or success value.
+ * - Conditional operations which will only be triggered in either the presence of an error or success value.
  *
  * Lastly a note on interop with the standard [kotlin.Result] type. The library provides the following
  * convenience operations to transform a [Result] to the standard [kotlin.Result] type (and visa versa):
@@ -71,18 +68,18 @@ sealed class Result<out E, out T> {
     /**
      * A failure/error value.
      *
-     * @property error The error returned as an result.
+     * @property error The error returned as a result.
      */
     data class Failure<E>(val error: E) : Result<E, Nothing>() {
 
         /**
-         * Failures does not have an result value, only an [error]. Calling get on a failure
+         * Failures does not have a result value, only an [error]. Calling get on a failure
          * will therefore result in an exception being thrown.
          *
          * The exact exception being thrown is determined by the nature of the [error] value:
          *
          * - If the actual [error] is a [kotlin.Throwable] it will simply be thrown as expected.
-         * - If the [error] implements the [Failure.ThrowableProvider] interface, the `error.throwable()` function will
+         * - If the [error] implements the [ThrowableProvider] interface, the `error.throwable()` function will
          * be called to determine which throwable will be thrown.
          * - Lastly, of neither of the above applies, the error value will be wrapped a [DefaultFailureUnwrappingException]
          * instance, before being thrown.
@@ -90,7 +87,7 @@ sealed class Result<out E, out T> {
          * Regardless, it is up the caller to handle, or ignore the thrown exception as usual business.
          *
          * @see DefaultFailureUnwrappingException
-         * @see Result.Failure.ThrowableProvider
+         * @see ThrowableProvider
          */
         override fun get(): Nothing {
             when (error) {
@@ -113,9 +110,6 @@ sealed class Result<out E, out T> {
 
     /**
      * Calling get is unsafe, as the may fail (in the case of a [Failure.get]) with an exception being thrown.
-     *
-     * @see Failure.FailureUnwrappingCapable.unwrap
-     *      In the case where the [Failure.error] is not a throwable type.
      */
     abstract fun get(): T
 
@@ -163,7 +157,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
 }
 
 /**
- * Handy function to start immediately produce a [Result] from the this receiver.
+ * Handy function to start immediately produce a [Result] from this receiver.
  *
  * @param E
  *      The failure error type.
@@ -200,7 +194,7 @@ fun <E> Result<E, *>.errorOrNull(): E? {
 }
 
 /**
- * Returns result in the first variable position - use [Result.get] to to retrieve the success value.
+ * Returns result in the first variable position - use [Result.get] to retrieve the success value.
  *
  * > **NOTE**: If the result is a [Failure], calling [get] throw an exception.
  */
@@ -225,10 +219,10 @@ inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
 fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
 
 /**
- * A get operation which ensures that an exception is thrown if the result is a [resultWithHandlingOf.Failure]. Thr caller needs
+ * A get operation which ensures that an exception is thrown if the result is a [resultWithHandlingOf]. Thr caller needs
  * to supply a function to map the error value to the correct instance of [X
  *
- * @param mapErrorToThrowable A function which converts an error instance to an exception of type [X]
+ * @param mapErrorToThrowable A function which converts an error instance into an exception to type [X]
  * @param E The error type
  * @param T The successful/expected value type.
  * @param X The exception type which needs to be thrown when this result contains an error.
@@ -240,7 +234,7 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
 }
 
 /**
- * Returns an success value, or in the case of an error a `null` value.
+ * Returns a success value, or in the case of an error a `null` value.
  *
  * @receiver This result.
  * @param T The result type.
@@ -252,7 +246,7 @@ fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
 //<editor-fold desc="Mapping success values and failures">
 /**
- * Maps the the success value into a new type of [R], new result type.
+ * Maps the success value into a new type of [R], new result type.
  *
  * @param mapValue
  *      A code block which takes the current results returns a new
@@ -276,7 +270,7 @@ inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
 
 /**
  * Converts a `Result` to single value. The caller has to supply both the [onSuccess] and [onFailure] lambda
- * to cater for the either of the error or success value presence.
+ * to cater for both possible cases
  *
  * @param E
  *      The failure error value type
@@ -303,22 +297,20 @@ inline fun <E, T, R> Result<E, T>.fold(
 
 /**
  * This function produces a result, but the caller must decide how to handle
- * any exception of type [Ex] being thrown from [construct] code block by supplying an [caught]
+ * any exception being thrown from [construct] code block by supplying an [caught] lambda
  *
  * lambda. **Note** that any exception which is not of type [Ex] will simply be thrown the usual way.
  *
  * @param E
  *      The value type representing the expected failure.
  * @param Ex
- *      The value type of the expecte exception te be thrown in the [resultFromThis] code block.
- * @param T
- *      The value type of the receiver.
+ *      The type of exception the caller expects to be thrown by the [resultFromThis] code block.
  * @param R
  *      The value type of the resulting success value.
  * @param caught
- *      A lambda which takes the thrown exception of type [Ex] and produces a [Failure] from it.
+ *      A lambda which takes the thrown exception and produces a [Failure] from it.
  * @param construct
- *      A code block which may either produce an [Failure] or [Success] from the receiver.
+ *      A code block which may either produce a [Failure] or [Success] from the receiver.
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
@@ -353,18 +345,19 @@ inline fun <reified E> raise(e: E): Nothing {
 }
 
 /**
- * The preferred way of handling exceptions when chaining the result with the a following process.
+ * The preferred way of handling exceptions when chaining the result with a following process which
+ * needs to handle a different kind of exception.
  *
  * @param Ex
- *      The Exception could result in an domain error.
+ *      The Exception could result in a domain error.
  * @param E
  *      The domain error type
  * @param T
- *      The target object your are processing
+ *      The target object you are processing
  * @param R
  *      The result type this `thenResultOfCatching` should produce
  * @param caught
- *      A lambda which takes in exception of type `Ex` and produce the appropriate domain erro
+ *      A lambda which accepts an Exception  as parameter and produces the appropriate domain error
  * @param process
  *      A lambda which receives a success result value.
  */
@@ -388,7 +381,7 @@ inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultOfHandling(
  * A function which chain the processing of one result to another.
  *
  * @param
- *      process A lambda which the the [Success] as receiver and returns the next result, whether it
+ *      process A lambda which the [Success] as receiver and returns the next result, whether it
  *      is [Failure] or [Success]
  */
 inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() -> Result<E, R>): Result<E, R> {
@@ -409,22 +402,21 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() ->
  * [Failure.get] function.
  *
  * @param X
- *      The type throwable this failure wants use when caller tries to get an success value
+ *      The type throwable this failure wants use when caller tries to get a success value
  *      from this error
  */
 fun interface ThrowableProvider<out X : Throwable> {
     fun throwing(): X
 }
-/*
-*//**
+/**
  * Implement this if interface on any exception provided by the [ThrowableProvider.failure] call
  * if you want your own exception to be able to unwrap a [Failure].
  *
- * By default the library (if not provided with one), will use an internal implementation.
+ * By default, this library (if not provided with one), will use an internal implementation.
  *
  * @see DefaultFailureUnwrappingException
- *      The internal exception used by the library itself if non other is provided.
- * @see unwrapFailureOrNull
+ *      The internal exception used by the library to unwrap a failure from.
+ * @see Throwable.unwrapOrNull
  *      A function which attempts to unwrap a specific `Failure` based on desired error value type.
  * @see resultOf
  */
@@ -434,7 +426,7 @@ interface FailureUnwrappingCapable<out E> {
 
 /**
  * The purpose of this class is to bridge the functional model of the [Result] operations with the traditional
- * _try-catch_ world of Object Oriented contract which specifies that failures should be raised and the current
+ * _try-catch_ world of Object-Oriented contract which specifies that failures should be raised and the current
  * operation should be aborted.
  *
  * @constructor Creates a new wrapped failure exception which can be raised using the `throw` operation.
