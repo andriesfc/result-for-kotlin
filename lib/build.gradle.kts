@@ -37,37 +37,45 @@ val htmlDokkaJar by tasks.creating(Jar::class) {
     from(buildDir.resolve("dokka/html"))
 }
 
-fun MavenPom.withPublisherDetails() {
-    developers {
-        developer {
-            name.set("Andries")
-            email.set("andriesfc@gmail.com")
-            roles.add("Maintainer")
-        }
-    }
-    scm {
-        developerConnection.set("scm:git@github.com:andriesfc/result-for-kotlin.git")
-        url.set("https://github.com/andriesfc/result-for-kotlin.git")
-        connection.set("scm:git@github.com:andriesfc/result-for-kotlin.git")
+val testJar by tasks.creating(Jar::class) {
+    group = "Build"
+    description = "Builds seperate jar which contains all thge tests."
+    archiveClassifier.set("test")
+    from(sourceSets.test.get().output) {
+        include("resultk/testing/**")
     }
 }
 
-fun MavenPublication.withLibraryDetails() {
+fun MavenPublication.describePublication() {
     groupId = "${project.group}"
     artifactId = artifactName
-    description = "First class support for domain errors in Kotlin"
+    description = project.description
     version = "${project.version}"
-    pom.withPublisherDetails()
+    pom {
+        developers {
+            developer {
+                name.set("Andries")
+                email.set("andriesfc@gmail.com")
+                roles.add("Owner")
+            }
+        }
+        scm {
+            developerConnection.set("scm:git@github.com:andriesfc/result-for-kotlin.git")
+            url.set("https://github.com/andriesfc/result-for-kotlin.git")
+            connection.set("scm:git@github.com:andriesfc/result-for-kotlin.git")
+        }
+    }
 }
 
 publishing {
     publications {
         create<MavenPublication>("Lib") {
-            withLibraryDetails()
+            describePublication()
             from(components["java"])
             artifact(sourcesJar)
             artifact(javadocJar)
             artifact(htmlDokkaJar)
+            artifact(testJar)
             versionMapping {
                 usage("java-api") {
                     fromResolutionOf("runtimeClasspath")
