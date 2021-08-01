@@ -5,7 +5,7 @@ import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
 import resultk.*
 import resultk.modelling.internal.InternalModellingError
-import resultk.modelling.internal.InternalModellingError.MissingMessageExpressions
+import resultk.modelling.internal.InternalModellingError.UnresolvedTemplateExpression
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
 import java.util.*
@@ -211,24 +211,24 @@ fun String.eval(
     }
 
     if (missing.isNotEmpty()) {
-        err = MissingMessageExpressions(this, missing.toList())
+        err = UnresolvedTemplateExpression(this, missing.toList())
     } else if (i < length) {
         dest.append(this, i, length)
     }
 
-    err = resolver.postProcessIgnored(err as? MissingMessageExpressions)
+    err = resolver.postProcessIgnored(err as? UnresolvedTemplateExpression)
     resolver.postProcessFinalBuffer(dest)
 
     err?.failure() ?: dest.success()
 
 }
 
-private fun ExpressionResolver.postProcessIgnored(err: MissingMessageExpressions?): MissingMessageExpressions? {
+private fun ExpressionResolver.postProcessIgnored(err: UnresolvedTemplateExpression?): UnresolvedTemplateExpression? {
     if (err == null || this !is PostProcessor.UnhandledExpressionProcessor) return err
     return when (val resolution = postProcess(err.expressions)) {
         UnprocessedExpressionResolution.IsFailure -> err
         UnprocessedExpressionResolution.Ignore -> null
-        is UnprocessedExpressionResolution.FailOnlyWithThese -> MissingMessageExpressions(
+        is UnprocessedExpressionResolution.FailOnlyWithThese -> UnresolvedTemplateExpression(
             template = err.template,
             expressions = resolution.failedExpressions
         )

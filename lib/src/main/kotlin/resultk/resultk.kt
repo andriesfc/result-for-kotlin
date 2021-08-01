@@ -242,6 +242,11 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  */
 fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
+fun Result<*, *>.any(): Any = when (this) {
+    is Failure -> error as Any
+    is Success -> result as Any
+}
+
 //</editor-fold>
 
 //<editor-fold desc="Mapping success values and failures">
@@ -408,6 +413,7 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() ->
 fun interface ThrowableProvider<out X : Throwable> {
     fun throwing(): X
 }
+
 /**
  * Implement this if interface on any exception provided by the [ThrowableProvider.failure] call
  * if you want your own exception to be able to unwrap a [Failure].
