@@ -26,14 +26,14 @@ dependencies {
     // Use the Kotlin JDK 8 standard library.
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
+    implementation(kotlin("reflect"))
+
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
     // https://mvnrepository.com/artifact/org.springframework/spring-expression
     implementation("org.springframework:spring-expression:5.3.9")
 
-    /// Uses reflection in unit tests
-    testImplementation(kotlin("reflect"))
 
     // JUnit5
     val junit5_version = "5.7.2"

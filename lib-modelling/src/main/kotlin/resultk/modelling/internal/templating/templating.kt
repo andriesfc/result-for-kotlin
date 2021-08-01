@@ -7,7 +7,7 @@ import resultk.*
 import resultk.modelling.internal.InternalModellingError
 import resultk.modelling.internal.InternalModellingError.MissingMessageExpressions
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.ProcessIgnoredResolutions.IgnoredResolutionStrategy
+import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
 import java.util.*
 
 private const val PREFIX = "{{"
@@ -23,13 +23,58 @@ interface ExpressionResolver {
 
         fun postProcess(result: T): R
 
-        interface ProcessIgnoredResolutions :
-            PostProcessor<List<String>, IgnoredResolutionStrategy> {
-            sealed class IgnoredResolutionStrategy {
-                object Ignore : IgnoredResolutionStrategy()
-                object IsFailure : IgnoredResolutionStrategy()
-                data class FailOnlyWithThese(val failedExpressions: List<String>) :
-                    IgnoredResolutionStrategy()
+        interface UnhandledExpressionProcessor
+            : PostProcessor<List<String>, UnprocessedExpressionResolution> {
+
+            sealed class UnprocessedExpressionResolution {
+
+                object Ignore : UnprocessedExpressionResolution()
+
+                object IsFailure : UnprocessedExpressionResolution()
+
+                data class FailOnlyWithThese(
+                    val failedExpressions: List<String>
+                ) : UnprocessedExpressionResolution() {
+                    override fun describe(sb: StringBuilder) {
+                        failedExpressions.joinTo(sb, prefix = "[", postfix = "]")
+                    }
+                }
+
+                protected open fun describe(sb: StringBuilder) = Unit
+
+                private val shortName: String by lazy {
+                    javaClass.name
+                        .replace('$', '.')
+                        .split('.')
+                        .takeLast(2)
+                        .joinToString(".")
+                }
+
+                final override fun toString(): String {
+                    return buildString {
+                        append(shortName)
+
+                        if (this@UnprocessedExpressionResolution !in singletons) {
+                            append('@')
+                            append(
+                                this@UnprocessedExpressionResolution.hashCode().toUInt()
+                                    .toString(16)
+                            )
+                        }
+
+                        val emptyBodyLength = length
+                        describe(this)
+                        if (emptyBodyLength < length) {
+                            insert(emptyBodyLength, "{ ")
+                            append(" }")
+                        }
+                    }
+                }
+
+                companion object {
+                    val singletons =
+                        UnprocessedExpressionResolution::class.sealedSubclasses.mapNotNull { it.objectInstance }
+                }
             }
         }
 
@@ -68,23 +113,23 @@ sealed class ResolveExpression : ExpressionResolver {
     class ByLookupFunction(
         private val lookup: (String) -> Any?,
         private val contains: (String) -> Boolean,
-        private val resolveIgnored: (List<String>) -> IgnoredResolutionStrategy
-    ) : ResolveExpression(), PostProcessor.ProcessIgnoredResolutions {
+        private val resolveIgnored: (List<String>) -> UnprocessedExpressionResolution
+    ) : ResolveExpression(), PostProcessor.UnhandledExpressionProcessor {
 
         constructor(lookup: (String) -> Any?) : this(lookup,
             contains = { true },
-            resolveIgnored = { IgnoredResolutionStrategy.Ignore }
+            resolveIgnored = { UnprocessedExpressionResolution.Ignore }
         )
 
         constructor(lookup: (String) -> Any?, contains: (String) -> Boolean) : this(
             contains = contains,
             lookup = lookup,
-            resolveIgnored = { IgnoredResolutionStrategy.IsFailure }
+            resolveIgnored = { UnprocessedExpressionResolution.IsFailure }
         )
 
         override fun accept(expression: String): Boolean = contains(expression)
         override fun eval(expression: String): Any? = lookup(expression)
-        override fun postProcess(result: List<String>): IgnoredResolutionStrategy =
+        override fun postProcess(result: List<String>): UnprocessedExpressionResolution =
             resolveIgnored(result)
 
         override fun StringBuilder.describe() {
@@ -170,11 +215,11 @@ fun String.eval(
 }
 
 private fun ExpressionResolver.postProcessIgnored(err: MissingMessageExpressions?): MissingMessageExpressions? {
-    if (err == null || this !is PostProcessor.ProcessIgnoredResolutions) return err
+    if (err == null || this !is PostProcessor.UnhandledExpressionProcessor) return err
     return when (val resolution = postProcess(err.expressions)) {
-        IgnoredResolutionStrategy.IsFailure -> err
-        IgnoredResolutionStrategy.Ignore -> null
-        is IgnoredResolutionStrategy.FailOnlyWithThese -> MissingMessageExpressions(
+        UnprocessedExpressionResolution.IsFailure -> err
+        UnprocessedExpressionResolution.Ignore -> null
+        is UnprocessedExpressionResolution.FailOnlyWithThese -> MissingMessageExpressions(
             template = err.template,
             expressions = resolution.failedExpressions
         )
