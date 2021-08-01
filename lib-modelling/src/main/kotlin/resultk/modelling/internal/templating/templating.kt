@@ -63,9 +63,11 @@ sealed class ResolveExpression : ExpressionResolver {
     }
 }
 
+private fun allocBuilder(minRequiredSize: Int) = StringBuilder((minRequiredSize * 1.6).toInt())
+
 fun String.eval(
     resolver: ExpressionResolver,
-    dest: StringBuilder = StringBuilder(),
+    dest: StringBuilder = allocBuilder(length), // leave some space to grow!
 ): Result<TemplatingError, StringBuilder> = resultWithHandling(TemplatingError::UnexpectedFailure) {
 
     var i = 0
@@ -91,16 +93,15 @@ fun String.eval(
         i = b + SUFFIX.length
     }
 
+    if (missing.isNotEmpty()) {
+        err = MissingMessagePlaceholders(this, missing.toList())
+    }
 
-    err?.failure()
-        ?: if (missing.isNotEmpty()) {
-            MissingMessagePlaceholders(
-                this,
-                missing.toList()
-            ).failure()
-        } else {
-            if (i < length) dest.append(this, i, length)
-            dest.success()
-        }
+    if (err == null && i < length) {
+        dest.append(this, i, length)
+    }
+
+    err?.failure() ?: dest.success()
+
 }
 
