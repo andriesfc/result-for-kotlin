@@ -2,11 +2,10 @@
 
 package resultk.modelling.internal.templating
 
+import assertk.all
 import assertk.assertAll
 import assertk.assertThat
-import assertk.assertions.isEqualTo
-import assertk.assertions.isTrue
-import assertk.assertions.prop
+import assertk.assertions.*
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -70,14 +69,16 @@ internal class ResolverPostProcessingTest {
         val result: Result<InternalModellingError, String> =
             template.eval(resolver).map(StringBuilder::toString)
 
+        print("******( $resolution -> $result )******")
+
         when (resolution) {
             is FailOnlyWithThese -> assertAll {
                 assertThat(result).prop(Result<*, *>::isFailure).isTrue()
                 assertThat(resolution.failedExpressions).isEqualTo(failOnlyWithThese.failedExpressions)
             }
-            UnprocessedExpressionResolution.Ignore -> assertAll {
-                assertThat(result.get()).isEqualTo(template)
-                assertThat(result).transform { it.isSuccess }.isTrue()
+            UnprocessedExpressionResolution.Ignore -> assertThat(result).all {
+                prop(Result<*, *>::isFailure).isFalse()
+                transform { it.get() }.isEqualTo(template)
             }
             UnprocessedExpressionResolution.IsFailure -> assertAll {
                 assertThat(result).prop(Result<*, *>::isFailure).isTrue()
