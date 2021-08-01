@@ -11,25 +11,12 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import resultk.map
-import java.time.LocalDate
-import java.time.Month
-import java.util.*
-import kotlin.reflect.full.memberProperties
+import resultk.modelling.internal.templating.fixture.testcasemodel.TestCaseModel
+import resultk.modelling.internal.templating.fixture.testcasemodel.mapped
+import resultk.modelling.internal.templating.fixture.testcasemodel.mappedByJavaProps
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class ResolveExpressionTest {
-
-    data class TestCaseModel(val today: LocalDate, val kind: String, val n: Int) {
-        constructor() : this(
-            today = LocalDate.of(2021, Month.MARCH, 12),
-            kind = "simple",
-            n = 12
-        )
-
-        companion object {
-            val default = TestCaseModel()
-        }
-    }
 
     private val defaultTemplate = "{{today}}, is a {{kind}} test for number {{n}}."
     private val defaultExpectedMessage: String // = "2021-03-12, is a simple test for number 12."
@@ -62,19 +49,6 @@ internal class ResolveExpressionTest {
             .isSuccess()
             .isEqualTo(defaultExpectedMessage)
     }
-
-    private fun TestCaseModel.mapped() =
-        TestCaseModel::class.memberProperties.associate { p -> p.name to p.get(this) }
-
-    private fun TestCaseModel.propertes() = Properties().also { properties ->
-        mapped().forEach { (k, v) ->
-            properties.setProperty(
-                k,
-                v.toString()
-            )
-        }
-    }
-
     fun allTestableResolvers() =
         TestCaseModel.default.testableResolvers().map { (model, resolver) ->
             Arguments.of(model, resolver)
@@ -107,7 +81,7 @@ internal class ResolveExpressionTest {
 
     private fun TestCaseModel.testableResolvers() = listOf(
         this to ResolveExpression.ByMapLookup(mapped()),
-        this to ResolveExpression.ByPropertiesLookup(propertes()),
+        this to ResolveExpression.ByPropertiesLookup(mappedByJavaProps()),
         this to ResolveExpression.ByBeanModel(this),
         this to mapped().run { ResolveExpression.ByLookupFunction(this::get, this::containsKey) }
     )
