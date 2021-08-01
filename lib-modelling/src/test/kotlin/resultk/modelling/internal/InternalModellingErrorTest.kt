@@ -2,15 +2,22 @@ package resultk.modelling.internal
 
 import assertk.assertThat
 import assertk.assertions.isNotEmpty
+import assertk.assertions.isSameAs
 import assertk.assertions.isSuccess
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.MethodSource
 import resultk.modelling.internal.InternalModellingError.*
 import kotlin.random.Random
+import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.jvmName
+import kotlin.reflect.typeOf
 
 
+@ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class InternalModellingErrorTest {
 
@@ -27,7 +34,39 @@ internal class InternalModellingErrorTest {
             .isNotEmpty()
     }
 
+    @ParameterizedTest
+    @MethodSource("testableDeclaringCause")
+    fun `Raising internal modelling error should always throw the actual cause`(
+        e: InternalModellingError,
+        declaredCause: Throwable?
+    ) {
+        assertThat(e.throwing()).isSameAs(declaredCause)
+    }
+
     private fun testableExamples() = declaredTestExamples().toList().toTypedArray()
+
+    private fun testableDeclaringCause(): List<Arguments> {
+        return declaredTestExamples().mapNotNull { e ->
+            val p = e.javaClass.kotlin.memberProperties.firstNotNullOfOrNull { p ->
+                when {
+                    p.name != "cause" -> {
+                        null
+                    }
+                    !(p.returnType.isSubtypeOf(typeOf<Throwable>())
+                            || p.returnType.isSubtypeOf(
+                        typeOf<Throwable?>()
+                    )) -> {
+                        null
+                    }
+                    else -> {
+                        p
+                    }
+                }
+            }
+            p?.let { arguments(e, p.get(e)) }
+        }.toList()
+    }
+
 
     private fun declaredTestExamples() = sequenceOf(
         UnresolvedTemplateExpression("Some template is {{stated}},", listOf("stated")),
@@ -36,7 +75,7 @@ internal class InternalModellingErrorTest {
             template = "someTemplate",
             index = "someTemplate".length.random(),
             reportedVia = this,
-            cause = null
+            cause = Exception("Something bad is cooking!")
         )
     )
 
