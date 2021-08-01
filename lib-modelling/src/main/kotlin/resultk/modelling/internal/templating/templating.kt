@@ -10,13 +10,9 @@ import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
 import java.util.*
 
-private const val PREFIX = "{{"
-private const val SUFFIX = "}}"
-private const val NOT_FOUND = -1
-
 interface ExpressionResolver {
 
-    fun accept(expression: String): Boolean
+    fun accepts(expression: String): Boolean
     fun eval(expression: String): Any?
 
     sealed interface PostProcessor<in T, out R> {
@@ -78,7 +74,7 @@ interface ExpressionResolver {
             }
         }
 
-        interface FinalBuffer : PostProcessor<StringBuilder, Unit>
+        fun interface FinalBuffer : PostProcessor<StringBuilder, Unit>
     }
 
 }
@@ -86,7 +82,7 @@ interface ExpressionResolver {
 sealed class ResolveExpression : ExpressionResolver {
 
     class ByPropertiesLookup(private val properties: Properties) : ResolveExpression() {
-        override fun accept(expression: String): Boolean = properties.containsKey(expression)
+        override fun accepts(expression: String): Boolean = properties.containsKey(expression)
         override fun eval(expression: String): Any? = properties.getProperty(expression)
         override fun StringBuilder.describe() {
             append("properties: ")
@@ -102,7 +98,7 @@ sealed class ResolveExpression : ExpressionResolver {
     }
 
     class ByMapLookup(private val map: Map<String, Any?>) : ResolveExpression() {
-        override fun accept(expression: String): Boolean = map.containsKey(expression)
+        override fun accepts(expression: String): Boolean = map.containsKey(expression)
         override fun eval(expression: String): Any? = map[expression]
         override fun StringBuilder.describe() {
             append("map: ")
@@ -127,7 +123,7 @@ sealed class ResolveExpression : ExpressionResolver {
             resolveIgnored = { UnprocessedExpressionResolution.IsFailure }
         )
 
-        override fun accept(expression: String): Boolean = contains(expression)
+        override fun accepts(expression: String): Boolean = contains(expression)
         override fun eval(expression: String): Any? = lookup(expression)
         override fun postProcess(result: List<String>): UnprocessedExpressionResolution =
             resolveIgnored(result)
@@ -143,7 +139,7 @@ sealed class ResolveExpression : ExpressionResolver {
 
     class ByBeanModel(private val bean: Any) : ResolveExpression() {
         private val parser = SpelExpressionParser(ByBeanModel)
-        override fun accept(expression: String): Boolean = true
+        override fun accepts(expression: String): Boolean = true
         override fun eval(expression: String): Any? = parser
             .parseExpression(expression, ByBeanModel)
             .getValue(bean)
@@ -174,6 +170,18 @@ sealed class ResolveExpression : ExpressionResolver {
 
 private fun allocBuilder(minRequiredSize: Int) = StringBuilder((minRequiredSize * 1.6).toInt())
 
+private val String.isSurroundedByWhitespace: Boolean
+    get() = when {
+        isEmpty() -> false
+        first().isWhitespace() -> true
+        last().isWhitespace() -> true
+        else -> false
+    }
+
+private const val PREFIX = "{{"
+private const val POSTFIX = "}}"
+private const val NOT_FOUND = -1
+
 fun String.eval(
     resolver: ExpressionResolver,
     dest: StringBuilder = allocBuilder(length), // leave some space to grow!
@@ -185,20 +193,21 @@ fun String.eval(
 
     while (i < length) {
         val a = indexOf(PREFIX, i).takeUnless { it == NOT_FOUND } ?: break
-        val b = indexOf(SUFFIX, a + PREFIX.length).takeUnless { it == NOT_FOUND } ?: break
-        val name = substring(a + PREFIX.length, b).trim()
-        if (!resolver.accept(name)) {
-            missing += name
-            dest.append(this, a, b + SUFFIX.length)
+        val b = indexOf(POSTFIX, a + PREFIX.length).takeUnless { it == NOT_FOUND } ?: break
+        val raw = substring(a + PREFIX.length, b)
+        val expression = if (raw.isSurroundedByWhitespace) raw.trim() else raw
+        if (!resolver.accepts(expression)) {
+            dest.append(this, i, b + POSTFIX.length)
+            missing += expression
         } else {
             dest.append(this, i, a)
             try {
-                dest.append(resolver.eval(name))
+                dest.append(resolver.eval(expression))
             } catch (e: Exception) {
                 raise(InternalModellingError.MalformedTemplate(i, this, resolver, e))
             }
         }
-        i = b + SUFFIX.length
+        i = b + POSTFIX.length
     }
 
     if (missing.isNotEmpty()) {

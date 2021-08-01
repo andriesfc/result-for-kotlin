@@ -15,9 +15,12 @@ import org.junit.jupiter.params.provider.MethodSource
 import resultk.Result
 import resultk.map
 import resultk.modelling.internal.InternalModellingError
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor
+import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.*
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution.FailOnlyWithThese
+import resultk.modelling.internal.templating.fixture.testcasemodel.TestCaseModel
+import java.time.LocalDate
+import java.time.Month
 import kotlin.reflect.jvm.jvmName
 import kotlin.test.Test
 
@@ -58,11 +61,11 @@ internal class ResolverPostProcessingTest {
 
     @ParameterizedTest
     @MethodSource("unprocessedExpressionResolutions")
-    fun testPostProcessUnhandledExpressions(resolution: UnprocessedExpressionResolution) {
+    fun `Verify correct behaviour post process unhandled expressions`(resolution: UnprocessedExpressionResolution) {
 
         resolver = mockk(moreInterfaces = arrayOf(UnhandledExpressionProcessor::class)) {
             this as UnhandledExpressionProcessor
-            every { accept(any()) } returns false
+            every { accepts(any()) } returns false
             every { postProcess(any()) } returns resolution
         }
 
@@ -89,7 +92,33 @@ internal class ResolverPostProcessingTest {
     }
 
     @Test
-    fun testPostProcessingFinalBuffer() {
+    fun `Verify ability to post process the final buffer`() {
+
+        val model = TestCaseModel(
+            kind = "hot",
+            today = LocalDate.of(2021, Month.JANUARY, 1),
+            n = 33
+        )
+        val template = "{{ today }} is kind of {{ kind }} at a temp of {{ n }}"
+        val beforePostProcess = "${model.today} is kind of ${model.kind} at a temp of ${model.n}"
+        val stripWhitespace = fun CharSequence.() = filterNot(Char::isWhitespace)
+        val resolver = object : FinalBuffer,
+            ExpressionResolver by ResolveExpression.ByBeanModel(model) {
+            override fun postProcess(result: StringBuilder) {
+                val stripped = result.stripWhitespace()
+                result.clear()
+                result.append(stripped)
+            }
+        }
+
+        val actual = template.eval(resolver).map(StringBuilder::toString)
+        val expected = beforePostProcess.stripWhitespace().toString()
+
+        println(actual)
+
+        assertThat(actual)
+            .isInstanceOf(Result.Success::class)
+            .transform { it.result }.isEqualTo(expected)
     }
 
     fun unprocessedExpressionResolutions(): List<UnprocessedExpressionResolution> = listOf(
