@@ -1,7 +1,7 @@
 val buildVersion by extra("1.0.0-SNAPSHOT")
 
 allprojects {
-    group = "io.github.andriesfc.kotlin"
+    group = "io.github.andriesfc.kotlin.resultk"
     version = buildVersion
 }
 
