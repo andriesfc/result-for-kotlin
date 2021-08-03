@@ -51,8 +51,8 @@ internal class FunctionFlowControlTest {
                     .take(3)
                     .toList().also(::println)
                     .success()
-            }.thenResultWithHandling(dateCreationFailureAsErrorCase2) {
-                val (year, month, day) = result
+            }.thenResultWithHandling(dateCreationFailureAsErrorCase2) { list ->
+                val (year, month, day) = list
                 LocalDate.of(year, month, day).success()
             }
         }
@@ -69,8 +69,8 @@ internal class FunctionFlowControlTest {
             return resultOf<Exception, MessageDigest> {
                 MessageDigest.getInstance("sha1").success()
             }.thenResultOf {
-                result.update(this@computedSha1.toByteArray(Charsets.US_ASCII))
-                encodeHexString(result.digest()).success()
+                it.update(this@computedSha1.toByteArray(Charsets.US_ASCII))
+                encodeHexString(it.digest()).success()
             }
         }
 

@@ -16,6 +16,9 @@ private const val NOT_FOUND = -1
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class I8nErrorTest {
 
+    private val exampleResolverError: Throwable? = null
+    private val exampleResolverErrorMessage: String = "Something happend while resolving template"
+    private val exampleMalformedTemplate: String = "Some {{template}}"
     private val exampleBaseMessages = "MyMessages"
     private val exampleBaseLocale = Locale.getDefault()
     private val exampleMessageKey = "myMessageKeySample"
@@ -59,6 +62,14 @@ internal class I8nErrorTest {
     private fun availableForTesting() = listOf(
         I8nError.MissingResourceBundle(exampleBaseMessages, exampleBaseLocale),
         I8nError.MissingMessageKey(exampleBaseMessages, exampleMessageKey, exampleBaseLocale),
+        I8nError.MessageBuildFailure(
+            baseName = exampleBaseMessages,
+            templateMessageKey = exampleMessageKey,
+            locale = exampleBaseLocale,
+            template = exampleMalformedTemplate,
+            resolverErrorMessage = exampleResolverErrorMessage,
+            cause = exampleResolverError
+        )
     )
 
 }

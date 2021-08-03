@@ -85,7 +85,7 @@ tasks.withType<KotlinCompile> {
 tasks.withType<DokkaTask> {
     dokkaSourceSets {
         named("main") {
-            moduleName.set("resultk")
+            moduleName.set("ResultK Modelling")
             includes.from("module.md")
             jdkVersion.set(javaCompileLangVersion.asInt())
             sourceLink {
@@ -106,7 +106,7 @@ val sourcesJar by tasks.creating(Jar::class) {
 
 val javadocJar by tasks.creating(Jar::class) {
     group = "Build"
-    dependsOn(":lib:dokkaJavadoc")
+    dependsOn("dokkaJavadoc")
     description = "Package Java Doc"
     archiveClassifier.set("javadoc")
     from(buildDir.resolve("dokka/javadoc"))
@@ -116,7 +116,7 @@ val htmlDokkaJar by tasks.creating(Jar::class) {
     group = "Build"
     description = "Packages Kotlin HTML documentation"
     archiveClassifier.set("html")
-    dependsOn(":lib:dokkaHtml")
+    dependsOn("dokkaHtml")
     from(buildDir.resolve("dokka/html"))
 }
 
@@ -125,7 +125,7 @@ val testJar by tasks.creating(Jar::class) {
     description = "Builds seperate jar which contains all thge tests."
     archiveClassifier.set("test")
     from(sourceSets.test.get().output) {
-        include("resultk/testing/**")
+        include("resultk/**/testing/**")
     }
 }
 

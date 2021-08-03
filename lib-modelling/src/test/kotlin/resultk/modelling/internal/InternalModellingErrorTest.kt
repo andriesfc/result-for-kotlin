@@ -9,7 +9,8 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.MethodSource
-import resultk.modelling.internal.InternalModellingError.*
+import resultk.modelling.internal.InternalModellingError.MalformedTemplate
+import resultk.modelling.internal.InternalModellingError.UnresolvedTemplateExpression
 import kotlin.random.Random
 import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.full.memberProperties
@@ -40,7 +41,9 @@ internal class InternalModellingErrorTest {
         e: InternalModellingError,
         declaredCause: Throwable?
     ) {
-        assertThat(e.throwing()).isSameAs(declaredCause)
+        if (declaredCause != null) {
+            assertThat(e.throwing()).isSameAs(declaredCause)
+        }
     }
 
     private fun testableExamples() = declaredTestExamples().toList().toTypedArray()
@@ -70,13 +73,7 @@ internal class InternalModellingErrorTest {
 
     private fun declaredTestExamples() = sequenceOf(
         UnresolvedTemplateExpression("Some template is {{stated}},", listOf("stated")),
-        UnexpectedFailure(Exception("Not expected!")),
-        MalformedTemplate(
-            template = "someTemplate",
-            index = "someTemplate".length.random(),
-            reportedVia = this,
-            cause = Exception("Something bad is cooking!")
-        )
+        MalformedTemplate(10.random(), "jkn asjhns {{ sksk  osls asllas lasl as", this, null),
     )
 
     private fun verifyTestDeclaredAllPossibleModelingErrors() {

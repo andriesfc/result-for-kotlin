@@ -26,6 +26,6 @@ object I8n {
 
 
     fun eval(key: String, model: Any): Result<RuntimeException, String> {
-        return message(key).thenResultOf { result.eval(model) }
+        return message(key).thenResultOf { it.eval(model) }
     }
 }

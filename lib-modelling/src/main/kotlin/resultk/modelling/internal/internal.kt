@@ -20,11 +20,6 @@ sealed class InternalModellingError(val errorKey: String) : resultk.ThrowablePro
     data class UnresolvedTemplateExpression(val template: String, val expressions: List<String>) :
         InternalModellingError("error.templating.unresolvedTemplateExpression")
 
-    data class UnexpectedFailure(val cause: Throwable) :
-        InternalModellingError("error.templating.unexpectedFailure") {
-        override fun throwing(): Throwable = cause
-    }
-
     data class MalformedTemplate(
         val index: Int,
         val template: String,
