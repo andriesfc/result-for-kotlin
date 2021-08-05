@@ -1,6 +1,7 @@
 # Module ResultK Modelling
 
-Opinionated extension the orginal library for modelling domain errors and API results
+Opinionated extension the original `resultk` library focusing on the proper modelling of
+domain errors.
 
 # Package resultk.modelling.error
 
@@ -9,6 +10,10 @@ A _**very**_ opinionated framework for modelling domain errors. Addresses the fo
 1. Modelling error codes from enums, numbers, text and sealed classes.
 2. Ability to model internationalized error messages.
 3. Ability to model developer friendly error messages.
+
+# Package resultk.modelling.i8n
+
+Functions and classes to deal with internationalized messages/resources on the classpath.  
 
 # Package resultk.modelling.internal
 

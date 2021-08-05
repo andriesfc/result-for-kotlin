@@ -3,12 +3,17 @@ package resultk.modelling.internal.templating
 import org.springframework.expression.ParserContext
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
-import resultk.*
+import resultk.Result
+import resultk.failure
 import resultk.modelling.internal.InternalModellingError
 import resultk.modelling.internal.InternalModellingError.UnresolvedTemplateExpression
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
+import resultk.resultOf
+import resultk.success
 import java.util.*
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 interface ExpressionResolver {
 
@@ -204,7 +209,8 @@ fun String.eval(
             try {
                 dest.append(resolver.eval(expression))
             } catch (e: Exception) {
-                raise(InternalModellingError.MalformedTemplate(i, this, resolver, e))
+                err = InternalModellingError.MalformedTemplate(i, this, resolver, e)
+                break
             }
         }
         i = b + POSTFIX.length
@@ -216,15 +222,22 @@ fun String.eval(
         dest.append(this, i, length)
     }
 
-    err = resolver.postProcessIgnored(err as? UnresolvedTemplateExpression)
-    resolver.postProcessFinalBuffer(dest)
+    (err as? UnresolvedTemplateExpression)?.also {
+        err = resolver.postProcessIgnored(it)
+    }
+
+    if (err == null) {
+        resolver.postProcessFinalBuffer(dest)
+    }
 
     err?.failure() ?: dest.success()
 
 }
 
-private fun ExpressionResolver.postProcessIgnored(err: UnresolvedTemplateExpression?): UnresolvedTemplateExpression? {
-    if (err == null || this !is PostProcessor.UnhandledExpressionProcessor) return err
+private fun ExpressionResolver.postProcessIgnored(err: UnresolvedTemplateExpression): UnresolvedTemplateExpression? {
+    if (this !is PostProcessor.UnhandledExpressionProcessor) {
+        return err
+    }
     return when (val resolution = postProcess(err.expressions)) {
         UnprocessedExpressionResolution.IsFailure -> err
         UnprocessedExpressionResolution.Ignore -> null

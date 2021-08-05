@@ -33,7 +33,7 @@ internal class ImperativeFlowControlTest {
 
         fun imperativeFlowToString(r: Result<ErrorCaseEnum, Int>): String {
             val (n, err) = r
-            return err?.toString() ?: n.get().toString()
+            return err?.error?.toString() ?: n.get().toString()
         }
 
         assertThat(testCases).each { assert ->

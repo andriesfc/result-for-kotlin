@@ -203,7 +203,7 @@ operator fun <E, T> Result<E, T>.component1(): Result<E, T> = this
 /**
  * Returns the actual error if present or `null` in the second position.
  */
-operator fun <E> Result<E, *>.component2(): E? = errorOrNull()
+operator fun <E> Result<E, *>.component2() = failureOrNull()
 
 /**
  * Gets a value from a result, or maps an error to desired type. This is similar to [Result.fold] operation,
@@ -242,9 +242,29 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  */
 fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 
+
+/**
+ * Just get any value, even it is an error!
+ *
+ * @receiver Result<*, *>
+ * @return Any
+ */
 fun Result<*, *>.any(): Any = when (this) {
     is Failure -> error as Any
     is Success -> result as Any
+}
+
+/**
+ * Retrieve the failure for this, or `null` if it is a success.
+ *
+ * @receiver Result<E,*>
+ * @return Result.Failure<E>?
+ */
+fun <E> Result<E,*>.failureOrNull(): Result.Failure<E>? {
+    return when(this) {
+        is Failure -> this
+        is Success -> null
+    }
 }
 
 //</editor-fold>
@@ -368,12 +388,12 @@ inline fun <reified E> raise(e: E): Nothing {
  */
 inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultWithHandling(
     caught: (e: Ex) -> E,
-    process: Success<T>.() -> Result<E, R>
+    process: (T) -> Result<E, R>
 ): Result<E, R> {
     return when (this) {
         is Failure -> this
         is Success -> try {
-            resultOf { process(this) }
+            resultOf { process(result) }
         } catch (e: Throwable) {
             e as? Ex ?: throw e
             caught(e).failure()
@@ -389,10 +409,10 @@ inline fun <reified Ex, reified E, T, R> Result<E, T>.thenResultWithHandling(
  *      process A lambda which the [Success] as receiver and returns the next result, whether it
  *      is [Failure] or [Success]
  */
-inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: Success<T>.() -> Result<E, R>): Result<E, R> {
+inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: (T) -> Result<E, R>): Result<E, R> {
     return when (this) {
         is Failure -> this
-        is Success -> resultOf { process(this) }
+        is Success -> resultOf { process(result) }
     }
 }
 
