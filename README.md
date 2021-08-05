@@ -21,7 +21,7 @@ Behold the usual suspects:
 
 1. `try-catch-all` eating up exceptions.
 2. Nested `try-catch` statements.
-3. Only dealing with an exception when the cause is not in visual proximity of the cause -- brittle and complex mental model which  difficult to maintain under the best of times.
+3. Dealing with exceptions is most, of not all, of the proximity of the cause. Such an mental mode us overlay complex and  difficult to maintain under the best of times.
 4. Meaningless error messages for users.
 5. Meaningless error messages in logs.
 

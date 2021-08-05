@@ -3,12 +3,17 @@ package resultk.modelling.internal.templating
 import org.springframework.expression.ParserContext
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
-import resultk.*
+import resultk.Result
+import resultk.failure
 import resultk.modelling.internal.InternalModellingError
 import resultk.modelling.internal.InternalModellingError.UnresolvedTemplateExpression
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor
 import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
+import resultk.resultOf
+import resultk.success
 import java.util.*
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 interface ExpressionResolver {
 

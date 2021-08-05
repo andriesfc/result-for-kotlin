@@ -20,7 +20,7 @@ import kotlin.collections.AbstractSet
  * 1. [MissingResourceBundle] : The resource bundle could not be found on the classpath.
  * 2. [MissingMessageKey] : The resource bundle exists, but the message key does not.
  * 3. [MessageBuildFailure] : The message resource exists, but final message could not build using
- * any of the [I8nMessages.build] functions.
+ * any of the [messsagesBundle.build] functions.
  *
  * @property errorKey String The errorKey to identify which provide a friendly message
  * @property locale Locale The local of resource bundle/message in question.
@@ -80,39 +80,57 @@ sealed class I8nError(private val errorKey: String) {
  * The container behaves like `Map<String,String?>` in almost every way but with some
  * special powers:
  *
- * 1. Use the [I8nMessages.invoke] function to retrieve a value which can be used to do extensive
- *    error checking via the [I8nError] codes.
- * 2. Threat the localized messages as templates to build richer user facing messages via the
- * 3  flavours of [build] functions:
- *   - Passing bean in, and using the getters.
- *   - Passing in a [Map] instance, where each key in the map has to exist as `{{ key }}` value
- *     in the map argument.
- * 3. Check if there are message resources for the requested language via
- *    the [isAvailable] function.
- *
+ * 1. Accessing information about the underlying bundle via the [bundle] property.
+ * 2. Do extensive error checking by calling the [queryKey] function which will either return the message (as in not a `null`), or the actual error.
+ * 3. Treat the underlying message as template to build rich messages in the following manner:
+ *   - Build message via a "bean" - [buildMessageWithBean]
+ *   - Build message via a map of key values - [buildMessageWithMap]
+ *   - Build it via variable arguments of key and value pairs - [buildMessageWithKeyValues]
  */
 sealed interface I8nMessages : Map<String, String?> {
 
+    /**
+     * A key bundle is bound to as specific resource with a base name and a locale. A key bundle
+     * will always contain unique non `null` message keys.
+     *
+     * **NOTE:** To create key bundle use the [keyBundleOf] function.
+     *
+     * @property baseName
+     *      String The base name.
+     * @property locale
+     *      The locale.
+     */
     sealed interface KeyBundle : Set<String> {
+
         val baseName: String
+
         val locale: Locale
+
+        /**
+         * Determine if the key bundle for the given local exists.
+         * @return Boolean
+         */
         fun isAvailable(): Boolean
+
+        /** Determine if this key bundle is empty, e.g the resource exists, but is empty. */
         override fun isEmpty(): Boolean
     }
 
     val bundle: KeyBundle
 
-    operator fun invoke(key: String): Result<I8nError, String>
-    fun build(key: String, bean: Any): Result<I8nError, String>
-    fun build(key: String, map: Map<String, Any?>): Result<I8nError, String>
-    fun build(
+    fun queryKey(key: String): Result<I8nError, String>
+    fun buildMessageWithBean(key: String, bean: Any): Result<I8nError, String>
+    fun buildMessageWithMap(key: String, map: Map<String, Any?>): Result<I8nError, String>
+    fun buildMessageWithKeyValues(
         key: String,
         pair: Pair<String, Any?>,
         vararg pairs: Pair<String, Any?>
-    ) = this.build(key, mutableMapOf<String, Any?>().apply {
-        this += pair
-        this += pairs
-    })
+    ): Result<I8nError, String> {
+        return this.buildMessageWithMap(key, mutableMapOf<String, Any?>().apply {
+            this += pair
+            this += pairs
+        })
+    }
 }
 
 /**
@@ -124,11 +142,14 @@ sealed interface I8nMessages : Map<String, String?> {
  * @return I8nMessages A fully realized message container.
  */
 @JvmOverloads
-fun I8nMessages(
+fun messsagesBundle(
     baseName: String,
     locale: Locale? = null
 ): I8nMessages = DefaultI8nMessages(DefaultKeyBundle(baseName, locale))
 
+fun keyBundleOf(baseName: String, locale: Locale? = null): I8nMessages.KeyBundle {
+    return DefaultKeyBundle(baseName, locale)
+}
 
 private class DefaultKeyBundle(
     override val baseName: String, locale: Locale?
@@ -162,7 +183,7 @@ private class DefaultKeyBundle(
 private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I8nMessages {
 
     override fun get(key: String): String? {
-        val (m, e) = this(key)
+        val (m, e) = this.queryKey(key)
         return if (e == null) {
             m.get()
         } else when (e.error) {
@@ -172,7 +193,7 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
         }
     }
 
-    override fun invoke(key: String): Result<I8nError, String> {
+    override fun queryKey(key: String): Result<I8nError, String> {
 
         val handleMissingResourceException = { _: MissingResourceException ->
             MissingMessageKey(
@@ -188,9 +209,9 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
             }
     }
 
-    override fun build(key: String, bean: Any): Result<I8nError, String> {
+    override fun buildMessageWithBean(key: String, bean: Any): Result<I8nError, String> {
 
-        val (message, failure) = this.invoke(key)
+        val (message, failure) = this.queryKey(key)
 
         if (failure != null) {
             return failure
@@ -216,9 +237,12 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
 
     }
 
-    override fun build(key: String, map: Map<String, Any?>): Result<I8nError, String> {
+    override fun buildMessageWithMap(
+        key: String,
+        map: Map<String, Any?>
+    ): Result<I8nError, String> {
 
-        val (message, failure) = this.invoke(key)
+        val (message, failure) = this.queryKey(key)
 
         if (failure != null) {
             return failure
@@ -244,10 +268,18 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
 
     }
 
+
     @Suppress("UNCHECKED_CAST")
     override val entries: Set<Map.Entry<String, String?>>
         get() = when {
-            bundle.isAvailable() -> bundle.asSequence().map { Entry(it, get(it)) }.toSet()
+            bundle.isAvailable() -> {
+                bundle.asSequence().map { messageKey ->
+                    Entry(
+                        messageKey,
+                        get(messageKey)
+                    )
+                }.toSet()
+            }
             else -> emptySet()
         }
 
