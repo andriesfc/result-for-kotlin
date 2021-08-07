@@ -1,6 +1,6 @@
 @file:Suppress("MemberVisibilityCanBePrivate")
 
-package resultk.modelling.internal.templating
+package resultk.modelling.templating
 
 import assertk.all
 import assertk.assertThat
@@ -17,11 +17,11 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import resultk.Result
 import resultk.map
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.*
-import resultk.modelling.internal.templating.fixture.testcasemodel.TestCaseModel
-import resultk.modelling.internal.templating.fixture.testcasemodel.mapped
-import resultk.modelling.internal.templating.fixture.testcasemodel.mappedByJavaProps
+import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor
+import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.*
+import resultk.modelling.templating.fixture.testcasemodel.TestCaseModel
+import resultk.modelling.templating.fixture.testcasemodel.mapped
+import resultk.modelling.templating.fixture.testcasemodel.mappedByJavaProps
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class ResolveExpressionTest {

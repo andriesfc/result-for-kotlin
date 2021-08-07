@@ -1,4 +1,4 @@
-package resultk.error
+package resultk.modelling.error
 
 interface DomainError {
     val errorCode: String

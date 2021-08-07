@@ -1,19 +1,46 @@
-package resultk.modelling.internal.templating
+package resultk.modelling.templating
 
 import org.springframework.expression.ParserContext
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
-import resultk.Result
-import resultk.failure
-import resultk.modelling.internal.InternalModellingError
-import resultk.modelling.internal.InternalModellingError.UnresolvedTemplateExpression
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
-import resultk.resultOf
-import resultk.success
+import resultk.*
+import resultk.internal.internalMessage
+import resultk.modelling.templating.TemplateError.UnresolvedTemplateExpression
+import resultk.modelling.templating.ExpressionResolver.PostProcessor
+import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
 import java.util.*
 import kotlin.collections.component1
 import kotlin.collections.component2
+
+
+/**
+ * This error case deals with internal modelling errors. They are not supposed to
+ * be passed on to public API, except as exceptions. This will ensure that all internal errors
+ * are either handled or resulting in a failure.
+ *
+ * @property errorKey The errorKey used to construct a message with.
+ * @constructor
+ */
+sealed class TemplateError(val errorKey: String) : resultk.ThrowableProvider<Throwable> {
+
+    data class UnresolvedTemplateExpression(val template: String, val expressions: List<String>) :
+        TemplateError("error.templating.unresolvedTemplateExpression")
+
+    data class MalformedTemplate(
+        val index: Int,
+        val template: String,
+        val reportedVia: Any,
+        val cause: Throwable?
+    ) : TemplateError("error.templating.malformedTemplateEncountered") {
+        override fun throwing(): Throwable = cause ?: super.throwing()
+    }
+
+    override fun throwing(): Throwable = DefaultFailureUnwrappingException(Result.Failure(this))
+
+    fun message(): String = internalMessage(errorKey)
+        .eval(ResolveExpression.ByBeanModel(this))
+        .map(StringBuilder::toString).get()
+}
 
 interface ExpressionResolver {
 
@@ -190,11 +217,11 @@ private const val NOT_FOUND = -1
 fun String.eval(
     resolver: ExpressionResolver,
     dest: StringBuilder = allocBuilder(length), // leave some space to grow!
-): Result<InternalModellingError, StringBuilder> = resultOf {
+): Result<TemplateError, StringBuilder> = resultOf {
 
     var i = 0
     val missing = mutableSetOf<String>()
-    var err: InternalModellingError? = null
+    var err: TemplateError? = null
 
     while (i < length) {
         val a = indexOf(PREFIX, i).takeUnless { it == NOT_FOUND } ?: break
@@ -209,7 +236,7 @@ fun String.eval(
             try {
                 dest.append(resolver.eval(expression))
             } catch (e: Exception) {
-                err = InternalModellingError.MalformedTemplate(i, this, resolver, e)
+                err = TemplateError.MalformedTemplate(i, this, resolver, e)
                 break
             }
         }

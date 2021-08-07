@@ -37,7 +37,7 @@ dependencies {
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 
-    implementation(project(":lib"))
+    implementation(project(":core"))
 
     // Logging
     val logback_version = "1.2.3"

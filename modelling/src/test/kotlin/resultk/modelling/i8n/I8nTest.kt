@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import resultk.Result
-import resultk.modelling.internal.templating.ResolveExpression.ByLookupFunction
-import resultk.modelling.internal.templating.eval
+import resultk.modelling.templating.ResolveExpression.ByLookupFunction
+import resultk.modelling.templating.eval
 import resultk.modelling.testing.assertions.peek
 import resultk.modelling.testing.fixtures.Quote
 import resultk.modelling.testing.fixtures.UserBean

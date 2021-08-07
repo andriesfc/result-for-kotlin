@@ -1,6 +1,6 @@
 @file:Suppress("MemberVisibilityCanBePrivate")
 
-package resultk.modelling.internal.templating
+package resultk.modelling.templating
 
 import assertk.all
 import assertk.assertAll
@@ -14,11 +14,10 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import resultk.Result
 import resultk.map
-import resultk.modelling.internal.InternalModellingError
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.*
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
-import resultk.modelling.internal.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution.FailOnlyWithThese
-import resultk.modelling.internal.templating.fixture.testcasemodel.TestCaseModel
+import resultk.modelling.templating.ExpressionResolver.PostProcessor.*
+import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
+import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution.FailOnlyWithThese
+import resultk.modelling.templating.fixture.testcasemodel.TestCaseModel
 import java.time.LocalDate
 import java.time.Month
 import kotlin.reflect.jvm.jvmName
@@ -69,7 +68,7 @@ internal class ResolverPostProcessingTest {
             every { postProcess(any()) } returns resolution
         }
 
-        val result: Result<InternalModellingError, String> =
+        val result: Result<TemplateError, String> =
             template.eval(resolver).map(StringBuilder::toString)
 
         print("******( $resolution -> $result )******")
