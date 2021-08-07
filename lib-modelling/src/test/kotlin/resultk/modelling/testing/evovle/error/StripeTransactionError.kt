@@ -10,7 +10,6 @@ enum class StripeTransactionError(val errorCode: String) {
     AMOUNT_TOO_SMALL("amount_too_small"),
     API_KEY_EXPIRED("api_key_expired")
     ;
-
 }
 
 /*
