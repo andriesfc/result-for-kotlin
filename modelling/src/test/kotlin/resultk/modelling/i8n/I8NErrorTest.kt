@@ -61,7 +61,7 @@ internal class I8NErrorTest {
 
     private fun availableForTesting() = listOf(
         I8nError.MissingResourceBundle(exampleBaseMessages, exampleBaseLocale),
-        I8nError.MissingMessageKey(exampleBaseMessages, exampleMessageKey, exampleBaseLocale),
+        I8nError.MissingMessageKey(exampleBaseMessages, exampleBaseLocale, exampleMessageKey),
         I8nError.MessageBuildFailure(
             baseName = exampleBaseMessages,
             templateMessageKey = exampleMessageKey,

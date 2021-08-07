@@ -23,7 +23,7 @@ import java.time.Month
 internal class I8nTest {
 
     private val baseName = "resultk/modelling/i8n/TestMessages"
-    private val keyBundle = keyBundleOf(baseName)
+    private val keyBundle = keyBundle(baseName)
     private val messagesBundle = messagesBundle(baseName)
 
     private object GreetingModel {

@@ -1,4 +1,4 @@
-package resultk.modelling.internal
+package resultk.modelling.templating
 
 import assertk.assertThat
 import assertk.assertions.isNotEmpty
