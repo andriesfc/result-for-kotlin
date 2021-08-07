@@ -1,4 +1,4 @@
-package resultk.modelling.internal.templating.fixture.testcasemodel
+package resultk.modelling.templating.fixture.testcasemodel
 
 import java.time.LocalDate
 import java.time.Month

@@ -6,9 +6,9 @@ import resultk.*
 import resultk.Result.Failure
 import resultk.internal.internalMessage
 import resultk.modelling.i8n.I8nError.*
-import resultk.modelling.internal.InternalModellingError
-import resultk.modelling.internal.templating.ResolveExpression
-import resultk.modelling.internal.templating.eval
+import resultk.modelling.templating.TemplateError
+import resultk.modelling.templating.ResolveExpression
+import resultk.modelling.templating.eval
 import java.util.*
 import kotlin.collections.AbstractSet
 
@@ -237,8 +237,8 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
                         resolverErrorMessage = e.message(),
                         template = template,
                         cause = when (e) {
-                            is InternalModellingError.MalformedTemplate -> e.cause
-                            is InternalModellingError.UnresolvedTemplateExpression -> null
+                            is TemplateError.MalformedTemplate -> e.cause
+                            is TemplateError.UnresolvedTemplateExpression -> null
                         }
                     )
                 }
@@ -268,8 +268,8 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
                         resolverErrorMessage = e.message(),
                         template = template,
                         cause = when (e) {
-                            is InternalModellingError.MalformedTemplate -> e.cause
-                            is InternalModellingError.UnresolvedTemplateExpression -> null
+                            is TemplateError.MalformedTemplate -> e.cause
+                            is TemplateError.UnresolvedTemplateExpression -> null
                         }
                     )
                 }

@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
 
-    api(project(":lib"))
+    api(project(":core"))
 
     // Align versions of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))

@@ -9,8 +9,9 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.MethodSource
-import resultk.modelling.internal.InternalModellingError.MalformedTemplate
-import resultk.modelling.internal.InternalModellingError.UnresolvedTemplateExpression
+import resultk.modelling.templating.TemplateError
+import resultk.modelling.templating.TemplateError.MalformedTemplate
+import resultk.modelling.templating.TemplateError.UnresolvedTemplateExpression
 import kotlin.random.Random
 import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.full.memberProperties
@@ -20,7 +21,7 @@ import kotlin.reflect.typeOf
 
 @ExperimentalStdlibApi
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class InternalModellingErrorTest {
+internal class TemplateErrorTest {
 
     init {
         verifyTestDeclaredAllPossibleModelingErrors()
@@ -28,7 +29,7 @@ internal class InternalModellingErrorTest {
 
     @ParameterizedTest
     @MethodSource("testableExamples")
-    fun `All internal modelling errors should have error messages`(e: InternalModellingError) {
+    fun `All internal modelling errors should have error messages`(e: TemplateError) {
         assertThat { e.message() }
             .isSuccess()
             .apply { given(::println) }
@@ -38,7 +39,7 @@ internal class InternalModellingErrorTest {
     @ParameterizedTest
     @MethodSource("testableDeclaringCause")
     fun `Raising internal modelling error should always throw the actual cause`(
-        e: InternalModellingError,
+        e: TemplateError,
         declaredCause: Throwable?
     ) {
         if (declaredCause != null) {
@@ -77,7 +78,7 @@ internal class InternalModellingErrorTest {
     )
 
     private fun verifyTestDeclaredAllPossibleModelingErrors() {
-        val availableInCodeBase = InternalModellingError::class.sealedSubclasses.toSet()
+        val availableInCodeBase = TemplateError::class.sealedSubclasses.toSet()
         val declaredInTest = declaredTestExamples().toSet()
         val undeclaredByTest = availableInCodeBase.filter { expectedErrorClass ->
             declaredInTest.indexOfFirst { exampleInTest ->
