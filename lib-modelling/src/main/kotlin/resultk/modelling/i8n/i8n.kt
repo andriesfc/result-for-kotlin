@@ -20,7 +20,7 @@ import kotlin.collections.AbstractSet
  * 1. [MissingResourceBundle] : The resource bundle could not be found on the classpath.
  * 2. [MissingMessageKey] : The resource bundle exists, but the message key does not.
  * 3. [MessageBuildFailure] : The message resource exists, but final message could not build using
- * any of the [messsagesBundle.build] functions.
+ * any of the [messagesBundle.build] functions.
  *
  * @property errorKey String The errorKey to identify which provide a friendly message
  * @property locale Locale The local of resource bundle/message in question.
@@ -118,6 +118,15 @@ sealed interface I8nMessages : Map<String, String?> {
 
     val bundle: KeyBundle
 
+    /**
+     * Retrieves the message immediately failing if not available. Caller has to handle the possible
+     * exceptions
+     *
+     * @param key String
+     * @return String
+     */
+    fun message(key: String): String = queryKey(key).get()
+
     fun queryKey(key: String): Result<I8nError, String>
     fun buildMessageWithBean(key: String, bean: Any): Result<I8nError, String>
     fun buildMessageWithMap(key: String, map: Map<String, Any?>): Result<I8nError, String>
@@ -142,7 +151,7 @@ sealed interface I8nMessages : Map<String, String?> {
  * @return I8nMessages A fully realized message container.
  */
 @JvmOverloads
-fun messsagesBundle(
+fun messagesBundle(
     baseName: String,
     locale: Locale? = null
 ): I8nMessages = DefaultI8nMessages(DefaultKeyBundle(baseName, locale))

@@ -14,7 +14,7 @@ import kotlin.reflect.jvm.jvmName
 private const val NOT_FOUND = -1
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class I8nErrorTest {
+internal class I8NErrorTest {
 
     private val exampleResolverError: Throwable? = null
     private val exampleResolverErrorMessage: String = "Something happend while resolving template"
