@@ -1,10 +1,8 @@
 package resultk.modelling.error
 
-import resultk.modelling.i8n.I8nError
-import resultk.modelling.i8n.I8nMessages
-import resultk.modelling.i8n.messagesBundle
-import resultk.modelling.i8n.required
+import resultk.modelling.i8n.*
 import resultk.raise
+import java.util.*
 import kotlin.reflect.KClass
 
 interface ErrorMessagesProvider<in E : Error> {
@@ -21,6 +19,7 @@ open class LocalizedErrorMessagesProvider<in E : Error> private constructor(
     }
 
     constructor(keyBundle: I8nMessages.KeyBundle) : this(messagesBundle(keyBundle))
+    constructor(baseName: String) : this(messagesBundle(baseName))
 
     override fun getErrorMessage(error: E): String =
         buildErrorMessage(error, messageKey(error))
@@ -49,6 +48,17 @@ open class EnumBasedLocalisedMessageProvider<E>(
 ) : LocalizedErrorMessagesProvider<E>(keyBundle)
         where E : Enum<E>, E : Error {
 
+    constructor(baseName: String, locale: Locale, enumClass: KClass<E>) : this(
+        keyBundle(
+            baseName,
+            locale
+        ), enumClass
+    )
+
+    constructor(baseName: String, enumClass: KClass<E>) : this(
+        keyBundle(baseName), enumClass
+    )
+
     private val messagesCache: Map<E, String> = mutableMapOf()
     private val debugMessageCache: Map<E, String> = mutableMapOf()
 
@@ -57,7 +67,8 @@ open class EnumBasedLocalisedMessageProvider<E>(
         debugMessageCache as MutableMap
         enumClass.javaObjectType.enumConstants.forEach { e ->
             messagesCache[e] = buildErrorMessage(e, messageKey(e))
-            debugMessageKey(e).takeIf { it in messages.bundle }?.let { debugMessageKey ->
+            val debugMessageKey = debugMessageKey(e)
+            if (debugMessageKey in messages) {
                 debugMessageCache[e] = buildDebugMessage(e, debugMessageKey)
             }
         }
