@@ -6,8 +6,8 @@ import resultk.*
 import resultk.Result.Failure
 import resultk.internal.internalMessage
 import resultk.modelling.i8n.I8nError.*
-import resultk.modelling.templating.TemplateError
 import resultk.modelling.templating.ResolveExpression
+import resultk.modelling.templating.TemplateError
 import resultk.modelling.templating.eval
 import java.util.*
 import kotlin.collections.AbstractSet
@@ -45,8 +45,8 @@ sealed class I8nError(private val errorKey: String) {
 
     data class MissingMessageKey(
         val baseName: String,
-        val missingKey: String,
         override val locale: Locale,
+        val missingKey: String,
     ) : I8nError("error.i8n.missingMessageKey"), ThrowableProvider<MissingResourceException> {
         override fun throwing(): MissingResourceException {
             return object : MissingResourceException(message(), baseName, missingKey),
@@ -93,7 +93,7 @@ sealed interface I8nMessages : Map<String, String?> {
      * A key bundle is bound to as specific resource with a base name and a locale. A key bundle
      * will always contain unique non `null` message keys.
      *
-     * **NOTE:** To create key bundle use the [keyBundleOf] function.
+     * **NOTE:** To create key bundle use the [keyBundle] function.
      *
      * @property baseName
      *      String The base name.
@@ -142,6 +142,12 @@ sealed interface I8nMessages : Map<String, String?> {
     }
 }
 
+fun I8nMessages.KeyBundle.required(): I8nMessages.KeyBundle = apply {
+    if (!isAvailable()) {
+        raise(I8nError.MissingResourceBundle(baseName, locale))
+    }
+}
+
 /**
  * Constructs i8n messages container to access and build messages from.
  *
@@ -156,7 +162,9 @@ fun messagesBundle(
     locale: Locale? = null
 ): I8nMessages = DefaultI8nMessages(DefaultKeyBundle(baseName, locale))
 
-fun keyBundleOf(baseName: String, locale: Locale? = null): I8nMessages.KeyBundle {
+fun messagesBundle(keyBundle: I8nMessages.KeyBundle): I8nMessages = DefaultI8nMessages(keyBundle)
+
+fun keyBundle(baseName: String, locale: Locale? = null): I8nMessages.KeyBundle {
     return DefaultKeyBundle(baseName, locale)
 }
 
@@ -207,8 +215,8 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
         val handleMissingResourceException = { _: MissingResourceException ->
             MissingMessageKey(
                 bundle.baseName,
-                key,
-                bundle.locale
+                bundle.locale,
+                key
             )
         }
 

@@ -1,12 +1,14 @@
 package resultk.modelling.error
 
-interface DomainError {
-    val errorCode: String
-    fun errorMessage(): String
-    fun debugErrorMessage(): String?
+interface ErrorMessage {
+    val errorMessage: String
+    val debugErrorMessage: String?
 }
 
+interface Error {
+    val errorCode: String
+}
 
-
+interface DomainError : Error, ErrorMessage
 
 
