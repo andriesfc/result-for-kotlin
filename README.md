@@ -1,19 +1,14 @@
-# Error Handling in Kotlin as a first class domain concern
+# Domain Driven Error Modelling in Kotlin
 
-- [Error Handling in Kotlin as a first class domain concern](#error-handling-in-kotlin-as-a-first-class-domain-concern)
-  - [Guidelines for proper domain error handling as a first class concern](#guidelines-for-proper-domain-error-handling-as-a-first-class-concern)
-  - [Introducing `Resultk`](#introducing-resultk)
-  - [Core implementation details `ResultK` supporting domain driven error handling](#core-implementation-details-resultk-supporting-domain-driven-error-handling)
-  - [Show me how to use this library](#show-me-how-to-use-this-library)
-    - [Dealing with API call which returns a `Result<E,T>`](#dealing-with-api-call-which-returns-a-resultet)
-    - [Writing an API function which produces a `Result<E,T>`](#writing-an-api-function-which-produces-a-resultet)
-  - [Building & installation](#building--installation)
+## Overview
 
--------
+Is modelling of domain errors actually worth the effort to spend money and time? Why is error handling an issue in JVM land? I mean, is it actually an issue?
 
-Why is error handling an issue in JVM land? I mean, is it actually an issue? 
+This project was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided to codify what I believe to be good practices into a single project with the following purpose in mind:
 
-This library was born out of some observations and frustrations  while developing enterprise JVM based applications. So while looking for something which is more than just a set of conventions, I decided to codify what I believe to be good practices into a library which purposefully steers a developer towards good practices, and at the same time also away from the business as usual model.
+1. To produce living repository guidelines and learnings.
+2. To distill these guidelines into a set of libraries to aid, and where possible, enforce some of the guidelines.
+3. To steer away from the current laissez-faire attitude towards exceptions, exception and application error handling.
 
 So what is wrong with the way we handle domain errors and/or exceptions in JVM land?
 
@@ -37,210 +32,36 @@ To summarize these differences:
 | Exceptions are designed to be caught as an application failure. | Domain errors are designed to advise control flow. |
 | Exceptions models the runtime/host/application failure domain.  | Domain errors models the business domain failures. |
 
-As a consequence consider the following:
+## Inspiration & Homage
 
-1. Creating an exceptions may not be that expensive, but catching it is expensive. Usually this involves unrolling the call stack.
-2. Throwing an exception also means that the code throwing the exception looses all flow control. Nothing wrong with this if this the intention.
-3. Catching all exceptions leads to subtle errors which can sometime be hard to pin down due to the following reasons:
-   - More often than not, such caught exceptions are far removed from the offending code/cause. Consequently, a developer has to spend much effort to track and understand the error handing code which is sometimes located deep in the bowls of a many nested levels of `try-catch` statements.
-   - Sometimes an application would catch an exception which should never be handled under a `try-catch-all` statement, for example an `OutOfMemoryException`. If a developer forgets to log the error, the actual cause can sometimes just disappear leading to many man-hours hunting for something which should have been easy to fix: For example, give the process more memory, or finding the data structure leaking the memory.
-4. The very act of raising an exception also has some serious untended consequences insofar as the domain driven design/modelling:
-   - Causes the boundaries of one domain to flow into with another,
-   - Each time such a "domain exception" is thrown (thus the lost control of flow in the domain throwing it), will almost certainly result in all other domains models to be invalidated.
-   - Ultimately this would mean that each domain has to have deep knowledge of almost all errors on every other domain in the application.
-   - Clearly it is almost impossible to design for this, as each exception thrown is like bullet punching holes in any well crafted domain boundary.
-5. Lastly, Java's unfortunate decision to have checked exceptions just compounds these problems by encouraging developers to wrap checked exceptions into runtime exceptions. Most the time these wrapped exceptions has very little bearing on the domain and exists only because of the compiler forcing the developer to do so. On a practical level this has the consequence of hiding the underlying errors deep into logs and many-line stack traces.
+There is only one way to truly build anything in life, and that is to always start on the shoulder of giants. And this little project is no exceptions. Here are some of the languages, tools and learnings which are inspiring.
 
-> Note: ❗️ Exceptions are not undesirable, as long as they are used as intended.
+- The way C/Go handles application errors.
+- The 'Either' monad.
+- Functional style of control flow.
+- The way Kotlin handles `null`.
+- Kotlin's extension functions.
+- The concept of a domain boundary.
+- The ongoing pain of using Java.
+- The ongoing joy of using the JVM platform.
+- The million dollar mistake of introducing `null`
 
-## Guidelines for proper domain error handling as a first class concern
+## Project Structure
 
-Here is a list of what I believe addresses domain error handling as first class concern:
+The project consists of two modules:
 
-1. Exceptions should model application failures, not domain errors.
-2. Domain errors should model your business domain, not your application runtime/infrastructure failures.
-3. The handling of Domain Errors should be in visual proximity of the logic which produces such a domain error:
-   - Remember error codes are control flow advice.
-   - Ask yourself: If handling of such error code is so far removed, am I still acting appropriate on the advice?
-4. Where possible _always_ deal with domain error flow before keeping on with the happy path.
-5. Be very cautious about  sharing exception handling cross use cases or even classes.
-6. When it comes to exceptions which are not your own:
-   - Decide upfront how you are going handle them.
-   - Be very careful when using a `try-catch-all` exception handler, if you need one, it is best to always throw what you cannot handle.
-   - Only handle exceptions which are appropriate to your domain you're implementing.
-   - Have only 3 kind of exception handlers:
-      1. To log and throw.
-      2. To map a domain appropriate thrown exception to a domain specific error code.
-      3. To not have one is sometimes a better choice 😈.
-7. Make sure domain errors produces messages which makes sense to the consumer of your domain.
-8. Make sure domain errors also produces messages which are enriched for developers and devops personnel.
-9. Make sure such messages can be produced in locale specific manner.
-10. IMPORTANT ⚠️: Make sure that you can actually raise a domain error as an exception. This will be clear indicator that your implementation is not complete!
-11. Implement a test harness for each of domain error type which asserts at the very least:
-    - That localized message are produced for each the type of audience.
-    - That any exceptions you choose to propagate as a cause will not get lost when your domain error is thrown/consumes.
+| Module                              | Description                                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [Core](../../core/README.md)        | Core `Result` abstractions based on the _'Either'_ monad with builtin functional flow API.                 |
+| [Modelling](../modelling/README.md) | Based on  the core, but focus on implementing proper domain errors. Includes internationalization support. |
 
-## Introducing `Resultk`
+## Helpful links
 
-This smallish project aims to bring these concerns to together into a single library in Kotlin. I choose Kotlin (and not Java) for the following reasons:
+- [Ongoing article presenting a more in depth look at this project.](../result-for-kotlin/docs/article.md)
 
-- It has the notion of a sealed types (in Scala this called 'case' types). Using a sealed type means the developer can rely on the compiler to pick up on things such unhandled error codes.
-- Kotlin nullable types are useful, and unlike Java not source of errors to be picked up at runtime.
-- The Kotlin compiler offers reified types. This means the library can distinguish between the one error type vs another type, even when using generics.
-- Kotlin offers extensions (which are just static functions under the hood), which means the library is able to model domain error handling around even types from 3rd party libraries.
-- Kotlin, unlike Java, does not force you to handle exceptions. This remove the temptation of wrapping every checked exception into a runtime exception.
+## Contributing
 
-## Core implementation details `ResultK` supporting domain driven error handling
+This project is still in its infancy, but contributions are welcome. This includes:
 
-- Use of single generic wrapper which only purpose is to catch ensure that domain errors handled if the caller does not verify the result of a call is error free.
-- Implements and promotes functional style of API to unify domain error handling as well as exception handling into unified happy flow control path.
-- Based on the classic Either monad, but specializing for error handling (hence the declaration of the core data type `Result<E,T>`).
-- Exposes also an imperative style which can be used safely.
-- Provides template functions which deals with:
-  - Unwrapping & wrapping of error codes from exceptions.
-  - `try-catch-all` scenarios.
-
-## Show me how to use this library
-
-### Dealing with API call which returns a `Result<E,T>`
-
-Let's say you have an extension function which takes an algorithm name of message digester algorithm, and produce a hexadecimal hash of the whole stream. The function & error cases follows as such:
-
-```kotlin
-// The hash function
-fun InputStream.hash(algorithm: String): Result<DigesterError,String> {
-   // elided for brevity
-}
-
-// A human friendly error where each type contain only what is needed
-sealed class DigestError(private val messageKey: String, private vararg messageArgs: Any?) {
-    fun message() = ResourceBundle.getBundle("Messages").run {
-        when {
-            messageArgs.isEmpty() -> getString(messageKey)
-            else -> getString(messageKey).format(* messageArgs)
-        }
-    }
-}
-
-// Actual error cases. Only two are supported:
-
-data class DigesterAlgorithmUnknown(val algorithm: String, val cause: NoSuchAlgorithmException)
-	: DigestError("error.digester.noSuchAlgorithm", algorithm, cause.message)
-
-data class DigesterFailedToIngestSource(val ioError: IOException)
-   : DigestError("error.digester.failedToIngestSource", ioError.message)
-
-```
-
-Calling this function in very imperative manner could look like this:
-
-```kotlin
-val (digest, err) = fileStream.hash("sha1")
-
-when(err) {
-   is DigesterAlgorithmUnknown -> { 
-      println(err.message())
-      err.cause.printStackTrace()
-   }
-   is DigesterFailedToIngestSource -> {
-      println(ioError.message())
-      ioError.cause.printStackTrace()
-   }
-   else -> {
-      println(digest.get())
-   }
-}
-
-```
-
-Things to note about this implementation:
-
-1. ✔ GOOD - Line #1 splits into two values:  The first a possible result, and 2nd error value which may be `null`.
-2. ✔ GOOD - When the `err` value is null, it is safe to call the `get()` on the result.
-3. ✔ GOOD - Error handle takes precedence over result handling.
-4. ✔ GOOD - Error messages are for humans as they are build from a locale specific resource file.
-5. 💀 BAD - Calling `get()` and failing to handle all values of `err` will result in an exception to be thrown. This obviously not good and could lead to the unexpected death of the application.
-
-The last point suggest that there is a better way to handle calling `get()`. 
-
-So here is an implementation exploiting the Kotlin compiler to fail when not when the author does not handle all possible error cases:
-
-```kotlin
-fileStream.hash("sha1")
-   .onFailure { err ->
-      when (err) {
-         is DigesterAlgorithmUnknown -> { 
-            println(err.message())
-            err.cause.printStackTrace()
-         }
-        is DigesterFailedToIngestSource -> {
-            println(ioError.message())
-            err.ioError.printStackTrace()
-         } 
-         // Notice no `else ->` 
-      }
-   }.onSuccess { digest ->
-      println(digest)
-   }
-```
-
-If you prefer a more imperative style:
-
-```kotlin
-val (hash,hashErr) = fileStream.hash("sha1")
-
-if (hashErr != null) when(hashErr) {
-    is DigesterAlgorithmUnknown -> {
-        println(err.message())
-        err.cause.printStackTrace()
-    }
-    is DigesterFailedToIngestSource -> {
-        println(ioError.message())
-        err.ioError.printStackTrace()
-    } 
-    // Kotlin compiler will not compile if the "when" statement is not
-    // exhaustive
-} else {
-   println(hash.get())
-}
-```
-
-### Writing an API function which produces a `Result<E,T>`
-
-Here is a possible implementation of a `File.hash()` function:
-
-```kotlin
-fun File.hash(algorithm: String): Result<HashingError<Exception>, String> {
-    
-   // Decide up front how to handle exceptions -- keep it simple
-    val unsupportedAlgorithm = fun(e: NoSuchAlgorithmException) = UnsupportedAlgorithm(e, algorithm)
-    val inputFailure = fun(e: IOException) = SourceContentNotReadable(path, e)
-
-   // Use the library to deal only with exceptions I care about:
-    return resultWithHandling(unsupportedAlgorithm) {
-        MessageDigest.getInstance(algorithm).success()
-    }.thenResultWithHandlin(inputFailure) {
-        forEachBlock { buffer, bytesRead -> result.update(buffer, 0, bytesRead) }
-        encodeHexString(result.digest()).success()
-    }
-}
-```
-
-## Building & installation
-
-1. Clone the project on your local drive.
-2. Open up command line terminal in the project folder.
-3. Run the following shell commands:
-
-   ```shell
-   ./gradlew build
-   ./gradlew publishToMavenLocal
-   ```
-   
-4. Include the following artifacts on your build:
-
-   - Group: `io.github.andriesfc.kotlin`
-   - Artifact ID: `resultk`
-   - Version: `1.0.0-SNAPSHOT`
-
-5. Remember to include your local maven repo as well!
+- Any criticism, really.
+- Play with the core libraries, and report bugs and edge cases.
