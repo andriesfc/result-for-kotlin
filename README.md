@@ -54,14 +54,3 @@ The project consists of two modules:
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [Core](../../core/README.md)        | Core `Result` abstractions based on the _'Either'_ monad with builtin functional flow API.                 |
 | [Modelling](../modelling/README.md) | Based on  the core, but focus on implementing proper domain errors. Includes internationalization support. |
-
-## Helpful links
-
-- [Ongoing article presenting a more in depth look at this project.](../result-for-kotlin/docs/article.md)
-
-## Contributing
-
-This project is still in its infancy, but contributions are welcome. This includes:
-
-- Any criticism, really.
-- Play with the core libraries, and report bugs and edge cases.
