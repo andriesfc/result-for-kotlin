@@ -63,6 +63,8 @@ sealed class Result<out E, out T> {
         override fun get(): T = result
 
         override fun toString(): String = "${Success::class.simpleName}($result)"
+
+        val value: T get() = get()
     }
 
     /**

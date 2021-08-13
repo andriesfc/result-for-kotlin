@@ -50,7 +50,8 @@ There is only one way to truly build anything in life, and that is to always sta
 
 The project consists of two modules:
 
-| Module                              | Description                                                                                                |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [Core](../../core/README.md)        | Core `Result` abstractions based on the _'Either'_ monad with builtin functional flow API.                 |
-| [Modelling](../modelling/README.md) | Based on  the core, but focus on implementing proper domain errors. Includes internationalization support. |
+| Module                            | Description                                                                                                |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [Core](core/README.md)            | Core `Result` abstractions based on the _'Either'_ monad with builtin functional flow API.                 |
+| [Modelling](modelling/README.md)) | Based on  the core, but focus on implementing proper domain errors. Includes internationalization support. |
+
