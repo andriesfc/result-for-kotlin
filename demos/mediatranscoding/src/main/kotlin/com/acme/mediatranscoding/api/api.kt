@@ -4,7 +4,7 @@ import com.acme.mediatranscoding.support.I8n
 import com.acme.mediatranscoding.support.humanizedName
 import org.slf4j.LoggerFactory
 import resultk.ThrowableProvider
-import resultk.getOrNull
+import resultk.orNull
 
 //region Transcoding API
 
@@ -76,7 +76,7 @@ sealed class TranscodingError(
     override fun toString(): String = developerMessage()?.get() ?: message()
     open fun message(): String = template().get()
     protected open fun developerMessageModel(): Any = this
-    private fun throwableMessage(): String = developerMessage()?.getOrNull() ?: message()
+    private fun throwableMessage(): String = developerMessage()?.orNull() ?: message()
     fun developerMessage() = developerErrorCode?.let { I8n.eval(it, developerMessageModel()) }
     override fun throwing(): TranscodingException = throwing(throwableMessage())
     protected open fun throwing(message: String): TranscodingException {

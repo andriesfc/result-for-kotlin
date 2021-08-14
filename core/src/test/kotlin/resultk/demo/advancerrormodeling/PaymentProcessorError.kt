@@ -25,7 +25,7 @@ sealed class PaymentProcessorError(val code: String) : ThrowableProvider<Payment
         private val detailedMessage = buildString {
             val generalMessage = message("error.upstream").get()
             val mappedUpstreamErrorKey = "error.upstream.$upstreamProvider.$upstreamErrorCode"
-            val mappedUpstreamMessage = message(mappedUpstreamErrorKey).getOrNull()
+            val mappedUpstreamMessage = message(mappedUpstreamErrorKey).orNull()
             val upstreamDetailMessage = message(
                 "error.upstream.see_details",
                 upstreamProvider,

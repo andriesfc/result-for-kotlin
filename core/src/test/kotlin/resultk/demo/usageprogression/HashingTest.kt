@@ -28,11 +28,11 @@ import kotlin.random.Random
 /**
  * This test verifies that all he different versions of sample file hash functions behaves exactly the same manner.
  *
- * @see File.hashContentsV0
- * @see File.hashContentsV1
- * @see File.hashContentsV2
- * @see File.hashContentsV3
- * @see File.hashContentsV4
+ * @see requireFile.hashContentsV0
+ * @see requireFile.hashContentsV1
+ * @see requireFile.hashContentsV2
+ * @see requireFile.hashContentsV3
+ * @see requireFile.hashContentsV4
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Verifies that all he different versions of sample file hash functions behaves exactly the same manner")

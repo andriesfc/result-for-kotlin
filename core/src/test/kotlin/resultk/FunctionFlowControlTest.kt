@@ -23,7 +23,7 @@ internal class FunctionFlowControlTest {
         val expectedErrorCase = ErrorCaseEnum.ERROR_CASE_2
         val exceptionAsErrorCase2 = fun(_: IOException) = expectedErrorCase
         assertThat {
-            resultWithHandling<IOException, ErrorCaseEnum, Int>(exceptionAsErrorCase2) {
+            resultWithHandlingOf<IOException, ErrorCaseEnum, Int>(exceptionAsErrorCase2) {
                 throw IOException()
             }
         }.isSuccess().isFailureResult().isEqualTo(expectedErrorCase)
@@ -42,7 +42,7 @@ internal class FunctionFlowControlTest {
             val dateCreationFailureAsErrorCase2 = { ex: Exception -> ErrorCaseEnum.ERROR_CASE_2.also { log(ex) } }
             fun String.toNumberStr(): String = trimEnd().trimStart { char -> char == '0' || !char.isDigit() }
 
-            resultWithHandling(parsingFailureAsErrorCase1) {
+            resultWithHandlingOf(parsingFailureAsErrorCase1) {
                 println("Local ISO Date = $localDate")
                 localIsoDateString
                     .splitToSequence('-')

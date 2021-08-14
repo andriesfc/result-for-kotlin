@@ -166,7 +166,7 @@ inline fun <reified E, T> resultOf(action: () -> Result<E, T>): Result<E, T> {
  * @param T
  *      The success value type
  */
-inline fun <reified E, R, T> T.resultWithHandling(processThis: T.() -> Result<E, R>): Result<E, R> {
+inline fun <reified E, R, T> T.resultWithHandlingOf(processThis: T.() -> Result<E, R>): Result<E, R> {
     return resultOf { processThis(this) }
 }
 
@@ -174,19 +174,25 @@ inline fun <reified E, R, T> T.resultWithHandling(processThis: T.() -> Result<E,
 
 //<editor-fold desc="Accessing success values and failures">
 
-fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
+inline fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
     (this as? Success)?.result?.also(process)
     return this
 }
 
-fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit) = apply {
+inline fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit) = apply {
     (this as? Failure)?.error?.also(processFailure)
+}
+
+inline fun <reified E, reified Ec : E, T> Result<E, T>.onSpecificFailure(acceptError: (Ec) -> Unit): Result<E, T> {
+    return onFailure { e: E ->
+        (e as? Ec)?.also(acceptError)
+    }
 }
 
 /**
  * Returns an error or `null` for a given Result.
  *
- * @receiver A [resultWithHandling]
+ * @receiver A [resultWithHandlingOf]
  */
 fun <E> Result<E, *>.errorOrNull(): E? {
     return when (this) {
@@ -205,23 +211,23 @@ operator fun <E, T> Result<E, T>.component1(): Result<E, T> = this
 /**
  * Returns the actual error if present or `null` in the second position.
  */
-operator fun <E> Result<E, *>.component2() = failureOrNull()
+operator fun <E> Result<E, *>.component2() = errorOrNull()
 
 /**
  * Gets a value from a result, or maps an error to desired type. This is similar to [Result.fold] operation,
  * except this only cater for mapping the error if it is present.
  */
-inline fun <E, T> Result<E, T>.getOr(mapError: (E) -> T): T {
+inline fun <E, T> Result<E, T>.or(mapError: (E) -> T): T {
     return when (this) {
         is Failure -> mapError(error)
         is Success -> result
     }
 }
 
-fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
+fun <E, T> Result<E, T>.or(errorValue: T) = or { errorValue }
 
 /**
- * A get operation which ensures that an exception is thrown if the result is a [resultWithHandling]. Thr caller needs
+ * A get operation which ensures that an exception is thrown if the result is a [resultWithHandlingOf]. Thr caller needs
  * to supply a function to map the error value to the correct instance of [X
  *
  * @param mapErrorToThrowable A function which converts an error instance into an exception to type [X]
@@ -231,8 +237,8 @@ fun <E, T> Result<E, T>.getOr(errorValue: T) = getOr { errorValue }
  * @receiver A result container which may hold either a value, or an error.
  * @return The value of the result, or throws the exception produced by the [mapErrorToThrowable] function.
  */
-inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T where X : Throwable {
-    return getOr { throw mapErrorToThrowable(it) }
+inline fun <E, T, X> Result<E, T>.orThrow(mapErrorToThrowable: (E) -> X): T where X : Throwable {
+    return or { throw mapErrorToThrowable(it) }
 }
 
 /**
@@ -242,7 +248,7 @@ inline fun <E, T, X> Result<E, T>.getOrThrow(mapErrorToThrowable: (E) -> X): T w
  * @param T The result type.
  * @return The value of the result or null in the case of [Failure]
  */
-fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
+fun <T> Result<*, T>.orNull(): T? = or { null }
 
 
 /**
@@ -254,19 +260,6 @@ fun <T> Result<*, T>.getOrNull(): T? = getOr { null }
 fun Result<*, *>.any(): Any = when (this) {
     is Failure -> error as Any
     is Success -> result as Any
-}
-
-/**
- * Retrieve the failure for this, or `null` if it is a success.
- *
- * @receiver Result<E,*>
- * @return Result.Failure<E>?
- */
-fun <E> Result<E,*>.failureOrNull(): Result.Failure<E>? {
-    return when(this) {
-        is Failure -> this
-        is Success -> null
-    }
 }
 
 //</editor-fold>
@@ -288,7 +281,7 @@ inline fun <E, T, reified R> Result<E, T>.map(mapValue: (T) -> R): Result<E, R> 
 /**
  * Maps a result's failure value
  */
-inline fun <E, T, R> Result<E, T>.mapFailure(mapError: (E) -> R): Result<R, T> {
+inline fun <E, T, R> Result<E, T>.mapError(mapError: (E) -> R): Result<R, T> {
     return when (this) {
         is Failure -> mapError(error).failure()
         is Success -> this
@@ -341,7 +334,7 @@ inline fun <E, T, R> Result<E, T>.fold(
  * @return
  *      A result which will have captured either the `Failure<E>`, or a `Success<R>` value.
  */
-inline fun <reified Ex : Throwable, reified E, R> resultWithHandling(
+inline fun <reified Ex : Throwable, reified E, R> resultWithHandlingOf(
     caught: (Ex) -> E,
     construct: () -> Result<E, R>
 ): Result<E, R> {
@@ -434,7 +427,12 @@ inline fun <reified E, T, R> Result<E, T>.thenResultOf(process: (T) -> Result<E,
  */
 fun interface ThrowableProvider<out X : Throwable> {
     fun throwing(): X
+
+    companion object {
+        fun <X : Throwable> of(cause: X) = ThrowableProvider { cause }
+    }
 }
+
 
 /**
  * Implement this if interface on any exception provided by the [ThrowableProvider.failure] call
@@ -460,7 +458,7 @@ interface FailureUnwrappingCapable<out E> {
  * @constructor Creates a new wrapped failure exception which can be raised using the `throw` operation.
  * @param wrapped The failure to wrap.
  * @see Result.get
- * @see resultWithHandling
+ * @see resultWithHandlingOf
  */
 @Suppress("UNCHECKED_CAST")
 class DefaultFailureUnwrappingException(

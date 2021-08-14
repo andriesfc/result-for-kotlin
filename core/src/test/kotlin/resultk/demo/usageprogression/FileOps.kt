@@ -1,6 +1,9 @@
+@file:JvmName("FileOps")
+
 package resultk.demo.usageprogression
 
 import resultk.*
+import resultk.demo.usageprogression.FileRequirementError.UnexpectedIOFailure
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -33,9 +36,22 @@ fun File.found(): Result<IOException, File> = resultOf {
     success()
 }
 
-fun File.create(ofKind: FileKind.Known, includeParents: Boolean = false): Result<IOException, File> = resultOf {
+sealed class FileRequirementError {
+    data class ExistsAlreadyAs(val kind: FileKind) : FileRequirementError()
+    data class ParentPathDoesNotExists(val path: String) : FileRequirementError()
+    data class UnexpectedIOFailure(
+        val kind: FileKind,
+        val path: String,
+        val cause: IOException
+    ) : FileRequirementError(), ThrowableProvider<IOException> by ThrowableProvider.of(cause)
+}
 
-    val existAsKindAlready = kind().getOrNull()
+fun File.create(
+    ofKind: FileKind.Known,
+    includeParents: Boolean = false
+): Result<IOException, File> = resultOf {
+
+    val existAsKindAlready = kind().orNull()
     if (existAsKindAlready != null) {
         if (existAsKindAlready == kind()) {
             return success()
@@ -60,16 +76,61 @@ fun File.create(ofKind: FileKind.Known, includeParents: Boolean = false): Result
     success()
 }
 
+fun File.required(
+    kind: FileKind.Known,
+    includeParents: Boolean = true,
+    createIfNotExists: Boolean = true
+): Result<FileRequirementError, File> {
 
-sealed class FileKind(val name: String) {
-    override fun toString(): String = name
-    sealed class Known(name: String) : FileKind(name) {
-        companion object {
-            fun values() = Known::class.sealedSubclasses.mapNotNull { it.objectInstance }
+    if (exists()) {
+        return when (val actualKind = kind().or(FileKind.Unknown)) {
+            kind -> success()
+            else -> FileRequirementError.ExistsAlreadyAs(actualKind).failure()
         }
     }
+
+    if (!parentFile.exists() && !includeParents) {
+        return FileRequirementError.ParentPathDoesNotExists(path).failure()
+    }
+
+    val fileSystemError = fun(ex: IOException): UnexpectedIOFailure {
+        return UnexpectedIOFailure(
+            kind,
+            path,
+            ex
+        )
+    }
+
+    return resultWithHandlingOf(fileSystemError) {
+        if (!createIfNotExists) {
+            throw FileNotFoundException(
+                "Required ${kind.name} does not exists: $path"
+            )
+        }
+        when (kind) {
+            FileKind.Directory -> if (!mkdirs()) {
+                throw IOException("Unable to create directory: $path")
+            }
+            FileKind.RegularFile -> if (!createNewFile()) {
+                throw IOException("Unable to cearte regular file: $path")
+            }
+        }
+        success()
+    }
+}
+
+sealed class FileKind(val name: String) {
 
     object Directory : Known("directory")
     object RegularFile : Known("regular_file")
     object Unknown : FileKind("unknown")
+
+    override fun toString(): String = name
+
+    sealed class Known(name: String) : FileKind(name) {
+        companion object {
+            fun kinds() = Known::class.sealedSubclasses.mapNotNull { it.objectInstance }
+        }
+    }
+
 }

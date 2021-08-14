@@ -24,7 +24,7 @@ internal class ResultMapTest {
     @Test
     fun `Mapping a failure value from an success result should return the exact same instance`() {
         val result: Result<ErrorCaseEnum, Int> = resultOf { 10.success() }
-        val mapped = result.mapFailure(ErrorCaseEnum::name)
+        val mapped = result.mapError(ErrorCaseEnum::name)
         assertThat(mapped).isSameAs(result)
     }
 
@@ -41,7 +41,7 @@ internal class ResultMapTest {
         val failureValue = "ERROR_CASE_1"
         val expectedValue = ErrorCaseEnum.ERROR_CASE_1
         val failureResult = failureValue.failure<String, Int>()
-        val mapped = failureResult.mapFailure { ErrorCaseEnum.valueOf(it) }
+        val mapped = failureResult.mapError { ErrorCaseEnum.valueOf(it) }
         assertThat(mapped).isFailureResult().isEqualTo(expectedValue)
     }
 
