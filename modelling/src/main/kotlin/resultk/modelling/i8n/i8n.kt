@@ -176,7 +176,7 @@ private class DefaultKeyBundle(
     override val locale: Locale get() = _locale ?: Locale.getDefault()
 
     fun rb(): Result<MissingResourceBundle, ResourceBundle> {
-        return resultWithHandling({ _: MissingResourceException ->
+        return resultWithHandlingOf({ _: MissingResourceException ->
             MissingResourceBundle(
                 baseName,
                 locale
@@ -191,9 +191,9 @@ private class DefaultKeyBundle(
 
     override fun isAvailable(): Boolean = rb().isSuccess
 
-    override val size: Int get() = rb().map { it.keySet().size }.getOr(0)
+    override val size: Int get() = rb().map { it.keySet().size }.or(0)
     override fun iterator(): Iterator<String> =
-        rb().map { it.keySet().iterator() }.getOr { emptySet<String>().iterator() }
+        rb().map { it.keySet().iterator() }.or { emptySet<String>().iterator() }
 
 }
 
@@ -203,7 +203,7 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
         val (m, e) = this.queryKey(key)
         return if (e == null) {
             m.get()
-        } else when (e.error) {
+        } else when (e) {
             is MessageBuildFailure -> null
             is MissingMessageKey -> null
             is MissingResourceBundle -> raise(e)
@@ -231,13 +231,13 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
         val (message, failure) = this.queryKey(key)
 
         if (failure != null) {
-            return failure
+            return failure.failure()
         }
 
         return message.thenResultOf { template ->
             template.eval(ResolveExpression.ByBeanModel(bean))
                 .map(StringBuilder::toString)
-                .mapFailure { e ->
+                .mapError { e ->
                     MessageBuildFailure(
                         baseName = bundle.baseName,
                         templateMessageKey = key,
@@ -259,16 +259,12 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
         map: Map<String, Any?>
     ): Result<I8nError, String> {
 
-        val (message, failure) = this.queryKey(key)
-
-        if (failure != null) {
-            return failure
-        }
+        val message = queryKey(key)
 
         return message.thenResultOf { template ->
             template.eval(ResolveExpression.ByMapLookup(map))
                 .map(StringBuilder::toString)
-                .mapFailure { e ->
+                .mapError { e ->
                     MessageBuildFailure(
                         baseName = bundle.baseName,
                         templateMessageKey = key,

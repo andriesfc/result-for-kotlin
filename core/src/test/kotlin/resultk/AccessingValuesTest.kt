@@ -65,7 +65,7 @@ internal class AccessingValuesTest {
         val today = LocalDate.now()
         val incidentReportedDate = ErrorCaseEnum.ERROR_CASE_1.failure<ErrorCaseEnum, LocalDate>()
         val indentReportErrorIsToday = fun(_: ErrorCaseEnum) = today
-        val reportActionDue = incidentReportedDate.getOr(indentReportErrorIsToday)
+        val reportActionDue = incidentReportedDate.or(indentReportErrorIsToday)
         assertThat(reportActionDue).isEqualTo(today)
     }
 
@@ -73,7 +73,7 @@ internal class AccessingValuesTest {
     fun `Caller should be able to handle possible failure when retrieving the success by supplying a value`() {
         val today = LocalDate.now()
         val incidentReportedDate = ErrorCaseEnum.ERROR_CASE_1.failure<ErrorCaseEnum, LocalDate>()
-        val reportActionDue = incidentReportedDate.getOr(today)
+        val reportActionDue = incidentReportedDate.or(today)
         assertThat(reportActionDue).isEqualTo(today)
     }
 
@@ -84,7 +84,7 @@ internal class AccessingValuesTest {
 
         val incidentDueDate = ErrorCaseEnum.ERROR_CASE_1.failure<ErrorCaseEnum, LocalDate>()
 
-        assertThat { incidentDueDate.getOrThrow { ReportingAbortedException() } }
+        assertThat { incidentDueDate.orThrow { ReportingAbortedException() } }
             .isFailure()
             .isInstanceOf(ReportingAbortedException::class)
     }

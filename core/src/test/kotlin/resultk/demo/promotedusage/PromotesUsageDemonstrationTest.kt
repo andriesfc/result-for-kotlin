@@ -55,7 +55,7 @@ internal class PromotesUsageDemonstrationTest {
         val noSuchMessageBundleError = { _: MissingResourceException -> BundleNotPresent(bundle) }
         val keyNotPresentInBundleError = { _: MissingResourceException -> KeyIsMissing(bundle, key) }
         val message: Result<GetBundleError, String> =
-            resultWithHandling(noSuchMessageBundleError) { ResourceBundle.getBundle(bundle).success() }
+            resultWithHandlingOf(noSuchMessageBundleError) { ResourceBundle.getBundle(bundle).success() }
                 .thenResultWithHandling(keyNotPresentInBundleError) { it.getString(key).success() }
                 .onFailure(::println)
                 .onSuccess(::println)

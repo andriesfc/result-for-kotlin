@@ -16,7 +16,7 @@ Behold the usual suspects:
 
 1. `try-catch-all` eating up exceptions.
 2. Nested `try-catch` statements.
-3. Dealing with exceptions is most, of not all, of the proximity of the cause. Such an mental mode us overlay complex and  difficult to maintain under the best of times.
+3. Dealing with exceptions is most, of not all the time, not even within the proximity of the cause.
 4. Meaningless error messages for users.
 5. Meaningless error messages in logs.
 
@@ -24,13 +24,13 @@ I believe the reasons for these issues, (especially in JMV land), stem from a co
 
 To summarize these differences:
 
-| Exceptions                                                      | Domain Error/Codes                                 |
-| --------------------------------------------------------------- | -------------------------------------------------- |
-| Indicates that an app could not handle a system error.          | Indicates the caller should handle the error.      |
-| Raising an exception exits the happy path.                      | Returning a domain error/code has no side effect.  |
-| Catching an exception can be very expensive.                    | An error code is just another variable.            |
-| Exceptions are designed to be caught as an application failure. | Domain errors are designed to advise control flow. |
-| Exceptions models the runtime/host/application failure domain.  | Domain errors models the business domain failures. |
+| Exceptions                                                                  | Domain Error/Codes                                 |
+| --------------------------------------------------------------------------- | -------------------------------------------------- |
+| Indicates that an app could not handle a system error.                      | Indicates the caller should handle the error.      |
+| Raising an exception exits the happy path with the intent of not returning. | Returning a domain error/code has no side effect.  |
+| Catching an exception can be very expensive.                                | An error code is just another variable.            |
+| Exceptions are designed to be caught as an application failure.             | Domain errors are designed to advise control flow. |
+| Exceptions models the runtime/host/application failure domain.              | Domain errors models the business domain failures. |
 
 ## Inspiration & Homage
 
@@ -46,11 +46,11 @@ There is only one way to truly build anything in life, and that is to always sta
 - The ongoing joy of using the JVM platform.
 - The million dollar mistake of introducing `null`
 
-## Project Structure
+## Modules
 
 The project consists of two modules:
 
-| Module                              | Description                                                                                                |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [Core](../../core/README.md)        | Core `Result` abstractions based on the _'Either'_ monad with builtin functional flow API.                 |
-| [Modelling](../modelling/README.md) | Based on  the core, but focus on implementing proper domain errors. Includes internationalization support. |
+| Module                           | Description                                                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [Core](core/README.md)           | Core `Result` abstractions based on the _'Either'_ monad with builtin functional flow API.                 |
+| [Modelling](modelling/README.md) | Based on  the core, but focus on implementing proper domain errors. Includes internationalization support. |

@@ -25,3 +25,5 @@ fun Assert<ResourceBundle>.messageKeys(sorting: Comparator<String>? = null): Ass
         }
     }
 }
+
+inline fun <T> Assert<T>.peek(peek: (T) -> Unit): Assert<T> = apply { given(peek) }

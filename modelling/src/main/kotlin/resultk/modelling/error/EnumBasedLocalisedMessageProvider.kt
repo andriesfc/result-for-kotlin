@@ -1,46 +1,11 @@
 package resultk.modelling.error
 
-import resultk.modelling.i8n.*
+import resultk.modelling.i8n.I8nError
+import resultk.modelling.i8n.I8nMessages
+import resultk.modelling.i8n.keyBundle
 import resultk.raise
 import java.util.*
 import kotlin.reflect.KClass
-
-interface ErrorMessagesProvider<in E : Error> {
-    fun getErrorMessage(error: E): String
-    fun getDebugErrorMessage(error: E): String?
-}
-
-open class LocalizedErrorMessagesProvider<in E : Error> private constructor(
-    @Suppress("MemberVisibilityCanBePrivate") protected val messages: I8nMessages
-) : ErrorMessagesProvider<E> {
-
-    init {
-        messages.bundle.required()
-    }
-
-    constructor(keyBundle: I8nMessages.KeyBundle) : this(messagesBundle(keyBundle))
-    constructor(baseName: String) : this(messagesBundle(baseName))
-
-    override fun getErrorMessage(error: E): String =
-        buildErrorMessage(error, messageKey(error))
-
-    override fun getDebugErrorMessage(error: E): String? {
-        val messageKey = debugMessageKey(error).takeIf(messages::containsKey) ?: return null
-        return buildDebugMessage(error, messageKey)
-    }
-
-    protected open fun messageKey(e: E): String = e.errorCode
-    protected open fun debugMessageKey(e: E): String = "${messageKey(e)}.debug"
-
-    protected open fun buildDebugMessage(error: E, messageKey: String): String {
-        return messages.buildMessageWithBean(messageKey, error).get()
-    }
-
-    protected open fun buildErrorMessage(error: E, messageKey: String): String {
-        return messages.buildMessageWithBean(messageKey, error).get()
-    }
-
-}
 
 open class EnumBasedLocalisedMessageProvider<E>(
     keyBundle: I8nMessages.KeyBundle,
