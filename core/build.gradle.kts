@@ -23,7 +23,7 @@ val sourcesJar by tasks.creating(Jar::class) {
 
 val javadocJar by tasks.creating(Jar::class) {
     group = "Build"
-    dependsOn(":lib:dokkaJavadoc")
+    dependsOn(":core:dokkaJavadoc")
     description = "Package Java Doc"
     archiveClassifier.set("javadoc")
     from(buildDir.resolve("dokka/javadoc"))
@@ -33,7 +33,7 @@ val htmlDokkaJar by tasks.creating(Jar::class) {
     group = "Build"
     description = "Packages Kotlin HTML documentation"
     archiveClassifier.set("html")
-    dependsOn(":lib:dokkaHtml")
+    dependsOn(":core:dokkaHtml")
     from(buildDir.resolve("dokka/html"))
 }
 
