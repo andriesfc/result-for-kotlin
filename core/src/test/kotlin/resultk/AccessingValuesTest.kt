@@ -33,7 +33,7 @@ internal class AccessingValuesTest {
         val mockOnFailure = mockk<(String) -> Unit>()
         every { mockOnFailure(capture(errorSlot)) } just Runs
         val failure = expectedError.failure<String, Int>()
-        failure.onFailure(mockOnFailure)
+        failure.onError(mockOnFailure)
         verify { mockOnFailure(any()) }
         assertThat(errorSlot.isCaptured).isTrue()
         assertThat(errorSlot.captured).isEqualTo(expectedError)

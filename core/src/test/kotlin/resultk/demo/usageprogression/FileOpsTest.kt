@@ -9,8 +9,7 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import resultk.orNull
-import resultk.onFailure
+import resultk.onError
 import resultk.testing.assertions.isFailureResult
 import resultk.testing.assertions.isSuccessResult
 import java.io.File
@@ -99,7 +98,7 @@ internal class FileOpsTest {
         val path = File(parentDir, "${kind.name}-${UUID.randomUUID()}")
         assertThat(parentDir).exists()
         val file = path.required(kind).also(::println)
-        file.onFailure(System.err::println)
+        file.onError(System.err::println)
         assertThat(file).isSuccessResult().isEqualTo(path)
     }
 

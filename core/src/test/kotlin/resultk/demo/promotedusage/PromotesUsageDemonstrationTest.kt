@@ -57,7 +57,7 @@ internal class PromotesUsageDemonstrationTest {
         val message: Result<GetBundleError, String> =
             resultWithHandlingOf(noSuchMessageBundleError) { ResourceBundle.getBundle(bundle).success() }
                 .thenResultWithHandling(keyNotPresentInBundleError) { it.getString(key).success() }
-                .onFailure(::println)
+                .onError(::println)
                 .onSuccess(::println)
 
         if (expectedErrorClass == null) {

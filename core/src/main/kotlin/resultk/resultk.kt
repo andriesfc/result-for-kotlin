@@ -179,12 +179,12 @@ inline fun <E, T> Result<E, T>.onSuccess(process: (T) -> Unit): Result<E, T> {
     return this
 }
 
-inline fun <E, T> Result<E, T>.onFailure(processFailure: (E) -> Unit) = apply {
+inline fun <E, T> Result<E, T>.onError(processFailure: (E) -> Unit) = apply {
     (this as? Failure)?.error?.also(processFailure)
 }
 
 inline fun <reified E, reified Ec : E, T> Result<E, T>.onSpecificFailure(acceptError: (Ec) -> Unit): Result<E, T> {
-    return onFailure { e: E ->
+    return onError { e: E ->
         (e as? Ec)?.also(acceptError)
     }
 }

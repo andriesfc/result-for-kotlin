@@ -29,9 +29,9 @@ Thus the whole purpose is to keep on the _**happy path**_!
 
 ## The happy path
 
-The *happy path* refers to a specific process, typically defined by some use case.
+The *happy path* refers to a specific logical flow, typically defined by some use case.
 
-Sometimes applications fail, or may fail due to some edge case, or the possibility that something outside of this happy path. For example, a missing file, or network connection failure. In this case any logic coded is not strictly part of thus happy path.
+Sometimes a application fail due to some edge case not being handled in the implementation, or something occurring outside of the control of the application: For example, a missing file, or network connection failure. In this case any logic coded is not strictly part of thus happy path.
 
 In the Object Orientated world, these situation are expressed as an `Exception` which are dealt by catching such exceptions. Having such exception handling code may obfuscate the original use-case to the point of turning a simple, clear cut implementation into a mine field of unintended consequences. This becomes even more problematic when the developer blurs the line between domain specific errors (e.g intended or per designed error conditions), and application/infrastructure failures.
 
@@ -206,17 +206,53 @@ The library offers a rich set of functional operators to those which prefer a fu
 
 #### Flow Control
 
-| Intention                                                             | Operation                                                                |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Flow into a next process while keep on handling errors                | `thenResultOf((T) -> Result<E, R>): Result<E, R>`                        |
-| Flow into a next process and decide up front how to handle exceptions | `thenResultWithHandling((e: Ex) -> E,(T) -> Result<E, R>): Result<E, R>` |
-| Give up flow control, and raise an error as application failure       | `raise(E)`                                                               |
+| Intention                                                                  | Operation                                                                    |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Flow into a next logical step while keep on handling errors                | `thenResultOf((T) -> Result<E, R>): Result<E, R>`                            |
+| Flow into a next logical step and decide up front how to handle exceptions | `thenResultWithHandling((Exception) -> E,(T) -> Result<E, R>): Result<E, R>` |
+| Give up flow control, and raise an error as application failure            | `raise(E)`                                                                   |
+
+Here is an (bit of contrived) example of using these operations:
+
+```kotlin
+
+fun getRecentArticlesByUser(userId: String, limit: Int)
+    : Error<ApiError,Map<LocalDate,List<ArticleAction>>> {
+
+    val (user, findUserErr) = userRepo.findByIdOrNull(userId)
+
+    if (findUserErr != null) {
+        return ApiError.InternalError(findUserErr)
+    }
+
+    val interactions = setOf(
+        Interaction.SeenBy(user.value),
+        Interaction.VotedUpBy(user.value),
+        Interaction.NotVotedDownByUser(user.value)
+        Interaction.RatedBy(user.value)
+        Interaction.FirstCommentedOnBy(user.value),
+        Interaction.RepliedToCommentBy(user.value)
+    )
+
+    val eventToAction = fun(event: ArticleEvent) = ArticleAction(
+        type = event.type.name(),
+        title = event.article.shortTitle
+    )
+
+    return articles.findRecentEventsByInteraction(interactions,limit)
+        .thenResultOf { articles -> articles.groupBy { a -> a.date.toLocalDate() }.success() }
+        .thenResultOf { map -> map.mapValues(eventToAction).success()  }
+        .mapError { e -> ApiError.InternalError(e) }
+
+}
+
+```
 
 ### Integration & cross cutting concerns
 
 This library also provide hooks which can be used to handle/re-defined certain cross cutting concerns such as:
 
-1. The manner in which domain error of a specific type are wrapped up as application failures.
+1. Redefine how a domain error type is expressed as an application failure.
 2. The manner in which error codes can unwrapped from exceptions.
 
 These mechanisms are used internally, and any developer may hook into the underlying implementation by implementing the correct interface(s) where appropriate.
