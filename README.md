@@ -8,7 +8,7 @@ This project was born out of some observations and frustrations  while developin
 
 1. To produce living repository guidelines and learnings.
 2. To distill these guidelines into a set of libraries to aid, and where possible, enforce some of the guidelines.
-3. To steer away from the current laissez-faire attitude towards exceptions, exception and application error handling.
+3. To steer away from the current laissez-faire attitude towards exceptions and application error handling.
 
 So what is wrong with the way we handle domain errors and/or exceptions in JVM land?
 
@@ -53,4 +53,3 @@ The project consists of two modules:
 | Module                           | Description                                                                                                |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [Core](core/README.md)           | Core `Result` abstractions based on the _'Either'_ monad with builtin functional flow API.                 |
-| [Modelling](modelling/README.md) | Based on  the core, but focus on implementing proper domain errors. Includes internationalization support. |
