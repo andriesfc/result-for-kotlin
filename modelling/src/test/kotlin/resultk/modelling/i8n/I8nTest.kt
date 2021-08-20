@@ -12,7 +12,7 @@ import resultk.modelling.templating.ResolveExpression.ByLookupFunction
 import resultk.modelling.templating.eval
 import resultk.modelling.testing.assertions.peek
 import resultk.modelling.testing.fixtures.Quote
-import resultk.modelling.testing.fixtures.UserBean
+import resultk.modelling.testing.fixtures.User
 import resultk.modelling.testing.require
 import resultk.modelling.testing.resource
 import java.time.LocalDate
@@ -27,7 +27,7 @@ internal class I8nTest {
     private val messagesBundle = messagesBundle(baseName)
 
     private object GreetingModel {
-        val user = UserBean(
+        val user = User(
             name = "John",
             joinedDate = LocalDate.of(2015, Month.AUGUST, 17)
         )
@@ -71,7 +71,7 @@ internal class I8nTest {
         fun buildMessageWithMap() {
             val greeting = "user.greeting.morning"
             val expected = expectedGreetings.require(greeting)
-            assertThat(messagesBundle.buildMessageWithMap(greeting, modelLookup))
+            assertThat(messagesBundle.messageWithMap(greeting, modelLookup))
                 .isSuccess()
                 .isEqualTo(expected)
         }
@@ -80,7 +80,7 @@ internal class I8nTest {
         fun buildMessageWithBean() {
             val greeting = "user.greeting.morning.rude"
             val expected = expectedGreetings.require(greeting)
-            assertThat(messagesBundle.buildMessageWithBean(greeting, GreetingModel))
+            assertThat(messagesBundle.messageWithBean(greeting, GreetingModel))
                 .isSuccess()
                 .isEqualTo(expected)
         }
@@ -95,7 +95,7 @@ internal class I8nTest {
                     "Here is little inspiration " +
                     "from ${quoteAttribution.second}: \"${quote.second}\""
             assertThat(
-                messagesBundle.buildMessageWithKeyValues(
+                messagesBundle.messageWithPairs(
                     greeting,
                     quote,
                     userName,

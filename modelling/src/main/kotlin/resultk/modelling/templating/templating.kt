@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package resultk.modelling.templating
 
 import org.springframework.expression.ParserContext
@@ -5,12 +7,14 @@ import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
 import resultk.*
 import resultk.internal.internalMessage
-import resultk.modelling.templating.TemplateError.UnresolvedTemplateExpression
 import resultk.modelling.templating.ExpressionResolver.PostProcessor
 import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.UnprocessedExpressionResolution
+import resultk.modelling.templating.TemplateError.UnresolvedTemplateExpression
 import java.util.*
 import kotlin.collections.component1
 import kotlin.collections.component2
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.jvmName
 
 
 /**
@@ -186,6 +190,22 @@ sealed class ResolveExpression : ExpressionResolver {
             append("beam: ")
             append(bean)
         }
+    }
+
+    class ByIntrospection(private val bean: Any) : ResolveExpression() {
+
+        private val mapped = bean::class.memberProperties.associate { p -> p.name to p.call() }
+
+        override fun StringBuilder.describe() {
+            append(bean::class.jvmName)
+            append(": {")
+            mapped.keys.joinTo(this) { k -> "$k=${mapped[k]}" }
+            append("}")
+        }
+
+        override fun accepts(expression: String): Boolean = expression in mapped
+        override fun eval(expression: String): Any? = mapped[expression]
+
     }
 
     protected abstract fun StringBuilder.describe()

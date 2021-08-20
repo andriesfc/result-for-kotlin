@@ -64,7 +64,7 @@ sealed class I8nError(private val errorKey: String) {
         val template: String,
         val resolverErrorMessage: String,
         val cause: Throwable?
-    ) : I8nError("error.i9n.invalidMessageTemplate")
+    ) : I8nError("error.i8n.invalidMessageTemplate")
 
     fun message() =
         internalMessage(errorKey)
@@ -83,11 +83,11 @@ sealed class I8nError(private val errorKey: String) {
  * 1. Accessing information about the underlying bundle via the [bundle] property.
  * 2. Do extensive error checking by calling the [queryKey] function which will either return the message (as in not a `null`), or the actual error.
  * 3. Treat the underlying message as template to build rich messages in the following manner:
- *   - Build message via a "bean" - [buildMessageWithBean]
- *   - Build message via a map of key values - [buildMessageWithMap]
- *   - Build it via variable arguments of key and value pairs - [buildMessageWithKeyValues]
+ *   - Build message via a "bean" - [messageWithBean]
+ *   - Build message via a map of key values - [messageWithMap]
+ *   - Build it via variable arguments of key and value pairs - [messageWithPairs]
  */
-sealed interface I8nMessages : Map<String, String?> {
+sealed interface I8nMessagesBundle : Map<String, String?> {
 
     /**
      * A key bundle is bound to as specific resource with a base name and a locale. A key bundle
@@ -128,25 +128,27 @@ sealed interface I8nMessages : Map<String, String?> {
     fun message(key: String): String = queryKey(key).get()
 
     fun queryKey(key: String): Result<I8nError, String>
-    fun buildMessageWithBean(key: String, bean: Any): Result<I8nError, String>
-    fun buildMessageWithMap(key: String, map: Map<String, Any?>): Result<I8nError, String>
-    fun buildMessageWithKeyValues(
+    fun messageWithBean(key: String, bean: Any): Result<I8nError, String>
+    fun messageWithMap(key: String, map: Map<String, Any?>): Result<I8nError, String>
+    fun messageWithPairs(
         key: String,
         pair: Pair<String, Any?>,
         vararg pairs: Pair<String, Any?>
     ): Result<I8nError, String> {
-        return this.buildMessageWithMap(key, mutableMapOf<String, Any?>().apply {
+        return this.messageWithMap(key, mutableMapOf<String, Any?>().apply {
             this += pair
             this += pairs
         })
     }
 }
 
-fun I8nMessages.KeyBundle.required(): I8nMessages.KeyBundle = apply {
+fun I8nMessagesBundle.KeyBundle.required(): I8nMessagesBundle.KeyBundle = apply {
     if (!isAvailable()) {
-        raise(I8nError.MissingResourceBundle(baseName, locale))
+        raise(MissingResourceBundle(baseName, locale))
     }
 }
+
+fun I8nMessagesBundle.required() = apply { bundle.required() }
 
 /**
  * Constructs i8n messages container to access and build messages from.
@@ -160,17 +162,18 @@ fun I8nMessages.KeyBundle.required(): I8nMessages.KeyBundle = apply {
 fun messagesBundle(
     baseName: String,
     locale: Locale? = null
-): I8nMessages = DefaultI8nMessages(DefaultKeyBundle(baseName, locale))
+): I8nMessagesBundle = DefaultI8NMessagesBundle(DefaultKeyBundle(baseName, locale))
 
-fun messagesBundle(keyBundle: I8nMessages.KeyBundle): I8nMessages = DefaultI8nMessages(keyBundle)
+fun messagesBundle(keyBundle: I8nMessagesBundle.KeyBundle): I8nMessagesBundle =
+    DefaultI8NMessagesBundle(keyBundle)
 
-fun keyBundle(baseName: String, locale: Locale? = null): I8nMessages.KeyBundle {
+fun keyBundle(baseName: String, locale: Locale? = null): I8nMessagesBundle.KeyBundle {
     return DefaultKeyBundle(baseName, locale)
 }
 
 private class DefaultKeyBundle(
     override val baseName: String, locale: Locale?
-) : AbstractSet<String>(), I8nMessages.KeyBundle {
+) : AbstractSet<String>(), I8nMessagesBundle.KeyBundle {
 
     private val _locale = locale
     override val locale: Locale get() = _locale ?: Locale.getDefault()
@@ -197,7 +200,8 @@ private class DefaultKeyBundle(
 
 }
 
-private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I8nMessages {
+private class DefaultI8NMessagesBundle(override val bundle: I8nMessagesBundle.KeyBundle) :
+    I8nMessagesBundle {
 
     override fun get(key: String): String? {
         val (m, e) = this.queryKey(key)
@@ -226,7 +230,7 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
             }
     }
 
-    override fun buildMessageWithBean(key: String, bean: Any): Result<I8nError, String> {
+    override fun messageWithBean(key: String, bean: Any): Result<I8nError, String> {
 
         val (message, failure) = this.queryKey(key)
 
@@ -254,7 +258,7 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
 
     }
 
-    override fun buildMessageWithMap(
+    override fun messageWithMap(
         key: String,
         map: Map<String, Any?>
     ): Result<I8nError, String> {
@@ -320,7 +324,7 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
             }
         }
 
-    override val values: Collection<String?> = bundle.map(this@DefaultI8nMessages::get)
+    override val values: Collection<String?> = bundle.map(this@DefaultI8NMessagesBundle::get)
 
     override fun containsKey(key: String): Boolean = key in bundle
     override fun isEmpty(): Boolean = bundle.isEmpty()
@@ -342,7 +346,4 @@ private class DefaultI8nMessages(override val bundle: I8nMessages.KeyBundle) : I
         }
     }
 
-    companion object {
-        private val emptySet = emptySet<Any?>()
-    }
 }
