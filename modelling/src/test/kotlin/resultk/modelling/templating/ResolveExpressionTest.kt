@@ -17,8 +17,8 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import resultk.Result
 import resultk.map
-import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor
-import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpressionProcessor.*
+import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpression
+import resultk.modelling.templating.ExpressionResolver.PostProcessor.UnhandledExpression.Resolution
 import resultk.modelling.templating.fixture.testcasemodel.TestCaseModel
 import resultk.modelling.templating.fixture.testcasemodel.mapped
 import resultk.modelling.templating.fixture.testcasemodel.mappedByJavaProps
@@ -44,7 +44,7 @@ internal class ResolveExpressionTest {
 
         val unresolvedKeys = model
             .mapped().keys
-            .filterNot { expr -> resolver.accepts(expr).also { resolver.eval(expr) } }
+            .filterNot { expr -> resolver.accepts(expr).also { resolver.resolve(expr) } }
 
         assertThat(unresolvedKeys, "unresolvedKeys").isEmpty()
     }
@@ -52,22 +52,25 @@ internal class ResolveExpressionTest {
     @MethodSource("allTestableResolvers")
     @ParameterizedTest
     fun `Test eval of default with`(model: TestCaseModel, resolver: ExpressionResolver) {
-        assertThat { defaultTemplate.eval(resolver).map(StringBuilder::toString).get() }
+        assertThat { defaultTemplate.resolve(resolver).map(StringBuilder::toString).get() }
             .isSuccess()
             .isEqualTo(defaultExpectedMessage)
     }
 
     @Test
     fun `Evaluating ignored expressions preserves the template as is`() {
-        val resolver = mockk<ExpressionResolver>(moreInterfaces = arrayOf(
-            UnhandledExpressionProcessor::class)) {
-            this as UnhandledExpressionProcessor
+        val resolver = mockk<ExpressionResolver>(
+            moreInterfaces = arrayOf(
+                UnhandledExpression::class
+            )
+        ) {
+            this as UnhandledExpression
             every { accepts(any()) } returns false
-            every { postProcess(any()) } returns UnprocessedExpressionResolution.Ignore
+            every { postProcess(any()) } returns Resolution.Ignore
         }
 
         val template = "{{ one }} {{ two }} {{ three }} {{ four }}"
-        val actual = template.eval(resolver)
+        val actual = template.resolve(resolver)
         println(actual)
 
         assertThat(actual).all {
@@ -107,9 +110,10 @@ internal class ResolveExpressionTest {
     }
 
     private fun TestCaseModel.testableResolvers() = listOf(
+        this to ResolveExpression.By(mapped()::get),
         this to ResolveExpression.ByMapLookup(mapped()),
         this to ResolveExpression.ByPropertiesLookup(mappedByJavaProps()),
-        this to ResolveExpression.ByBeanModel(this),
-        this to mapped().run { ResolveExpression.ByLookupFunction(this::get, this::containsKey) }
+        this to ResolveExpression.ByModel(this),
+        this to ResolveExpression.ByIntrospection(this),
     )
 }

@@ -5,6 +5,8 @@ domain errors.
 
 # Package resultk.modelling.error
 
+Abstractions for `Error` and `DomainError` interfaces
+
 # Package resultk.modelling.i8n
 
 Functions and classes to deal with internationalized messages.  

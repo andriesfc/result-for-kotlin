@@ -91,7 +91,7 @@ tasks.withType<DokkaTask> {
             sourceLink {
                 remoteLineSuffix.set("#L")
                 localDirectory.set(file("src/main/kotlin"))
-                remoteUrl.set(URL("https://github.com/andriesfc/result-for-kotlin/tree/main/lib-modelling/src/main/kotlin/"))
+                remoteUrl.set(URL("https://github.com/andriesfc/result-for-kotlin/tree/main/modelling/src/main/kotlin/"))
             }
         }
     }
@@ -132,7 +132,7 @@ val testJar by tasks.creating(Jar::class) {
 
 publishing {
     publications {
-        create<MavenPublication>("LibModdelling") {
+        create<MavenPublication>("Modelling") {
             from(components["java"])
             artifact(sourcesJar)
             artifact(javadocJar)

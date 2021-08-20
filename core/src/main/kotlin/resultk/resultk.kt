@@ -262,6 +262,8 @@ fun Result<*, *>.any(): Any = when (this) {
     is Success -> result as Any
 }
 
+val <T> Result<*,T>.value:T get() = get()
+
 //</editor-fold>
 
 //<editor-fold desc="Mapping success values and failures">
