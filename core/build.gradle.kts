@@ -158,7 +158,7 @@ tasks.withType<DokkaTask> {
             sourceLink {
                 remoteLineSuffix.set("#L")
                 localDirectory.set(file("src/main/kotlin"))
-                remoteUrl.set(URL("https://github.com/andriesfc/result-for-kotlin/tree/main/lib/src/main/kotlin/"))
+                remoteUrl.set(URL("https://github.com/andriesfc/result-for-kotlin/tree/main/core/src/main/kotlin/"))
             }
         }
     }
