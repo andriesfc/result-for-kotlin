@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import resultk.Result
-import resultk.modelling.templating.ResolveExpression.ByLookupFunction
-import resultk.modelling.templating.eval
+import resultk.modelling.templating.ResolveExpression
+import resultk.modelling.templating.resolve
 import resultk.modelling.testing.assertions.peek
 import resultk.modelling.testing.fixtures.Quote
 import resultk.modelling.testing.fixtures.User
@@ -57,7 +57,7 @@ internal class I8nTest {
             "user.greeting.morning.inspirational"
         ).associateWith { greetingKey ->
             val template = baseMessagesResource.require(greetingKey)
-            val expectedMessage = template.eval(ByLookupFunction { field ->
+            val expectedMessage = template.resolve(ResolveExpression.By { field ->
                 requireNotNull(modelLookup[field]) {
                     """
                 Please insert value for [$field] lookup value in [modelLookup]

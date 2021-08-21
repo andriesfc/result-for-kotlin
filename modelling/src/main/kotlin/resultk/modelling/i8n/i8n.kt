@@ -8,7 +8,7 @@ import resultk.internal.internalMessage
 import resultk.modelling.i8n.I8nError.*
 import resultk.modelling.templating.ResolveExpression
 import resultk.modelling.templating.TemplateError
-import resultk.modelling.templating.eval
+import resultk.modelling.templating.resolve
 import java.util.*
 import kotlin.collections.AbstractSet
 
@@ -68,7 +68,7 @@ sealed class I8nError(private val errorKey: String) {
 
     fun message() =
         internalMessage(errorKey)
-            .eval(ResolveExpression.ByBeanModel(this))
+            .resolve(ResolveExpression.ByModel(this))
             .get().toString()
 }
 
@@ -239,7 +239,7 @@ private class DefaultI8NMessagesBundle(override val bundle: I8nMessagesBundle.Ke
         }
 
         return message.thenResultOf { template ->
-            template.eval(ResolveExpression.ByBeanModel(bean))
+            template.resolve(ResolveExpression.ByModel(bean))
                 .map(StringBuilder::toString)
                 .mapError { e ->
                     MessageBuildFailure(
@@ -266,7 +266,7 @@ private class DefaultI8NMessagesBundle(override val bundle: I8nMessagesBundle.Ke
         val message = queryKey(key)
 
         return message.thenResultOf { template ->
-            template.eval(ResolveExpression.ByMapLookup(map))
+            template.resolve(ResolveExpression.ByMapLookup(map))
                 .map(StringBuilder::toString)
                 .mapError { e ->
                     MessageBuildFailure(
