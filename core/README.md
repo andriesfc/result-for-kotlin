@@ -29,11 +29,11 @@ Thus the whole purpose is to keep on the _**happy path**_!
 
 ## The happy path
 
-The *happy path* refers to a specific logical flow, typically defined by some use case.
+The *happy path* refers to a ideal logical flow with as little as possible deviations from it. Such an ideal flow is typically defined by some use case.
 
 Sometimes a application fail due to some edge case not being handled in the implementation, or something occurring outside of the control of the application: For example, a missing file, or network connection failure. In this case any logic coded is not strictly part of thus happy path.
 
-In the Object Orientated world, these situation are expressed as an `Exception` which are dealt by catching such exceptions. Having such exception handling code may obfuscate the original use-case to the point of turning a simple, clear cut implementation into a mine field of unintended consequences. This becomes even more problematic when the developer blurs the line between domain specific errors (e.g intended or per designed error conditions), and application/infrastructure failures.
+In the Object Orientated world, these situation are expressed as an `Exception` which are dealt by catching such exceptions. Having such exception handling code may obfuscate the original use-case to the point of turning a simple, clear cut implementation into labyrinthian logic flow. With the instant potential to darken any piece of code. A This becomes even more problematic when the developer blurs the line between domain specific errors (e.g intended or per designed error conditions), and application/infrastructure failures.
 
 One the main objectives of this library to assist the developer in keeping on this happy path by shrink-wrapping certain patterns and conventions and exposing these abstractions via a friendly DSL like syntax.
 
@@ -43,9 +43,7 @@ Furthermore this library recognized that most developers choose to walk this hap
 
 ### A function returning a result
 
-A function returning will result in a single instance of typw `Result<E,T>`. By convention the left type (E) represents the specific error. From here onwards there are many ways you can go (staying with `computeNextPayDate()` function.
-
-The _ResultK_ offers 3 standard ways of to deal with such functions:
+A function returning will result in a single instance of typw `Result<E,T>`. By convention the left type (`E`) represents the specific error. From here onwards there are many ways you can go (staying with `computeNextPayDate()` function:
 
 1. Decomposing the result into a possible success value, and an application error. In such a case the application error maybe `null` . In such a case a developer must test for a null error before continuing on the happy path:
 
@@ -61,8 +59,8 @@ The _ResultK_ offers 3 standard ways of to deal with such functions:
 2. A developer my also choose to ignore the error and treat the presence of the error as `null` value:
 
    ```kotlin
-    val nextPayDate = computeNexPayDate(empGrade, empId)
-    println(" Your pay next pay day is: ${nextPayDate.orNull()}")
+    val nextPayDate = computeNexPayDate(empGrade, empId).orNull()
+    println(" Your pay next pay day is: $nextPayDate")
    ```
 
 3. Transform the error into your own specific error, or message:
@@ -173,7 +171,7 @@ Note the following:
 - We declare up front a function to handle low level I/O exceptions.
 - We are passing in a function which produces an appropriate domain error.
 - We are also passing in a function which is responsible to create the file or directory if does not exists.
-- Throwing an `IOException` will never cause us to loos control.
+- Throwing an `IOException` will never cause us to loose control.
 - We are also not capturing unnecessary application/system level exceptions.
 - We only focus on our domain, which by design only care about the following errors:
 
@@ -192,7 +190,7 @@ sealed class FileRequirementError {
 
 ## Exploring further
 
-The library offers a rich set of functional operators to those which prefer a fully functional style of expression, as well as hooks into the wrapping and/or unwrapping of domain errors in the case of the developer not handling said domain error. The hooks can be exploited to handle cross-cutting concerns.
+The library offers a rich set of functional operators to those which prefer a fully functional style of expression, as well as hooks into the wrapping and/or unwrapping of domain errors in the case of a developer not handling said domain error. The hooks can be exploited to handle cross-cutting concerns.
 
 ### Functional Support
 
