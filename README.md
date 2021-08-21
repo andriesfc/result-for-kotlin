@@ -48,7 +48,7 @@ There is only one way to truly build anything in life, and that is to always sta
 
 ## Modules
 
-The project consists of two modules:
+The project consists of the following module(s):
 
 | Module                           | Description                                                                                                |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
