@@ -37,14 +37,17 @@ val htmlDokkaJar by tasks.creating(Jar::class) {
     from(buildDir.resolve("dokka/html"))
 }
 
-val testJar by tasks.creating(Jar::class) {
+
+val testingLibJar by tasks.creating(Jar::class) {
     group = "Build"
     description = "Builds seperate jar which contains all thge tests."
-    archiveClassifier.set("test")
+    archiveBaseName.set("$group-$project-testing")
+    includeEmptyDirs = false
     from(sourceSets.test.get().output) {
         include("resultk/testing/**")
     }
 }
+
 
 fun MavenPublication.describePublication() {
     groupId = "${project.group}"
@@ -67,6 +70,17 @@ fun MavenPublication.describePublication() {
     }
 }
 
+fun MavenPublication.withLibraryVersionMapping() {
+    versionMapping {
+        usage("java-api") {
+            fromResolutionOf("runtimeClasspath")
+        }
+        usage("java-runtime") {
+            fromResolutionResult()
+        }
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("Lib") {
@@ -75,15 +89,7 @@ publishing {
             artifact(sourcesJar)
             artifact(javadocJar)
             artifact(htmlDokkaJar)
-            artifact(testJar)
-            versionMapping {
-                usage("java-api") {
-                    fromResolutionOf("runtimeClasspath")
-                }
-                usage("java-runtime") {
-                    fromResolutionResult()
-                }
-            }
+            withLibraryVersionMapping()
         }
     }
 }

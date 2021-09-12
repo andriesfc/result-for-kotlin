@@ -1,7 +1,7 @@
 val buildVersion by extra("1.0.0-SNAPSHOT")
 
 allprojects {
-    group = "io.github.andriesfc.kotlin.resultk"
+    group = "io.github.andriesfc.resultk"
     version = buildVersion
 }
 
@@ -19,6 +19,10 @@ tasks.register("clean") {
 tasks.register("assemble") {
     description = "Assemble all projects"
     doFirstOnSubProjects()
+}
+
+tasks.wrapper {
+    distributionType = Wrapper.DistributionType.ALL
 }
 //</editor-fold>
 

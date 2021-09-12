@@ -124,6 +124,7 @@ val testJar by tasks.creating(Jar::class) {
     group = "Build"
     description = "Builds seperate jar which contains all thge tests."
     archiveClassifier.set("test")
+    includeEmptyDirs = false
     from(sourceSets.test.get().output) {
         include("resultk/**/testing/**") // want testing support, fixtures etc
         exclude("resultk/**/testing/evolve/**") // but not the stuff used to built out a feature
