@@ -40,6 +40,7 @@ tasks.test {
 group = "io.github.andriesfc.niftyget"
 val kotlinTarget = "1.5"
 val jvmTarget = "11"
+val dokkaVersion = "1.5.0"
 
 tasks.withType<KotlinCompile>().all {
     kotlinOptions.languageVersion = kotlinTarget
