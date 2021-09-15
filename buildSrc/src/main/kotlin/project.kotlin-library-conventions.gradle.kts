@@ -7,3 +7,4 @@ repositories {
     mavenCentral()
     mavenLocal()
 }
+
