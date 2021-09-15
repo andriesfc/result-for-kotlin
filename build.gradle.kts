@@ -41,4 +41,5 @@ fun Task.doFirstOnSubProjects(taskName: String? = null) {
         }
     }
 }
+
 //</editor-fold>
