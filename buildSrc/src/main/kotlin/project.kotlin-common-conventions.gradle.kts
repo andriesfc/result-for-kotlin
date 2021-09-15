@@ -15,7 +15,7 @@ dependencies {
     constraints {
         implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
-        implementation("com.willowtreeapps.assertk:assertk-jvm:0.24")
+        implementation("com.willowtreeapps.assertk:assertk-jvm:0.25")
         implementation("com.github.javafaker:javafaker:1.0.2")
         implementation("org.junit.jupiter:junit-jupiter:5.7.2")
         implementation("org.junit.jupiter:junit-jupiter-params:5.7.2")
