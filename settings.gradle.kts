@@ -16,6 +16,5 @@ rootProject.name = "resultk"
 include(
     "core",
     "core-error",
-    "release"
 )
 
