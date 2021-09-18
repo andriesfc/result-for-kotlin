@@ -1,4 +1,9 @@
-val buildVersion by extra("1.0.0-SNAPSHOT")
+
+val releasableProjects = listOf(":core", ":core-error")
+val releaseVersion = "$version"
+
+val buildVersion by lazy { project.file("version").readLines().first() }
+
 
 allprojects {
     group = "io.github.andriesfc.resultk"
@@ -29,7 +34,7 @@ tasks.wrapper {
 
 //<editor-fold desc="Supporting functions">
 fun Task.doFirstOnSubProjects(taskName: String? = null) {
-    group = "Project Specific"
+    group = "Project"
     val todo = taskName ?: name
     doFirst {
         subprojects {
