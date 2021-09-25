@@ -6,7 +6,7 @@ pluginManagement {
         maven(uri("https://plugins.gradle.org/m2/"))
     }
     plugins {
-        id("org.jetbrains.dokka") version("1.5.30")
+        id("org.jetbrains.dokka") version("1.5.31")
         kotlin("jvm").version("1.5.30")
     }
 }

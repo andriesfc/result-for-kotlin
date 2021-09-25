@@ -1,10 +1,9 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm")
     `java-base`
     `maven-publish`
 }
 
-val packingTasks = "packaging"
+val packingTasks = "publishing"
 
 val packageSources: Jar by tasks.creating(Jar::class) {
     group = packingTasks
@@ -27,6 +26,12 @@ val packageJavaDocs: Jar by tasks.creating(Jar::class) {
     description = "Packages all javadocs into a single jar for publication"
     dependsOn(":${project.name}:dokkaJavadoc")
     from(buildDir.resolve("dokka/javadoc"))
+}
+
+val packageArtifacts: Task by tasks.creating {
+    group = packingTasks
+    description = "Convenience task which just package the sources, dokka html and javadocs into a jars."
+    dependsOn(packageSources, packageDokkaHtml, packageJavaDocs)
 }
 
 publishing {
