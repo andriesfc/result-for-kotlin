@@ -5,6 +5,6 @@ pluginManagement {
         maven(uri("https://plugins.gradle.org/m2/"))
     }
     plugins {
-        kotlin("jvm").version("1.5.30")
+        kotlin("jvm").version("1.5.31")
     }
 }

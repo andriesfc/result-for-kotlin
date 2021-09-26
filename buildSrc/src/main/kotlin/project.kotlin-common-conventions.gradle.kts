@@ -12,24 +12,29 @@ repositories {
 
 dependencies {
 
+    val kotlinVersion = "1.5.31"
+    val junitVersion = "5.8.1"
+    val assertkVersion = "0.25"
+    val mockkVersion = "1.12.0"
+    val coroutineVersion = "1.5.1"
+
     constraints {
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
-        implementation("com.github.ajalt.clikt:clikt:3.2.0")
-        implementation("org.jetbrains.kotlin:kotlin-reflect")
-        testImplementation("org.jetbrains.kotlin:kotlin-reflect")
-        testImplementation("com.willowtreeapps.assertk:assertk-jvm:0.25")
-        testImplementation("org.junit.jupiter:junit-jupiter:5.7.2")
-        testImplementation("org.junit.jupiter:junit-jupiter-params:5.7.2")
-        testImplementation("io.mockk:mockk:1.12.0")
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
+        implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
+        testImplementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
+        testImplementation("com.willowtreeapps.assertk:assertk-jvm:$assertkVersion")
+        testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+        testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
+        testImplementation("io.mockk:mockk:$mockkVersion")
     }
 
-    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.5.30"))
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom:$kotlinVersion"))
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.junit.jupiter:junit-jupiter-params")
-    testImplementation("io.mockk:mockk:1.12.0")
+    testImplementation("io.mockk:mockk")
     testImplementation("com.willowtreeapps.assertk:assertk-jvm")
     testImplementation(kotlin("reflect"))
 }
@@ -43,9 +48,14 @@ val kotlinTarget = "1.5"
 val jvmTarget = "11"
 val dokkaVersion = "1.5.30"
 
-tasks.withType<KotlinCompile>().all {
+tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions.languageVersion = kotlinTarget
     kotlinOptions.jvmTarget = jvmTarget
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    sourceCompatibility = jvmTarget
+    targetCompatibility = jvmTarget
 }
 
 java {
