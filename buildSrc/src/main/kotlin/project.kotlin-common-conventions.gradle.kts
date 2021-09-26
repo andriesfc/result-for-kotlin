@@ -12,17 +12,15 @@ repositories {
 
 dependencies {
 
-    val kotlinVersion = "1.5.30"
+    val kotlinVersion = "1.5.31"
     val junitVersion = "5.8.1"
     val assertkVersion = "0.25"
     val mockkVersion = "1.12.0"
     val coroutineVersion = "1.5.1"
-    val clicktVersion = "3.2.0"
 
     constraints {
         implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutineVersion")
-        implementation("com.github.ajalt.clikt:clikt:$clicktVersion")
         implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
         testImplementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
         testImplementation("com.willowtreeapps.assertk:assertk-jvm:$assertkVersion")
